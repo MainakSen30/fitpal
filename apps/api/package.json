@@ -1,0 +1,31 @@
+{
+  "name": "@fitpal/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist",
+    "start": "bun run dist/index.js",
+    "lint": "@biomejs/biome lint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4",
+    "@hono/zod-validator": "^0.4",
+    "drizzle-orm": "^0.38",
+    "postgres": "^3",
+    "ioredis": "^5",
+    "@aws-sdk/client-s3": "^3",
+    "@aws-sdk/s3-request-presigner": "^3",
+    "meilisearch": "^0.45",
+    "zod": "^3",
+    "@fitpal/shared": "*",
+    "@fitpal/database": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5",
+    "@biomejs/biome": "^1"
+  }
+}
