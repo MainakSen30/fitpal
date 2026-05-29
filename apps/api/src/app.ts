@@ -16,8 +16,9 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 
 const v1 = app.basePath("/api/v1");
 
-// Placeholder: mount routes here
-// v1.route("/auth", authRoutes);
+import { authRoutes } from "./routes/auth";
+
+v1.route("/auth", authRoutes);
 // v1.route("/workouts", workoutRoutes);
 // v1.route("/nutrition", nutritionRoutes);
 // v1.route("/progress", progressRoutes);

@@ -20,6 +20,8 @@
     "@aws-sdk/s3-request-presigner": "^3",
     "meilisearch": "^0.45",
     "zod": "^3",
+    "jose": "^5",
+    "@node-rs/bcrypt": "^1",
     "@fitpal/shared": "*",
     "@fitpal/database": "*"
   },
