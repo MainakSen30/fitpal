@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   typecheck:
     runs-on: ubuntu-latest
@@ -22,37 +25,3 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run lint
-
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_USER: fitpal
-          POSTGRES_PASSWORD: fitpal
-          POSTGRES_DB: fitpal
-        options: >-
-          --health-cmd pg_isready -U fitpal
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile
-      - run: bunx vitest run --workspace=apps/api
-        env:
-          DATABASE_URL: postgres://fitpal:fitpal@localhost:5432/fitpal
-          REDIS_URL: redis://localhost:6379

@@ -9,7 +9,7 @@
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
     "push": "drizzle-kit push",
-    "lint": "@biomejs/biome lint src/",
+    "lint": "biome lint src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

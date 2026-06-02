@@ -7,7 +7,7 @@
     "dev": "bun run --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist",
     "start": "bun run dist/index.js",
-    "lint": "@biomejs/biome lint src/",
+    "lint": "biome lint src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
