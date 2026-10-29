@@ -8,7 +8,14 @@ import {
   handleGoogleCallback,
   createSession,
   destroySession,
+  sendPasswordResetEmail,
+  resetPassword,
+  deleteAccount,
+  sendOtp,
+  verifyOtp,
+  loginWithOtp,
 } from "../services/auth";
+import { requireAuth } from "../middleware/requireAuth";
 
 const auth = new Hono();
 
@@ -28,6 +35,45 @@ auth.post("/register", zValidator("json", z.object({
   } catch (e) {
     const message = e instanceof Error ? e.message : "Registration failed";
     return c.json({ error: message }, 409);
+  }
+});
+
+// OTP: send OTP for email verification or login (email/password signup users)
+auth.post("/otp/send", zValidator("json", z.object({
+  email: z.string().email(),
+  purpose: z.enum(["email_verification", "login"]),
+})), async (c) => {
+  try {
+    const { email, purpose } = c.req.valid("json");
+    await sendOtp(email, purpose);
+    return c.json({ success: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to send OTP";
+    return c.json({ error: message }, 400);
+  }
+});
+
+// OTP: verify OTP
+auth.post("/otp/verify", zValidator("json", z.object({
+  email: z.string().email(),
+  code: z.string().length(6),
+  purpose: z.enum(["email_verification", "login"]),
+})), async (c) => {
+  try {
+    const { email, code, purpose } = c.req.valid("json");
+    await verifyOtp(email, code, purpose);
+    
+    if (purpose === "login") {
+      const user = await loginWithOtp(email);
+      const sessionId = await createSession(user.id);
+      c.header("Set-Cookie", serializeSessionCookie(sessionId));
+      return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl } });
+    }
+    
+    return c.json({ success: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Invalid OTP";
+    return c.json({ error: message }, 401);
   }
 });
 
@@ -76,6 +122,35 @@ auth.get("/google/callback", async (c) => {
   }
 });
 
+// Password reset - request
+auth.post("/forgot-password", zValidator("json", z.object({
+  email: z.string().email(),
+})), async (c) => {
+  try {
+    const { email } = c.req.valid("json");
+    await sendPasswordResetEmail(email);
+    return c.json({ success: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to send reset email";
+    return c.json({ error: message }, 400);
+  }
+});
+
+// Password reset - confirm
+auth.post("/reset-password", zValidator("json", z.object({
+  token: z.string().min(1),
+  password: z.string().min(8),
+})), async (c) => {
+  try {
+    const { token, password } = c.req.valid("json");
+    await resetPassword(token, password);
+    return c.json({ success: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to reset password";
+    return c.json({ error: message }, 400);
+  }
+});
+
 // Logout
 auth.post("/logout", async (c) => {
   const sessionId = c.req.cookie("session");
@@ -84,6 +159,21 @@ auth.post("/logout", async (c) => {
   }
   c.header("Set-Cookie", serializeSessionCookie("", 0));
   return c.json({ success: true });
+});
+
+// Delete account (requires auth)
+auth.delete("/account", requireAuth, async (c) => {
+  try {
+    const userId = c.get("userId") as string;
+    const sessionId = c.get("sessionId") as string;
+    await destroySession(sessionId);
+    await deleteAccount(userId);
+    c.header("Set-Cookie", serializeSessionCookie("", 0));
+    return c.json({ success: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed to delete account";
+    return c.json({ error: message }, 400);
+  }
 });
 
 // Get current session

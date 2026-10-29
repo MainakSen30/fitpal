@@ -8,3 +8,7 @@ export { routines, routineExercises } from "./routines";
 export type { Routine, NewRoutine, RoutineExercise, NewRoutineExercise } from "./routines";
 export { workouts, workoutExercises, workoutSets } from "./workouts";
 export type { Workout, NewWorkout, WorkoutExercise, NewWorkoutExercise, WorkoutSet, NewWorkoutSet } from "./workouts";
+export { passwordResetTokens } from "./auth_tokens";
+export type { PasswordResetToken, NewPasswordResetToken } from "./auth_tokens";
+export { otpCodes } from "./otp_codes";
+export type { OtpCode, NewOtpCode } from "./otp_codes";

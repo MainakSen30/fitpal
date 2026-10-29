@@ -1,15 +1,24 @@
-import { eq, or } from "drizzle-orm";
+import { eq, or, and, gt, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { users } from "@fitpal/database";
+import { users, passwordResetTokens, otpCodes } from "@fitpal/database";
 import { redis } from "../lib/redis";
 import { SignJWT, jwtVerify } from "jose";
 import { hash, verify } from "@node-rs/bcrypt";
+import crypto from "crypto";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
 const SESSION_PREFIX = "session:";
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-dev-secret-min-32-chars!!"
 );
+
+function generateOtpCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function hashToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
 
 export async function registerUser(email: string, password: string, name: string) {
   const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
@@ -123,6 +132,101 @@ export async function validateSession(sessionId: string) {
 
 export async function destroySession(sessionId: string) {
   await redis.del(`${SESSION_PREFIX}${sessionId}`);
+}
+
+export async function sendPasswordResetEmail(email: string) {
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!user) {
+    // Return silently to prevent user enumeration
+    return { success: true };
+  }
+
+  const token = crypto.randomUUID() + crypto.randomUUID();
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  await db.insert(passwordResetTokens).values({
+    userId: user.id,
+    tokenHash,
+    expiresAt,
+  });
+
+  // In production, send email via provider. For now, log in dev
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[DEV] Password reset token for ${email}: ${token}`);
+  }
+
+  return { success: true };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const tokenHash = hashToken(token);
+  const [resetToken] = await db
+    .select()
+    .from(passwordResetTokens)
+    .where(and(eq(passwordResetTokens.tokenHash, tokenHash), isNull(passwordResetTokens.usedAt), gt(passwordResetTokens.expiresAt, new Date())))
+    .limit(1);
+
+  if (!resetToken) {
+    throw new Error("Invalid or expired reset token");
+  }
+
+  const passwordHash = await hash(newPassword, 10);
+  await db.update(users).set({ passwordHash }).where(eq(users.id, resetToken.userId));
+  await db.update(passwordResetTokens).set({ usedAt: new Date() }).where(eq(passwordResetTokens.id, resetToken.id));
+
+  return { success: true };
+}
+
+export async function deleteAccount(userId: string) {
+  // Hard delete - cascades will handle related data
+  await db.delete(users).where(eq(users.id, userId));
+  return { success: true };
+}
+
+export async function sendOtp(email: string, purpose: "email_verification" | "login") {
+  const code = generateOtpCode();
+  const codeHash = hashToken(code);
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await db.insert(otpCodes).values({
+    email,
+    codeHash,
+    purpose,
+    expiresAt,
+    attempts: "0",
+  });
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[DEV] OTP for ${email} (${purpose}): ${code}`);
+  }
+
+  return { success: true };
+}
+
+export async function verifyOtp(email: string, code: string, purpose: "email_verification" | "login") {
+  const codeHash = hashToken(code);
+  const [otp] = await db
+    .select()
+    .from(otpCodes)
+    .where(and(eq(otpCodes.email, email), eq(otpCodes.codeHash, codeHash), eq(otpCodes.purpose, purpose), eq(otpCodes.verified, false), gt(otpCodes.expiresAt, new Date()), isNull(otpCodes.usedAt)))
+    .limit(1);
+
+  if (!otp) {
+    throw new Error("Invalid or expired OTP");
+  }
+
+  await db.update(otpCodes).set({ verified: true, usedAt: new Date() }).where(eq(otpCodes.id, otp.id));
+  return { success: true };
+}
+
+export async function loginWithOtp(email: string) {
+  // For users who want OTP-based login (email/password signup flow)
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  return user;
 }
 
 // Also sign a JWT for the OAuth state to prevent CSRF
