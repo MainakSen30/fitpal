@@ -13,6 +13,7 @@ import {
   updateSet,
   removeSet,
   completeWorkout,
+  updateWorkout,
   deleteWorkout,
 } from "../services/workout";
 
@@ -45,6 +46,21 @@ workouts.get("/:id", async (c) => {
   } catch (e) {
     const message = e instanceof Error ? e.message : "Not found";
     return c.json({ error: message }, 404);
+  }
+});
+
+workouts.patch("/:id", zValidator("json", z.object({
+  name: z.string().optional(),
+})), async (c) => {
+  const userId = c.get("userId") as string;
+  const id = c.req.param("id");
+  const body = c.req.valid("json");
+  try {
+    const workout = await updateWorkout(userId, id, body);
+    return c.json({ workout });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Failed";
+    return c.json({ error: message }, 400);
   }
 });
 

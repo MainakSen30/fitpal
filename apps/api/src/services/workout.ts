@@ -204,6 +204,22 @@ export async function completeWorkout(userId: string, workoutId: string) {
   return completed;
 }
 
+export async function updateWorkout(userId: string, workoutId: string, data: { name?: string }) {
+  const [workout] = await db
+    .select()
+    .from(workouts)
+    .where(and(eq(workouts.id, workoutId), eq(workouts.userId, userId)))
+    .limit(1);
+  if (!workout) throw new Error("Workout not found");
+
+  const [updated] = await db
+    .update(workouts)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(workouts.id, workoutId))
+    .returning();
+  return updated;
+}
+
 export async function deleteWorkout(userId: string, workoutId: string) {
   const [workout] = await db
     .select()
