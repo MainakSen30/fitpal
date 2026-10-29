@@ -1,2 +1,10 @@
 export { users } from "./users";
 export type { User, NewUser } from "./users";
+export { profiles } from "./profiles";
+export type { Profile, NewProfile } from "./profiles";
+export { exercises } from "./exercises";
+export type { Exercise, NewExercise } from "./exercises";
+export { routines, routineExercises } from "./routines";
+export type { Routine, NewRoutine, RoutineExercise, NewRoutineExercise } from "./routines";
+export { workouts, workoutExercises, workoutSets } from "./workouts";
+export type { Workout, NewWorkout, WorkoutExercise, NewWorkoutExercise, WorkoutSet, NewWorkoutSet } from "./workouts";
