@@ -152,12 +152,12 @@ export default function Home() {
             </p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.05 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.05 }} className="h-full">
               <Link href="/features/workout-logging" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
                 <GlareCard className="w-full h-full">
-                  <div className="flex h-full flex-col justify-between p-6">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
-                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 7h12M6 12h12M6 17h12" />
                         </svg>
@@ -165,17 +165,17 @@ export default function Home() {
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Workout Logging</h3>
                       <p className="text-sm text-gray-400 leading-relaxed">Log every exercise, set, rep, and weight without interrupting your workout.</p>
                     </div>
-                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                    <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
                 </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="h-full">
               <Link href="/features/routines" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
                 <GlareCard className="w-full h-full">
-                  <div className="flex h-full flex-col justify-between p-6">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
-                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
@@ -183,17 +183,17 @@ export default function Home() {
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Routines</h3>
                       <p className="text-sm text-gray-400 leading-relaxed">Create and reuse your own workout routines to make every training session easier to start.</p>
                     </div>
-                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                    <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
                 </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }} className="h-full">
               <Link href="/features/logbook" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
                 <GlareCard className="w-full h-full">
-                  <div className="flex h-full flex-col justify-between p-6">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
-                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
@@ -201,17 +201,17 @@ export default function Home() {
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Logbook & PRs</h3>
                       <p className="text-sm text-gray-400 leading-relaxed">Look back at previous workouts and keep track of your personal records.</p>
                     </div>
-                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                    <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
                 </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }} className="h-full">
               <Link href="/features/progress" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
                 <GlareCard className="w-full h-full">
-                  <div className="flex h-full flex-col justify-between p-6">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
-                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
@@ -219,17 +219,17 @@ export default function Home() {
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Weekly Progress</h3>
                       <p className="text-sm text-gray-400 leading-relaxed">See your weekly training activity and understand how consistently you're progressing.</p>
                     </div>
-                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                    <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
                 </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.25 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.25 }} className="h-full">
               <Link href="/features/rest-timer" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
                 <GlareCard className="w-full h-full">
-                  <div className="flex h-full flex-col justify-between p-6">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
-                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -237,17 +237,17 @@ export default function Home() {
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Rest Timer</h3>
                       <p className="text-sm text-gray-400 leading-relaxed">Keep your recovery on track with a built-in rest timer between sets.</p>
                     </div>
-                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                    <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
                 </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }} className="h-full">
               <Link href="/features/offline-sync" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
                 <GlareCard className="w-full h-full">
-                  <div className="flex h-full flex-col justify-between p-6">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
-                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
                         </svg>
@@ -255,7 +255,7 @@ export default function Home() {
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Offline Ready</h3>
                       <p className="text-sm text-gray-400 leading-relaxed">Keep logging your workouts even when you don't have an internet connection.</p>
                     </div>
-                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                    <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
                 </GlareCard>
               </Link>
