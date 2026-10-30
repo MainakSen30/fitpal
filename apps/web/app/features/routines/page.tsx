@@ -63,7 +63,7 @@ export default function RoutinesPage() {
                   <ListChecks className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[140px]"><CanvasText text="Custom Routines & Splits" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
+                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[120px]"><CanvasText text="Custom Routines & Splits" className="font-semibold tracking-tight text-4xl sm:text-5xl lg:text-6xl" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Build your perfect training program. Create Push/Pull/Legs, Upper/Lower, or any custom split tailored to your goals. Start any routine instantly with all your targets pre-loaded."
