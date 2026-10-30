@@ -13,7 +13,7 @@ export default function WorkoutLoggingPage() {
       </div>
 
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-7xl">
-        <div className="backdrop-blur-xl bg-[#090807]/80 border border-white/10 rounded-full px-7 h-16 flex items-center justify-between shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
+        <div className="backdrop-blur-2xl bg-[#090807]/60 border border-white/10 rounded-full px-7 h-16 flex items-center justify-between shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
