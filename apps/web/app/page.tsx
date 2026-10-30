@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { CometCard } from "@/components/ui/comet-card";
+import { GlareCard } from "@/components/ui/glare-card";
 
 export default function Home() {
   return (
@@ -143,78 +144,120 @@ export default function Home() {
 
         <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="max-w-3xl mb-12">
-            <div className="text-xs uppercase tracking-[0.3em] text-brand-400 font-mono mb-4">Built for your training</div>
             <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white mb-4 leading-tight">
-              Everything you need.<br />Nothing you don't.
+              Everything You Need to Own Your Progress.
             </h2>
             <p className="text-lg text-gray-400 max-w-2xl">
-              From your first set to your weekly progress, FitPal keeps your training organized and your goals in sight.
+              From logging every set to tracking personal records, FitPal keeps your training organised and your progress visible.
             </p>
           </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 lg:gap-5">
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="md:col-span-4">
-              <Link href="/features/workout-logging">
-                <div className="group relative overflow-hidden rounded-3xl h-[420px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
-                  <div className="absolute inset-0">
-                    <img src="/features/track-every-set.jpg" alt="Track every set" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  </div>
-                  <div className="relative h-full flex flex-col justify-end p-8">
-                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Track</div>
-                    <h3 className="text-3xl sm:text-4xl font-semibold text-white mb-3 tracking-tight">Track Every Set</h3>
-                    <p className="text-base text-gray-300 max-w-md">Log every rep, every set, and every kilogram. Keep your training history accurate and organized.</p>
-                    <div className="mt-6 flex items-center gap-2 text-sm text-brand-400 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
-                      <span>Explore workout logging</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.05 }}>
+              <Link href="/features/workout-logging" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-6">
+                    <div>
+                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6 7h12M6 12h12M6 17h12" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Workout Logging</h3>
+                      <p className="text-sm text-gray-400 leading-relaxed">Log every exercise, set, rep, and weight without interrupting your workout.</p>
                     </div>
+                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
                   </div>
-                </div>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }} className="md:col-span-2">
-              <Link href="/features/routines">
-                <div className="group relative overflow-hidden rounded-3xl h-[420px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
-                  <div className="absolute inset-0">
-                    <img src="/features/build-routine.jpg" alt="Build your routine" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }}>
+              <Link href="/features/routines" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-6">
+                    <div>
+                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Routines</h3>
+                      <p className="text-sm text-gray-400 leading-relaxed">Create and reuse your own workout routines to make every training session easier to start.</p>
+                    </div>
+                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
                   </div>
-                  <div className="relative h-full flex flex-col justify-end p-6">
-                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Plan</div>
-                    <h3 className="text-2xl font-semibold text-white mb-2 tracking-tight">Your Routine. Your Rules.</h3>
-                    <p className="text-sm text-gray-300">Create personalized workout routines that fit your goals.</p>
-                  </div>
-                </div>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }} className="md:col-span-3">
-              <Link href="/features/progress">
-                <div className="group relative overflow-hidden rounded-3xl h-[380px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
-                  <div className="absolute inset-0">
-                    <img src="/features/own-progress.jpg" alt="Own your progress" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-transparent" />
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }}>
+              <Link href="/features/logbook" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-6">
+                    <div>
+                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Logbook & PRs</h3>
+                      <p className="text-sm text-gray-400 leading-relaxed">Look back at previous workouts and keep track of your personal records.</p>
+                    </div>
+                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
                   </div>
-                  <div className="relative h-full flex flex-col justify-end p-7">
-                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Measure</div>
-                    <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-2 tracking-tight">Progress You Can See</h3>
-                    <p className="text-sm text-gray-300 max-w-sm">Look back, compare performance, and see how your training evolves.</p>
-                  </div>
-                </div>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="md:col-span-3">
-              <Link href="/features/logbook">
-                <div className="group relative overflow-hidden rounded-3xl h-[380px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
-                  <div className="absolute inset-0">
-                    <img src="/features/training-logbook.jpg" alt="Training logbook" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-transparent" />
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}>
+              <Link href="/features/progress" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-6">
+                    <div>
+                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Weekly Progress</h3>
+                      <p className="text-sm text-gray-400 leading-relaxed">See your weekly training activity and understand how consistently you're progressing.</p>
+                    </div>
+                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
                   </div>
-                  <div className="relative h-full flex flex-col justify-end p-7">
-                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Record</div>
-                    <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-2 tracking-tight">Every Workout Counts</h3>
-                    <p className="text-sm text-gray-300 max-w-sm">Keep every session in one place and revisit your training history anytime.</p>
+                </GlareCard>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.25 }}>
+              <Link href="/features/rest-timer" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-6">
+                    <div>
+                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Rest Timer</h3>
+                      <p className="text-sm text-gray-400 leading-relaxed">Keep your recovery on track with a built-in rest timer between sets.</p>
+                    </div>
+                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
                   </div>
-                </div>
+                </GlareCard>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
+              <Link href="/features/offline-sync" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-6">
+                    <div>
+                      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Offline Ready</h3>
+                      <p className="text-sm text-gray-400 leading-relaxed">Keep logging your workouts even when you don't have an internet connection.</p>
+                    </div>
+                    <div className="mt-6 text-xs text-brand-400">Learn more</div>
+                  </div>
+                </GlareCard>
               </Link>
             </motion.div>
           </div>
