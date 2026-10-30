@@ -31,21 +31,13 @@ export default function RestTimerPage() {
             </div>
             <span className="text-lg font-semibold tracking-tight text-white">Fit<span className="text-brand-500">Pal</span></span>
           </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-stone-400">
-            <div className="relative group">
-              <button className="flex items-center gap-1 hover:text-white transition-colors">Features<svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg></button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <div className="w-56 rounded-xl bg-[#090807]/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
-                  <Link href="/features/workout-logging" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5"><div className="text-sm text-white">Workout Logging</div><div className="text-xs text-stone-500">Log sets, reps & weights</div></Link>
-                  <Link href="/features/routines" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5"><div className="text-sm text-white">Custom Routines</div><div className="text-xs text-stone-500">Build your split</div></Link>
-                  <Link href="/features/logbook" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5"><div className="text-sm text-white">Logbook & PRs</div><div className="text-xs text-stone-500">Track history & records</div></Link>
-                  <Link href="/features/progress" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5"><div className="text-sm text-white">Weekly Progress</div><div className="text-xs text-stone-500">Analytics & insights</div></Link>
-                  <Link href="/features/rest-timer" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5"><div className="text-sm text-white">Rest Timer</div><div className="text-xs text-stone-500">Smart rest countdown</div></Link>
-                  <Link href="/features/offline-sync" className="block px-4 py-2.5 hover:bg-white/5 transition-colors"><div className="text-sm text-white">Offline Ready</div><div className="text-xs text-stone-500">Train anywhere</div></Link>
-                </div>
-              </div>
-            </div>
-            <Link href="/#download" className="hover:text-white transition-colors">Download</Link>
+          <nav className="hidden lg:flex items-center gap-6 text-sm text-stone-400">
+            <Link href="/features/workout-logging" className="hover:text-white transition-colors">Workout Logging</Link>
+            <Link href="/features/routines" className="hover:text-white transition-colors">Routines</Link>
+            <Link href="/features/logbook" className="hover:text-white transition-colors">Logbook & PRs</Link>
+            <Link href="/features/progress" className="hover:text-white transition-colors">Weekly Progress</Link>
+            <Link href="/features/rest-timer" className="text-white">Rest Timer</Link>
+            <Link href="/features/offline-sync" className="hover:text-white transition-colors">Offline Ready</Link>
           </nav>
           <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">Get the App</Link>
         </div>
