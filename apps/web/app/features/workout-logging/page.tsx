@@ -65,7 +65,7 @@ export default function WorkoutLoggingPage() {
                   <Zap className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <div className="mb-6"><CanvasText text="Quick Workout Logging" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
+                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[120px]"><CanvasText text="Quick Workout Logging" className="font-semibold tracking-tight text-4xl sm:text-5xl lg:text-6xl" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Log sets, reps, and weights faster than ever. Start from scratch or from a routine, track your progress set by set, and hit new PRs with intelligent auto-fill and instant PR detection."

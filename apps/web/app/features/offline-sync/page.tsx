@@ -68,7 +68,7 @@ export default function OfflineSyncPage() {
                   <WifiOff className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <div className="mb-6"><CanvasText text="100% Offline Ready" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
+                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[140px]"><CanvasText text="100% Offline Ready" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Gym basement with no signal? No problem. Log your entire workout offline and it syncs automatically when you're back online. Never miss a rep."

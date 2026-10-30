@@ -70,7 +70,7 @@ export default function ProgressPage() {
                   <TrendingUp className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <div className="mb-6"><CanvasText text="Weekly Progress & Analytics" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
+                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[140px]"><CanvasText text="Weekly Progress & Analytics" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Visualize your gains with comprehensive weekly stats. Track workouts, sets, volume, and time while comparing week-over-week to optimize your training."
