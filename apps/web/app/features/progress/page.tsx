@@ -21,8 +21,8 @@ export default function ProgressPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_0%,rgba(249,115,22,0.1),transparent_70%)]" />
       </div>
 
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-6xl">
-        <div className="backdrop-blur-xl bg-[#090807]/70 border border-white/5 rounded-full px-6 h-14 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-7xl">
+        <div className="backdrop-blur-xl bg-[#090807]/80 border border-white/10 rounded-full px-6 h-16 flex items-center justify-between shadow-[0_8px_40px_rgba(0,0,0,0.5)]">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@ export default function ProgressPage() {
           </div>
         </section>
 
-        <section className="py-16 md:py-24 border-t border-white/5">
+        <section className="py-16 md:py-24 border-t border-white/10">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
             <p className="text-lg text-stone-400 mb-10">Download FitPal and track every rep towards your goals.</p>
@@ -99,7 +99,7 @@ export default function ProgressPage() {
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/5 py-10">
+      <footer className="relative z-10 border-t border-white/10 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2.5">
