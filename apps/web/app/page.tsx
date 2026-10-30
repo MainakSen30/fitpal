@@ -9,17 +9,14 @@ export default function Home() {
       <header className="sticky top-0 z-50 w-full border-b border-white/[0.07] bg-dark-base/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 p-0.5 shadow-glow-sm">
-              <div className="w-full h-full bg-dark-base rounded-[10px] flex items-center justify-center">
-                <svg className="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12.72 2.03C12.35 1.5 11.53 1.57 11.26 2.15C9.79 5.25 8.16 8.04 8.7 10.74C8.94 11.96 9.61 12.8 9.94 13.19C9.28 12.63 8.35 11.52 8.35 9.77C8.35 8.8 7.9 7.82 7.15 7.23C6.39 6.64 5.42 6.53 4.67 7.07C3.12 8.17 2 10.37 2 13.5C2 18.75 6.25 23 11.5 23C16.75 23 21 18.75 21 13.5C21 8.85 17.5 4.3 12.72 2.03ZM12.18 20.91C9.64 20.91 7.6 18.96 7.6 16.5C7.6 14.63 8.77 13.41 9.93 12.44C10.63 11.85 11.38 11.23 11.83 10.33C12.92 11.92 14.61 13.48 14.61 16.03C14.61 18.71 13.51 20.91 12.18 20.91Z" />
-                </svg>
-              </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow-sm">
+              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
+              </svg>
             </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl font-semibold tracking-tight text-white">FitPal</span>
-              <span className="text-[10px] font-bold text-brand-500 tracking-wider uppercase">Pro</span>
-            </div>
+            <span className="text-xl font-semibold tracking-tight text-white">
+              Fit<span className="text-brand-500">Pal</span>
+            </span>
           </Link>
           <nav className="hidden lg:flex items-center gap-1 glass-pill px-3 py-1 rounded-full">
             <Link href="/features/workout-logging" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Workout Logging</Link>
@@ -158,10 +155,10 @@ export default function Home() {
       <footer className="border-t border-white/[0.07] py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 p-0.5">
-              <div className="w-full h-full bg-dark-base rounded-[10px] flex items-center justify-center">
-                <svg className="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.72 2.03C12.35 1.5 11.53 1.57 11.26 2.15C9.79 5.25 8.16 8.04 8.7 10.74C8.94 11.96 9.61 12.8 9.94 13.19C9.28 12.63 8.35 11.52 8.35 9.77C8.35 8.8 7.9 7.82 7.15 7.23C6.39 6.64 5.42 6.53 4.67 7.07C3.12 8.17 2 10.37 2 13.5C2 18.75 6.25 23 11.5 23C16.75 23 21 18.75 21 13.5C21 8.85 17.5 4.3 12.72 2.03ZM12.18 20.91C9.64 20.91 7.6 18.96 7.6 16.5C7.6 14.63 8.77 13.41 9.93 12.44C10.63 11.85 11.38 11.23 11.83 10.33C12.92 11.92 14.61 13.48 14.61 16.03C14.61 18.71 13.51 20.91 12.18 20.91Z" /></svg>
-              </div>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
+              </svg>
             </div>
             <span className="text-sm font-medium text-white">FitPal</span>
             <span className="text-xs text-gray-500">© 2026 FitPal Inc.</span>
