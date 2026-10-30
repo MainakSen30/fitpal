@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { CometCard } from "@/components/ui/comet-card";
 import { CanvasText } from "@/components/ui/canvas-text";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { NoiseBackground } from "@/components/ui/noise-background";
+import { GlareCard } from "@/components/ui/glare-card";
 
 export default function Home() {
   return (
@@ -166,16 +166,10 @@ export default function Home() {
             </p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5">
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.05 }}>
-              <Link href="/features/workout-logging" className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-2xl">
-                <NoiseBackground
-                  className="w-full h-full rounded-2xl"
-                  containerClassName="w-full h-full"
-                  gradientColors={["rgba(249,115,22,0.45)", "rgba(234,88,12,0.35)", "rgba(251,146,60,0.25)"]}
-                  noiseIntensity={0.18}
-                  speed={0.08}
-                >
-                  <div className="flex h-full flex-col justify-between p-5 border border-white/10 rounded-2xl transition-all group-hover:border-brand-500/40">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.05 }} className="h-full">
+              <Link href="/features/workout-logging" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,23 +177,17 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Workout Logging</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">Log exercises, individual sets, reps, and weights.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">Log every exercise, set, rep, and weight without interrupting your workout.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
-                </NoiseBackground>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }}>
-              <Link href="/features/routines" className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-2xl">
-                <NoiseBackground
-                  className="w-full h-full rounded-2xl"
-                  containerClassName="w-full h-full"
-                  gradientColors={["rgba(249,115,22,0.45)", "rgba(234,88,12,0.35)", "rgba(251,146,60,0.25)"]}
-                  noiseIntensity={0.18}
-                  speed={0.08}
-                >
-                  <div className="flex h-full flex-col justify-between p-5 border border-white/10 rounded-2xl transition-all group-hover:border-brand-500/40">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="h-full">
+              <Link href="/features/routines" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,23 +195,17 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Routines</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">Create and reuse custom workout routines.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">Create and reuse your own workout routines to make every training session easier to start.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
-                </NoiseBackground>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }}>
-              <Link href="/features/logbook" className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-2xl">
-                <NoiseBackground
-                  className="w-full h-full rounded-2xl"
-                  containerClassName="w-full h-full"
-                  gradientColors={["rgba(249,115,22,0.45)", "rgba(234,88,12,0.35)", "rgba(251,146,60,0.25)"]}
-                  noiseIntensity={0.18}
-                  speed={0.08}
-                >
-                  <div className="flex h-full flex-col justify-between p-5 border border-white/10 rounded-2xl transition-all group-hover:border-brand-500/40">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }} className="h-full">
+              <Link href="/features/logbook" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -231,23 +213,17 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Logbook & PRs</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">Review previous workouts and track personal records.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">Look back at previous workouts and keep track of your personal records.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
-                </NoiseBackground>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}>
-              <Link href="/features/progress" className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-2xl">
-                <NoiseBackground
-                  className="w-full h-full rounded-2xl"
-                  containerClassName="w-full h-full"
-                  gradientColors={["rgba(249,115,22,0.45)", "rgba(234,88,12,0.35)", "rgba(251,146,60,0.25)"]}
-                  noiseIntensity={0.18}
-                  speed={0.08}
-                >
-                  <div className="flex h-full flex-col justify-between p-5 border border-white/10 rounded-2xl transition-all group-hover:border-brand-500/40">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }} className="h-full">
+              <Link href="/features/progress" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,23 +231,17 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Weekly Progress</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">Monitor weekly workout activity and consistency.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">See your weekly training activity and understand how consistently you're progressing.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
-                </NoiseBackground>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.25 }}>
-              <Link href="/features/rest-timer" className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-2xl">
-                <NoiseBackground
-                  className="w-full h-full rounded-2xl"
-                  containerClassName="w-full h-full"
-                  gradientColors={["rgba(249,115,22,0.45)", "rgba(234,88,12,0.35)", "rgba(251,146,60,0.25)"]}
-                  noiseIntensity={0.18}
-                  speed={0.08}
-                >
-                  <div className="flex h-full flex-col justify-between p-5 border border-white/10 rounded-2xl transition-all group-hover:border-brand-500/40">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.25 }} className="h-full">
+              <Link href="/features/rest-timer" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,23 +249,17 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Rest Timer</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">Manage recovery time between workout sets.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">Keep your recovery on track with a built-in rest timer between sets.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
-                </NoiseBackground>
+                </GlareCard>
               </Link>
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }}>
-              <Link href="/features/offline-sync" className="group block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-2xl">
-                <NoiseBackground
-                  className="w-full h-full rounded-2xl"
-                  containerClassName="w-full h-full"
-                  gradientColors={["rgba(249,115,22,0.45)", "rgba(234,88,12,0.35)", "rgba(251,146,60,0.25)"]}
-                  noiseIntensity={0.18}
-                  speed={0.08}
-                >
-                  <div className="flex h-full flex-col justify-between p-5 border border-white/10 rounded-2xl transition-all group-hover:border-brand-500/40">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }} className="h-full">
+              <Link href="/features/offline-sync" className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 rounded-[48px]">
+                <GlareCard className="w-full h-full">
+                  <div className="flex h-full flex-col justify-between p-5">
                     <div>
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-brand-500/15 text-brand-400">
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,11 +267,11 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Offline Ready</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">Continue logging workouts without an internet connection.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">Keep logging your workouts even when you don't have an internet connection.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
-                </NoiseBackground>
+                </GlareCard>
               </Link>
             </motion.div>
           </div>
