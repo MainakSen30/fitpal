@@ -6,6 +6,7 @@ import { PhoneMockup, LogbookMockup } from "@/components/phone-mockup";
 import { CometCard } from "@/components/ui/comet-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { NoiseBackground } from "@/components/ui/noise-background";
+import { CanvasText } from "@/components/ui/canvas-text";
 import { ArrowLeft, CheckCircle2, BookOpen } from "lucide-react";
 
 const features = [
@@ -67,9 +68,7 @@ export default function LogbookPage() {
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.05] mb-6">
-                  Complete Logbook & PRs
-                </h1>
+                <div className="mb-6"><CanvasText text="Complete Logbook & PRs" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Every workout saved forever. Browse your complete history, review past sessions in detail with full exercise breakdowns, and track all your personal records as they happen."

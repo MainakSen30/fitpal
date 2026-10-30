@@ -6,6 +6,7 @@ import { PhoneMockup, RestTimerMockup } from "@/components/phone-mockup";
 import { CometCard } from "@/components/ui/comet-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { NoiseBackground } from "@/components/ui/noise-background";
+import { CanvasText } from "@/components/ui/canvas-text";
 import { ArrowLeft, CheckCircle2, Timer } from "lucide-react";
 
 const features = [
@@ -67,9 +68,7 @@ export default function RestTimerPage() {
                   <Timer className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.05] mb-6">
-                  Smart Rest Timer
-                </h1>
+                <div className="mb-6"><CanvasText text="Smart Rest Timer" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Stay on track with automatic rest countdowns. Get notified when you're ready for your next set so you maximize efficiency and recovery between sets."

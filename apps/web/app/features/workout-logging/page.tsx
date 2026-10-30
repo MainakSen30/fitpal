@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { PhoneMockup, WorkoutLoggingMockup } from "@/components/phone-mockup";
 import { CheckCircle2, Zap } from "lucide-react";
+import { CanvasText } from "@/components/ui/canvas-text";
 import { CometCard } from "@/components/ui/comet-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { NoiseBackground } from "@/components/ui/noise-background";
@@ -64,9 +65,7 @@ export default function WorkoutLoggingPage() {
                   <Zap className="w-3.5 h-3.5" />
                   <span>Feature</span>
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.05] mb-6">
-                  Quick Workout Logging
-                </h1>
+                <div className="mb-6"><CanvasText text="Quick Workout Logging" className="font-semibold tracking-tight" colors={["#fb923c", "#f97316", "#ea580c", "#fdba74"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
                 <div className="text-lg text-stone-400 leading-relaxed mb-10">
                   <TextGenerateEffect
                     words="Log sets, reps, and weights faster than ever. Start from scratch or from a routine, track your progress set by set, and hit new PRs with intelligent auto-fill and instant PR detection."
