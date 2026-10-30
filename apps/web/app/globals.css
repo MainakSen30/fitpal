@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090807;
-  --foreground: #e6e4e2;
+  --background: #060709;
+  --foreground: #f3f4f6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
   
   --color-brand-50: #fff7ed;
   --color-brand-100: #ffedd5;
@@ -17,17 +17,48 @@
   --color-brand-500: #f97316;
   --color-brand-600: #ea580c;
   --color-brand-700: #c2410c;
-  --color-brand-dark: #080706;
-  --color-brand-surface: #121110;
-  --color-brand-card: #181614;
-  --color-brand-border: #2a2622;
+  --color-brand-glow: #ff6200;
   
-  --shadow-glow-orange: 0 0 35px -5px rgba(249, 115, 22, 0.45);
-  --shadow-glow-orange-sm: 0 0 15px -2px rgba(249, 115, 22, 0.35);
+  --color-dark-base: #060709;
+  --color-dark-card: #0d0f14;
+  --color-dark-surface: #13161f;
+  --color-dark-border: rgba(255, 255, 255, 0.08);
+  
+  --shadow-glow-orange: 0 0 50px -10px rgba(249, 115, 22, 0.45);
+  --shadow-glow-phone: 0 25px 60px -15px rgba(249, 115, 22, 0.25), 0 0 100px -20px rgba(234, 88, 12, 0.15);
+  --shadow-glow-sm: 0 0 20px -5px rgba(249, 115, 22, 0.35);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+.glass-card {
+  background: rgba(13, 16, 22, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.radial-glow-hero {
+  background: radial-gradient(circle 600px at 70% 40%, rgba(249, 115, 22, 0.18), transparent 75%),
+              radial-gradient(circle 500px at 25% 65%, rgba(234, 88, 12, 0.1), transparent 70%),
+              radial-gradient(circle 400px at 85% 80%, rgba(245, 158, 11, 0.08), transparent 60%);
+}
+
+.grid-lines {
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+

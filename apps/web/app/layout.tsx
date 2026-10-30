@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "FitPal - Track Your Workouts. Own Your Progress.",
-  description: "FitPal is your personal workout tracker. Build routines, log sets and reps, track your history, and measure your progress week by week.",
+  description: "The precision gym log designed for serious lifters. Track sets, build routines, and witness strength surges.",
   keywords: ["workout tracker", "gym log", "fitness app", "workout routine", "strength training", "progress tracker"],
 };
 
@@ -20,10 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <body
-        className={`${inter.variable} font-sans antialiased tracking-tight`}
-      >
+    <html lang="en" className="scroll-smooth dark">
+      <body className="bg-dark-base text-gray-100 antialiased selection:bg-brand-500 selection:text-white">
         {children}
       </body>
     </html>

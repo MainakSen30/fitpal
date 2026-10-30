@@ -1,169 +1,174 @@
+"use client";
+
 import Link from "next/link";
-import { PhoneMockup, WorkoutLoggingMockup } from "@/components/phone-mockup";
+import { motion } from "framer-motion";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#090807] text-[#e6e4e2] antialiased selection:bg-brand-500 selection:text-white">
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_700px_at_50%_30%,rgba(249,115,22,0.14),transparent_70%)]" />
-        <div className="absolute top-1/4 -right-48 w-96 h-96 bg-brand-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-10 -left-48 w-96 h-96 bg-brand-600/10 rounded-full blur-[140px]" />
-      </div>
-
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-6xl">
-        <div className="backdrop-blur-xl bg-[#090807]/70 border border-white/5 rounded-full px-6 h-14 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+    <div className="bg-dark-base text-gray-100 antialiased overflow-x-hidden selection:bg-brand-500 selection:text-white">
+      <header className="sticky top-0 z-50 w-full border-b border-white/[0.07] bg-dark-base/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
-              </svg>
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-white">
-              Fit<span className="text-brand-500">Pal</span>
-            </span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-stone-400">
-            <div className="relative group">
-              <button className="flex items-center gap-1 hover:text-white transition-colors">
-                Features
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-              </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <div className="w-56 rounded-xl bg-[#090807]/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
-                  <Link href="/features/workout-logging" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
-                    <div className="text-sm text-white">Workout Logging</div>
-                    <div className="text-xs text-stone-500">Log sets, reps & weights</div>
-                  </Link>
-                  <Link href="/features/routines" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
-                    <div className="text-sm text-white">Custom Routines</div>
-                    <div className="text-xs text-stone-500">Build your split</div>
-                  </Link>
-                  <Link href="/features/logbook" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
-                    <div className="text-sm text-white">Logbook & PRs</div>
-                    <div className="text-xs text-stone-500">Track history & records</div>
-                  </Link>
-                  <Link href="/features/progress" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
-                    <div className="text-sm text-white">Weekly Progress</div>
-                    <div className="text-xs text-stone-500">Analytics & insights</div>
-                  </Link>
-                  <Link href="/features/rest-timer" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
-                    <div className="text-sm text-white">Rest Timer</div>
-                    <div className="text-xs text-stone-500">Smart rest countdown</div>
-                  </Link>
-                  <Link href="/features/offline-sync" className="block px-4 py-2.5 hover:bg-white/5 transition-colors">
-                    <div className="text-sm text-white">Offline Ready</div>
-                    <div className="text-xs text-stone-500">Train anywhere</div>
-                  </Link>
-                </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 p-0.5 shadow-glow-sm">
+              <div className="w-full h-full bg-dark-base rounded-[10px] flex items-center justify-center">
+                <svg className="w-5 h-5 text-brand-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12.72 2.03C12.35 1.5 11.53 1.57 11.26 2.15C9.79 5.25 8.16 8.04 8.7 10.74C8.94 11.96 9.61 12.8 9.94 13.19C9.28 12.63 8.35 11.52 8.35 9.77C8.35 8.8 7.9 7.82 7.15 7.23C6.39 6.64 5.42 6.53 4.67 7.07C3.12 8.17 2 10.37 2 13.5C2 18.75 6.25 23 11.5 23C16.75 23 21 18.75 21 13.5C21 8.85 17.5 4.3 12.72 2.03ZM12.18 20.91C9.64 20.91 7.6 18.96 7.6 16.5C7.6 14.63 8.77 13.41 9.93 12.44C10.63 11.85 11.38 11.23 11.83 10.33C12.92 11.92 14.61 13.48 14.61 16.03C14.61 18.71 13.51 20.91 12.18 20.91Z" />
+                </svg>
               </div>
             </div>
-            <Link href="/#download" className="hover:text-white transition-colors">Download</Link>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-xl font-semibold tracking-tight text-white">FitPal</span>
+              <span className="text-[10px] font-bold text-brand-500 tracking-wider uppercase">Pro</span>
+            </div>
+          </Link>
+          <nav className="hidden lg:flex items-center gap-1 glass-pill px-3 py-1 rounded-full">
+            <Link href="/features/workout-logging" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Workout Logging</Link>
+            <Link href="/features/routines" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Routines</Link>
+            <Link href="/features/logbook" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Logbook</Link>
+            <Link href="/features/progress" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Progress</Link>
+            <Link href="/features/rest-timer" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Rest Timer</Link>
+            <Link href="/features/offline-sync" className="px-3 py-1 text-sm text-gray-300 hover:text-white rounded-full hover:bg-white/5 transition-all">Offline</Link>
           </nav>
-          <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
+          <Link href="#download" className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 text-white text-sm font-medium shadow-glow-sm hover:shadow-glow-orange transition-all">
             Get the App
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
           </Link>
         </div>
       </header>
 
-      <main className="relative z-10">
-        <section className="pt-32 pb-24 md:pt-40 md:pb-32">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-xs font-medium text-brand-400 mb-8">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
-                  <span>Mobile-First Workout Tracker</span>
-                </div>
-                <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight text-white leading-[1.05] mb-6">
-                  Track Your Workouts.
-                  <br />
-                  <span className="text-stone-400">Own Your Progress.</span>
+      <main className="relative overflow-hidden radial-glow-hero grid-lines">
+        <div className="pointer-events-none absolute -top-40 right-10 w-[600px] h-[600px] bg-brand-500/15 rounded-full blur-[140px] -z-10" />
+        <div className="pointer-events-none absolute bottom-0 left-[-100px] w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[120px] -z-10" />
+        
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 lg:pt-16 lg:pb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-7 space-y-7">
+              <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full glass-card border border-brand-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse" />
+                <span className="text-xs font-medium text-amber-200/90">Mobile-First Workout Tracker</span>
+              </div>
+              <div className="space-y-3">
+                <h1 className="text-4xl sm:text-6xl xl:text-7xl font-semibold tracking-tight text-white leading-[1.05]">
+                  Track Your Workouts.<br />
+                  <span className="bg-gradient-to-r from-brand-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">Own Your Progress.</span>
                 </h1>
-                <p className="text-lg text-stone-400 max-w-xl leading-relaxed mb-10">
-                  The simplest way to log sets, reps, and weights. Build custom routines, track your history, and watch your strength grow with precision analytics.
+                <p className="text-base sm:text-lg text-gray-300/90 max-w-2xl leading-relaxed">
+                  The precision gym log designed for serious lifters. Log sets in seconds, build custom routines, and track your strength growth with clarity.
                 </p>
-                <div className="flex flex-col sm:flex-row items-start gap-3">
-                  <Link href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm">
-                    Download FitPal
-                  </Link>
-                  <Link href="#features" className="px-6 py-2.5 rounded-full font-medium text-sm text-stone-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
-                    See Features
-                  </Link>
-                </div>
               </div>
-              <div className="flex justify-center lg:justify-end">
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-b from-brand-500/15 to-transparent rounded-[3rem] blur-2xl" />
-                  <PhoneMockup>
-                    <WorkoutLoggingMockup />
-                  </PhoneMockup>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="features" className="py-20 sm:py-28 border-t border-white/5">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mb-12">
-              <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Everything you need</h2>
-              <p className="text-lg text-stone-400">Built for the gym, designed for results. Explore detailed feature pages.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { title: "Quick Workout Logging", desc: "Start, log sets/reps/weight, and mark complete in seconds.", href: "/features/workout-logging" },
-                { title: "Custom Routines", desc: "Build Push/Pull/Legs or any split with targets and ordering.", href: "/features/routines" },
-                { title: "Complete Logbook", desc: "Browse history, view full details, edit or delete past workouts.", href: "/features/logbook" },
-                { title: "Weekly Progress", desc: "Track workouts, sets, volume, and week-over-week trends.", href: "/features/progress" },
-                { title: "Smart Rest Timer", desc: "Auto rest countdown with haptics to stay on track.", href: "/features/rest-timer" },
-                { title: "Offline Ready", desc: "Log in the gym with poor signal, sync when connected.", href: "/features/offline-sync" },
-              ].map((f, i) => (
-                <Link key={i} href={f.href} className="group relative rounded-xl bg-white/[0.02] border border-white/5 p-6 hover:bg-white/[0.04] hover:border-white/10 transition-all">
-                  <h3 className="text-lg font-medium text-white mb-2 group-hover:text-brand-400 transition-colors">{f.title}</h3>
-                  <p className="text-sm text-stone-400 leading-relaxed mb-4">{f.desc}</p>
-                  <div className="flex items-center text-xs text-stone-500 gap-1 group-hover:text-brand-400 transition-colors">
-                    <span>Learn more</span>
-                    <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
-                  </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Link href="#download" className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 text-white font-medium shadow-glow-orange hover:shadow-[0_0_35px_rgba(249,115,22,0.7)] transition-all">
+                  Download FitPal Free
                 </Link>
-              ))}
+                <Link href="/features/workout-logging" className="px-6 py-3 rounded-xl glass-card text-gray-200 hover:text-white border border-white/10 hover:border-brand-500/40 transition-all">
+                  Explore Features
+                </Link>
+              </div>
+              <div className="grid grid-cols-3 gap-3 max-w-md pt-2">
+                <div className="px-3 py-2.5 rounded-xl glass-card border-white/5">
+                  <div className="text-brand-400 font-semibold font-mono">0.4s</div>
+                  <div className="text-xs text-gray-400">Set Logging</div>
+                </div>
+                <div className="px-3 py-2.5 rounded-xl glass-card border-white/5">
+                  <div className="text-amber-400 font-semibold font-mono">100%</div>
+                  <div className="text-xs text-gray-400">Offline Ready</div>
+                </div>
+                <div className="px-3 py-2.5 rounded-xl glass-card border-white/5">
+                  <div className="text-emerald-400 font-semibold font-mono">Smart</div>
+                  <div className="text-xs text-gray-400">PR Tracking</div>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5 relative flex justify-center">
+              <div className="absolute inset-0 bg-gradient-to-tr from-brand-600/25 via-amber-500/20 to-transparent rounded-full blur-[80px] -z-10" />
+              <div className="relative w-[300px] sm:w-[330px] rounded-[48px] p-3 bg-gradient-to-b from-gray-700 via-gray-900 to-black shadow-glow-phone border border-white/20">
+                <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-4 bg-black rounded-full z-10" />
+                <div className="rounded-[40px] bg-[#090a0f] overflow-hidden h-[580px] sm:h-[620px]">
+                  <div className="px-4 pt-9 pb-4 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-wider text-brand-400 font-mono">Active Session</div>
+                        <div className="text-sm font-semibold text-white">Chest & Triceps</div>
+                      </div>
+                      <div className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono">00:42:15</div>
+                    </div>
+                    <div className="rounded-2xl bg-dark-card border border-white/10 p-3 mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-white">Barbell Bench Press</div>
+                        <div className="text-[10px] text-amber-400 font-mono">PR READY</div>
+                      </div>
+                      {[{w:225,r:5,d:true},{w:245,r:5,d:true},{w:255,r:3,d:false}].map((s,i)=>(
+                        <div key={i} className="flex items-center justify-between py-2 border-t border-white/5 first:border-0">
+                          <div className="flex items-center gap-2 text-xs font-mono">
+                            <span className="text-gray-500">{i+1}</span>
+                            <span className="text-white">{s.w} lbs</span>
+                            <span className="text-gray-500">×</span>
+                            <span className="text-white">{s.r}</span>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full ${s.d ? 'bg-emerald-500' : 'border border-white/20'}`} />
+                        </div>
+                      ))}
+                    </div>
+                    <button className="mt-auto w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 text-white text-sm font-medium">Complete Set</button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="border-y border-white/[0.07] bg-dark-card/50 backdrop-blur-md py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-y md:divide-y-0 md:divide-x divide-white/5">
+              <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-white font-mono">12.4M+</div><div className="text-xs text-gray-400 mt-1">Sets Logged</div></div>
+              <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-brand-400 font-mono">99.8%</div><div className="text-xs text-gray-400 mt-1">Completion Rate</div></div>
+              <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-amber-400 font-mono">180+</div><div className="text-xs text-gray-400 mt-1">Smart Routines</div></div>
+              <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-emerald-400 font-mono">4.9 ★</div><div className="text-xs text-gray-400 mt-1">App Store</div></div>
             </div>
           </div>
         </section>
 
-        <section id="download" className="py-20 sm:py-28">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start tracking?</h2>
-            <p className="text-lg text-stone-400 mb-10">Download FitPal and take your training to the next level.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <button className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
-                Download for iOS
-              </button>
-              <button className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
-                Download for Android
-              </button>
-            </div>
+        <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div className="max-w-2xl mb-10">
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-3">Everything you need</h2>
+            <p className="text-lg text-gray-400">Built for speed, precision, and focus in the gym.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { title: "Quick Workout Logging", desc: "Start, log sets/reps/weight, and complete in seconds.", href: "/features/workout-logging" },
+              { title: "Custom Routines", desc: "Build Push/Pull/Legs or any split tailored to your goals.", href: "/features/routines" },
+              { title: "Logbook & PRs", desc: "Browse history, review details, and track personal records.", href: "/features/logbook" },
+              { title: "Weekly Progress", desc: "Track volume, frequency, and week over week trends.", href: "/features/progress" },
+              { title: "Smart Rest Timer", desc: "Auto countdown with quick adjust to stay on track.", href: "/features/rest-timer" },
+              { title: "Offline Ready", desc: "Train anywhere with full offline support and auto sync.", href: "/features/offline-sync" },
+            ].map((f, i) => (
+              <Link key={i} href={f.href} className="group glass-card rounded-xl p-6 hover:border-brand-500/40 transition-all">
+                <h3 className="text-lg font-medium text-white mb-2 group-hover:text-brand-400 transition-colors">{f.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed mb-4">{f.desc}</p>
+                <div className="flex items-center text-xs text-gray-500 group-hover:text-brand-400 transition-colors gap-1">
+                  <span>Learn more</span>
+                  <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                </div>
+              </Link>
+            ))}
           </div>
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/5 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
-                </svg>
+      <footer className="border-t border-white/[0.07] py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-amber-400 p-0.5">
+              <div className="w-full h-full bg-dark-base rounded-[10px] flex items-center justify-center">
+                <svg className="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.72 2.03C12.35 1.5 11.53 1.57 11.26 2.15C9.79 5.25 8.16 8.04 8.7 10.74C8.94 11.96 9.61 12.8 9.94 13.19C9.28 12.63 8.35 11.52 8.35 9.77C8.35 8.8 7.9 7.82 7.15 7.23C6.39 6.64 5.42 6.53 4.67 7.07C3.12 8.17 2 10.37 2 13.5C2 18.75 6.25 23 11.5 23C16.75 23 21 18.75 21 13.5C21 8.85 17.5 4.3 12.72 2.03ZM12.18 20.91C9.64 20.91 7.6 18.96 7.6 16.5C7.6 14.63 8.77 13.41 9.93 12.44C10.63 11.85 11.38 11.23 11.83 10.33C12.92 11.92 14.61 13.48 14.61 16.03C14.61 18.71 13.51 20.91 12.18 20.91Z" /></svg>
               </div>
-              <span className="text-base font-medium text-white">FitPal</span>
-              <span className="text-sm text-stone-500">© 2026 FitPal Inc.</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-stone-500">
-              <Link href="#features" className="hover:text-white transition-colors">Features</Link>
-              <Link href="/features/workout-logging" className="hover:text-white transition-colors">Feature Pages</Link>
-              <Link href="#download" className="hover:text-white transition-colors">Download</Link>
-            </div>
+            <span className="text-sm font-medium text-white">FitPal</span>
+            <span className="text-xs text-gray-500">© 2026 FitPal Inc.</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm text-gray-500">
+            <Link href="/features/workout-logging" className="hover:text-white transition-colors">Features</Link>
+            <Link href="#download" className="hover:text-white transition-colors">Download</Link>
           </div>
         </div>
       </footer>
