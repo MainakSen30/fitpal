@@ -77,7 +77,7 @@ export default function Home() {
             </motion.div>
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5 relative flex justify-center">
               <div className="absolute inset-0 bg-gradient-to-tr from-brand-600/25 via-amber-500/20 to-transparent rounded-full blur-[80px] -z-10" />
-              <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-6 -right-4 sm:-right-10 z-30 glass-card p-3 rounded-2xl border border-white/10 shadow-2xl hidden sm:block max-w-[190px]">
+              <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-6 -right-4 sm:-right-10 z-30 p-3 rounded-2xl bg-[#15120f] border border-brand-500/40 shadow-[0_20px_60px_rgba(249,115,22,0.25)] hidden sm:block max-w-[190px]">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] text-gray-400">Live Volume</span>
                   <span className="text-[10px] text-emerald-400 font-mono">+14.2%</span>
@@ -85,13 +85,13 @@ export default function Home() {
                 <div className="text-base font-semibold text-white font-mono">14,850 <span className="text-xs text-gray-400">lbs</span></div>
                 <div className="text-[10px] text-gray-500">Chest & Triceps</div>
               </motion.div>
-              <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute -left-4 sm:-left-12 top-1/3 z-30 glass-card p-2.5 rounded-2xl border border-white/10 shadow-2xl hidden md:block">
-                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-brand-500/20 border border-brand-500/40 text-brand-300 text-xs">
+              <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1.2 }} className="absolute -left-4 sm:-left-12 top-1/3 z-30 p-2.5 rounded-2xl bg-[#15120f] border border-brand-500/50 shadow-[0_20px_60px_rgba(249,115,22,0.2)] hidden md:block">
+                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gradient-to-r from-brand-500/30 to-amber-500/20 border border-brand-500/60 text-brand-300 text-xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
                   <span>Push Day A</span>
                 </div>
               </motion.div>
-              <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 2 }} className="absolute -bottom-6 -left-4 sm:-left-10 z-30 glass-card p-2.5 rounded-2xl border border-amber-500/30 shadow-2xl hidden sm:flex items-center gap-2">
+              <motion.div animate={{ y: [0, -14, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2.4 }} className="absolute -bottom-6 -left-4 sm:-left-10 z-30 p-2.5 rounded-2xl bg-[#15120f] border border-amber-500/50 shadow-[0_20px_70px_rgba(251,191,36,0.18)] hidden sm:flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-brand-600 flex items-center justify-center text-xs">🏆</div>
                 <div>
                   <div className="text-[10px] text-amber-400 font-mono">New PR</div>
