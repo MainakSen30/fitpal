@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PhoneMockup, ProgressMockup } from "@/components/phone-mockup";
+import { CometCard } from "@/components/ui/comet-card";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { NoiseBackground } from "@/components/ui/noise-background";
 import { ArrowLeft, CheckCircle2, TrendingUp } from "lucide-react";
 
 const features = [
@@ -41,7 +44,19 @@ export default function ProgressPage() {
             <Link href="/features/rest-timer" className="hover:text-white transition-colors">Rest Timer</Link>
             <Link href="/features/offline-sync" className="hover:text-white transition-colors">Offline Ready</Link>
           </nav>
-          <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-glow-orange-sm hover:shadow-glow-orange transition-all">Get the App</Link>
+          <Link href="/#download" className="group">
+            <NoiseBackground
+              className="rounded-full"
+              containerClassName="rounded-full"
+              gradientColors={["rgba(249,115,22,0.5)", "rgba(234,88,12,0.4)", "rgba(251,146,60,0.3)"]}
+              noiseIntensity={0.2}
+              speed={0.1}
+            >
+              <div className="px-4 py-1.5 rounded-full text-sm font-medium text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                Get the App
+              </div>
+            </NoiseBackground>
+          </Link>
         </div>
       </header>
 
@@ -57,9 +72,13 @@ export default function ProgressPage() {
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.05] mb-6">
                   Weekly Progress & Analytics
                 </h1>
-                <p className="text-lg text-stone-400 leading-relaxed mb-10">
-                  Visualize your gains with comprehensive weekly stats. Track workouts, sets, volume, and time while comparing week-over-week to optimize your training.
-                </p>
+                <div className="text-lg text-stone-400 leading-relaxed mb-10">
+                  <TextGenerateEffect
+                    words="Visualize your gains with comprehensive weekly stats. Track workouts, sets, volume, and time while comparing week-over-week to optimize your training."
+                    className="max-w-xl"
+                    duration={0.25}
+                  />
+                </div>
                 <div className="space-y-6">
                   {[
                     { title: "Weekly Overview", desc: "Workouts, sets, volume, and time at a glance" },
@@ -80,7 +99,9 @@ export default function ProgressPage() {
               <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.15 }} className="flex justify-center">
                 <div className="relative">
                   <div className="absolute -inset-4 bg-gradient-to-b from-brand-500/15 to-transparent rounded-[3rem] blur-2xl" />
+                  <CometCard rotateDepth={16} translateDepth={16}>
                   <PhoneMockup><ProgressMockup /></PhoneMockup>
+                  </CometCard>
                 </div>
               </motion.div>
             </div>
