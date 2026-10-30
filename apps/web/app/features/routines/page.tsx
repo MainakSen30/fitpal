@@ -88,6 +88,17 @@ export default function RoutinesPage() {
         </section>
       </main>
 
+        <section className="py-16 sm:py-20 border-t border-white/[0.07]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
+            <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a href="/#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm">Download for iOS</a>
+              <a href="/#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">Download for Android</a>
+            </div>
+          </div>
+        </section>
+
       <footer className="relative z-10 border-t border-white/10 py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">

@@ -140,7 +140,7 @@ export default function Home() {
               <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-white font-mono">12.4M+</div><div className="text-xs text-gray-400 mt-1">Sets Logged</div></div>
               <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-brand-400 font-mono">99.8%</div><div className="text-xs text-gray-400 mt-1">Completion Rate</div></div>
               <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-amber-400 font-mono">180+</div><div className="text-xs text-gray-400 mt-1">Smart Routines</div></div>
-              <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-emerald-400 font-mono">4.9 ★</div><div className="text-xs text-gray-400 mt-1">App Store</div></div>
+              <div className="pt-2 md:pt-0"><div className="text-xl sm:text-2xl font-semibold text-emerald-400 font-mono">Free</div><div className="text-xs text-gray-400 mt-1">No Ads</div></div>
             </div>
           </div>
         </section>
@@ -168,6 +168,17 @@ export default function Home() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+
+        <section className="py-16 sm:py-20 border-t border-white/[0.07]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
+            <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm">Download for iOS</a>
+              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">Download for Android</a>
+            </div>
           </div>
         </section>
       </main>
