@@ -7,7 +7,7 @@ export const TextGenerateEffect = ({
   words,
   className,
   filter = true,
-  duration = 0.5,
+  duration = 0.25,
 }: {
   words: string;
   className?: string;
@@ -24,8 +24,8 @@ export const TextGenerateEffect = ({
         filter: filter ? "blur(0px)" : "none",
       },
       {
-        duration: duration ? duration : 1,
-        delay: stagger(0.2),
+        duration: duration ? duration : 0.25,
+        delay: stagger(0.05),
       }
     );
   }, [scope.current]);
@@ -39,7 +39,7 @@ export const TextGenerateEffect = ({
               key={word + idx}
               className="dark:text-white text-black opacity-0"
               style={{
-                filter: filter ? "blur(10px)" : "none",
+                filter: filter ? "blur(6px)" : "none",
               }}
             >
               {word}{" "}
@@ -51,9 +51,9 @@ export const TextGenerateEffect = ({
   };
 
   return (
-    <div className={cn("font-bold", className)}>
+    <div className={cn("font-normal", className)}>
       <div className="mt-4">
-        <div className=" dark:text-white text-black text-2xl leading-snug tracking-wide">
+        <div className="dark:text-white text-black text-base sm:text-lg leading-relaxed tracking-wide">
           {renderWords()}
         </div>
       </div>
