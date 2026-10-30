@@ -2,196 +2,101 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full bg-black/80 backdrop-blur-md border-b border-white/10 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <span className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                FitPal
-              </span>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-300 hover:text-white transition-colors">Features</a>
-              <a href="#showcase" className="text-gray-300 hover:text-white transition-colors">Showcase</a>
-              <a href="#download" className="text-gray-300 hover:text-white transition-colors">Download</a>
-            </div>
-            <a href="#download" className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-2 rounded-full font-semibold hover:shadow-lg hover:shadow-orange-500/50 transition-all">
-              Get the App
-            </a>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#090807] text-[#e6e4e2] font-sans antialiased selection:bg-brand-500 selection:text-white">
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_600px_at_50%_30%,rgba(249,115,22,0.16),transparent_70%)]" />
+        <div className="absolute top-1/4 -right-48 w-96 h-96 bg-brand-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-10 -left-48 w-96 h-96 bg-brand-600/10 rounded-full blur-[140px]" />
+      </div>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Track Your Workouts.
-            <br />
-            <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-              Own Your Progress.
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-[#090807]/80 border-b border-brand-border/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow-orange-sm">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
+              </svg>
+            </div>
+            <span className="text-2xl font-black tracking-tight text-white">
+              Fit<span className="text-brand-500">Pal</span>
             </span>
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-400 mb-10 max-w-3xl mx-auto">
-            The simplest way to log sets, reps, and weights. Build custom routines, track your history, and watch your strength grow.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#download" className="bg-gradient-to-r from-orange-500 to-red-500 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl hover:shadow-orange-500/50 transition-all">
-              Download FitPal
-            </a>
-            <a href="#features" className="border border-white/20 px-8 py-4 rounded-full text-lg font-semibold hover:bg-white/10 transition-all">
-              See Features
-            </a>
-          </div>
+          </Link>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-stone-300">
+            <Link href="#features" className="hover:text-white transition-colors">Features</Link>
+            <Link href="#showcase" className="hover:text-white transition-colors">Showcase</Link>
+            <Link href="/features/workout-logging" className="hover:text-white transition-colors">Feature Pages</Link>
+            <Link href="#download" className="hover:text-white transition-colors">Download</Link>
+          </nav>
+          <Link href="#download" className="px-5 py-2.5 rounded-full font-semibold text-sm text-white bg-gradient-to-r from-brand-500 to-brand-700 shadow-glow-orange-sm hover:shadow-glow-orange transition-all">
+            Get the App
+          </Link>
         </div>
-      </section>
+      </header>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-black to-gray-900">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Everything You Need</h2>
-            <p className="text-xl text-gray-400">Built for the gym, designed for results</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Quick Workout Logging",
-                description: "Start a workout in seconds. Add exercises, log sets with reps and weight, and mark them complete on the go.",
-                icon: "💪"
-              },
-              {
-                title: "Custom Routines",
-                description: "Build your own Push/Pull/Legs or any routine you want. Set target sets, reps, and weights, then start with one tap.",
-                icon: "📋"
-              },
-              {
-                title: "Complete Logbook",
-                description: "Every workout saved with full details. Browse your history, review past sessions, and track your training consistency.",
-                icon: "📊"
-              },
-              {
-                title: "Weekly Progress",
-                description: "See your training at a glance. Track completed workouts, active days, total sets, and volume with week-over-week comparison.",
-                icon: "📈"
-              },
-              {
-                title: "Exercise History",
-                description: "Type your own exercises and track your performance over time. See how your strength evolves with every session.",
-                icon: "🎯"
-              },
-              {
-                title: "Works Offline Ready",
-                description: "Built mobile-first for the gym. Log your workouts without worrying about poor signal or connectivity.",
-                icon: "⚡"
-              }
-            ].map((feature, i) => (
-              <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all hover:scale-105">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-2xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-gray-400 leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Showcase Section */}
-      <section id="showcase" className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Simple. Fast. Focused.</h2>
-            <p className="text-xl text-gray-400">No distractions. Just what you need to track your workouts.</p>
-          </div>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center font-bold text-xl">1</div>
-                <div>
-                  <h3 className="text-xl font-bold mb-2">Start Your Workout</h3>
-                  <p className="text-gray-400">Begin from scratch or pick from your saved routines. Get started in one tap.</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center font-bold text-xl">2</div>
-                <div>
-                  <h3 className="text-xl font-bold mb-2">Log Every Set</h3>
-                  <p className="text-gray-400">Add exercises, enter reps and weight for each set independently. Mark sets as you complete them.</p>
-                </div>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-orange-500 to-red-500 flex items-center justify-center font-bold text-xl">3</div>
-                <div>
-                  <h3 className="text-xl font-bold mb-2">Finish & Track</h3>
-                  <p className="text-gray-400">Complete your workout and watch it appear in your logbook. See your progress build over time.</p>
-                </div>
-              </div>
+      <main className="relative z-10">
+        <section className="pt-12 pb-24 md:pt-20 md:pb-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs sm:text-sm font-semibold text-brand-400 mb-8">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+              </span>
+              <span>Mobile-First Workout Tracker</span>
             </div>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-3xl p-8 border border-white/10">
-                <div className="bg-black rounded-2xl p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-lg font-bold">Bench Press</h4>
-                    <span className="text-orange-500">+ Add Set</span>
-                  </div>
-                  <div className="space-y-2">
-                    {[
-                      { set: 1, reps: 10, weight: "40 kg", done: true },
-                      { set: 2, reps: 9, weight: "40 kg", done: true },
-                      { set: 3, reps: 8, weight: "42.5 kg", done: false },
-                    ].map((s, i) => (
-                      <div key={i} className="flex items-center justify-between bg-white/5 p-3 rounded-lg">
-                        <span className="text-gray-400">Set {s.set}</span>
-                        <span>{s.reps} reps</span>
-                        <span>{s.weight}</span>
-                        <span className={s.done ? "text-green-500" : "text-gray-600"}>✓</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white max-w-5xl mx-auto leading-[1.08]">
+              Track Your Workouts. <br />
+              <span className="bg-gradient-to-r from-orange-400 via-brand-500 to-amber-400 bg-clip-text text-transparent">
+                Own Your Progress.
+              </span>
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-stone-300 max-w-2xl mx-auto">
+              The simplest way to log sets, reps, and weights. Build custom routines, track your history, and watch your strength grow with precision analytics.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="#download" className="w-full sm:w-auto px-8 py-4 rounded-full font-bold text-base text-white bg-gradient-to-r from-brand-600 to-brand-500 shadow-glow-orange hover:shadow-[0_0_45px_-3px_rgba(249,115,22,0.65)] transition-all">
+                Download FitPal
+              </Link>
+              <Link href="#features" className="w-full sm:w-auto px-8 py-4 rounded-full font-semibold text-base text-stone-200 bg-brand-surface border border-stone-800 hover:border-brand-500/40 transition-all">
+                See Features
+              </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Download Section */}
-      <section id="download" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-900 to-black">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Start Tracking?</h2>
-          <p className="text-xl text-gray-400 mb-10">
-            FitPal is built mobile-first. Download the app and start logging your workouts today.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <button disabled className="flex items-center justify-center gap-3 bg-white/10 px-8 py-4 rounded-full text-lg font-semibold cursor-not-allowed opacity-50">
-              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-              <div className="text-left">
-                <div className="text-xs">Coming Soon on</div>
-                <div className="text-lg">App Store</div>
-              </div>
-            </button>
-            <button disabled className="flex items-center justify-center gap-3 bg-white/10 px-8 py-4 rounded-full text-lg font-semibold cursor-not-allowed opacity-50">
-              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.53,12.92 20.18,13.18L17.89,14.5L15.39,12L17.89,9.5L20.16,10.81M6.05,2.66L16.81,8.88L14.54,11.15L6.05,2.66Z"/>
-              </svg>
-              <div className="text-left">
-                <div className="text-xs">Coming Soon on</div>
-                <div className="text-lg">Google Play</div>
-              </div>
-            </button>
+        <section id="features" className="py-24 sm:py-32 bg-[#0c0b09] border-y border-stone-800/80">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <span className="text-brand-500 font-bold uppercase tracking-widest text-xs sm:text-sm">Power & Performance</span>
+              <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight mt-2">Everything You Need</h2>
+              <p className="text-stone-400 text-lg sm:text-xl mt-3">Built for the gym, designed for results. Explore detailed feature pages below.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { title: "Quick Workout Logging", desc: "Start, log sets/reps/weight, and mark complete in seconds.", href: "/features/workout-logging", icon: "💪" },
+                { title: "Custom Routines", desc: "Build Push/Pull/Legs or any split with targets and ordering.", href: "/features/routines", icon: "📋" },
+                { title: "Complete Logbook", desc: "Browse history, view full details, edit or delete past workouts.", href: "/features/logbook", icon: "📊" },
+                { title: "Weekly Progress", desc: "Track workouts, sets, volume, and week-over-week trends.", href: "/features/progress", icon: "📈" },
+                { title: "Smart Rest Timer", desc: "Auto rest countdown with haptics to stay on track.", href: "/features/rest-timer", icon: "⏱️" },
+                { title: "Offline Ready", desc: "Log in the gym with poor signal, sync when connected.", href: "/features/offline-sync", icon: "⚡" },
+              ].map((f, i) => (
+                <Link key={i} href={f.href} className="group relative rounded-2xl bg-brand-surface border border-stone-800 p-8 hover:border-brand-500/50 transition-all hover:shadow-glow-orange-sm">
+                  <div className="text-4xl mb-4">{f.icon}</div>
+                  <h3 className="text-xl font-bold text-white group-hover:text-brand-400 transition-colors">{f.title}</h3>
+                  <p className="mt-3 text-stone-400 text-sm leading-relaxed">{f.desc}</p>
+                  <div className="mt-6 flex items-center text-xs font-semibold text-brand-400 gap-1 group-hover:translate-x-1 transition-transform">
+                    <span>Learn more</span>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" /></svg>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          <p className="text-gray-500">Join the waitlist to be notified when we launch</p>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center text-gray-400">
-          <p>&copy; 2026 FitPal. All rights reserved.</p>
+      <footer className="relative z-10 bg-[#060504] border-t border-brand-border/60 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-stone-400 text-sm">
+          <p>© 2026 FitPal. All rights reserved.</p>
         </div>
       </footer>
     </div>
