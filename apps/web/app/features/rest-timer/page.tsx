@@ -39,7 +39,7 @@ export default function RestTimerPage() {
             <Link href="/features/rest-timer" className="text-white">Rest Timer</Link>
             <Link href="/features/offline-sync" className="hover:text-white transition-colors">Offline Ready</Link>
           </nav>
-          <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">Get the App</Link>
+          <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-glow-orange-sm hover:shadow-glow-orange transition-all">Get the App</Link>
         </div>
       </header>
 

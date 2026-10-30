@@ -176,8 +176,8 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
             <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm">Download for iOS</a>
-              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">Download for Android</a>
+              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm hover:shadow-glow-orange">Download for iOS</a>
+              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm hover:shadow-glow-orange">Download for Android</a>
             </div>
           </div>
         </section>
