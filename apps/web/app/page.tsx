@@ -6,6 +6,7 @@ import { CometCard } from "@/components/ui/comet-card";
 import { CanvasText } from "@/components/ui/canvas-text";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { GlareCard } from "@/components/ui/glare-card";
+import { NoiseBackground } from "@/components/ui/noise-background";
 
 export default function Home() {
   return (
@@ -30,8 +31,18 @@ export default function Home() {
             <Link href="/features/rest-timer" className="hover:text-white transition-colors">Rest Timer</Link>
             <Link href="/features/offline-sync" className="hover:text-white transition-colors">Offline Ready</Link>
           </nav>
-          <Link href="#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
-            Get the App
+          <Link href="#download" className="group">
+            <NoiseBackground
+              className="rounded-full"
+              containerClassName="rounded-full"
+              gradientColors={["rgba(249,115,22,0.5)", "rgba(234,88,12,0.4)", "rgba(251,146,60,0.3)"]}
+              noiseIntensity={0.2}
+              speed={0.1}
+            >
+              <div className="px-4 py-1.5 rounded-full text-sm font-medium text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                Get the App
+              </div>
+            </NoiseBackground>
           </Link>
         </div>
       </header>
@@ -69,8 +80,18 @@ export default function Home() {
                 />
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Link href="#download" className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 text-white font-medium shadow-glow-orange hover:shadow-[0_0_35px_rgba(249,115,22,0.7)] transition-all">
-                  Download FitPal Free
+                <Link href="#download" className="group">
+                  <NoiseBackground
+                    className="rounded-xl"
+                    containerClassName="rounded-xl"
+                    gradientColors={["rgba(249,115,22,0.6)", "rgba(234,88,12,0.5)", "rgba(251,146,60,0.35)"]}
+                    noiseIntensity={0.22}
+                    speed={0.12}
+                  >
+                    <div className="px-6 py-3 rounded-xl text-white font-medium border border-white/10 group-hover:border-brand-500/40 transition-all">
+                      Download FitPal Free
+                    </div>
+                  </NoiseBackground>
                 </Link>
                 <Link href="/features/workout-logging" className="px-6 py-3 rounded-xl glass-card text-gray-200 hover:text-white border border-white/10 hover:border-brand-500/40 transition-all">
                   Explore Features
@@ -282,8 +303,32 @@ export default function Home() {
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
             <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm hover:shadow-glow-orange">Download for iOS</a>
-              <a href="#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm hover:shadow-glow-orange">Download for Android</a>
+              <a href="#download" className="group">
+                <NoiseBackground
+                  className="rounded-full"
+                  containerClassName="rounded-full"
+                  gradientColors={["rgba(249,115,22,0.6)", "rgba(234,88,12,0.5)", "rgba(251,146,60,0.35)"]}
+                  noiseIntensity={0.22}
+                  speed={0.12}
+                >
+                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                    Download for iOS
+                  </div>
+                </NoiseBackground>
+              </a>
+              <a href="#download" className="group">
+                <NoiseBackground
+                  className="rounded-full"
+                  containerClassName="rounded-full"
+                  gradientColors={["rgba(249,115,22,0.6)", "rgba(234,88,12,0.5)", "rgba(251,146,60,0.35)"]}
+                  noiseIntensity={0.22}
+                  speed={0.12}
+                >
+                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                    Download for Android
+                  </div>
+                </NoiseBackground>
+              </a>
             </div>
           </div>
         </section>
