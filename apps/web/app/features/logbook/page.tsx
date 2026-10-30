@@ -23,32 +23,56 @@ export default function LogbookPage() {
 
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-6xl">
         <div className="backdrop-blur-xl bg-[#090807]/70 border border-white/5 rounded-full px-6 h-14 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-          <Link href="/" className="flex items-center gap-2 text-stone-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Home</span>
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
+              </svg>
+            </div>
+            <span className="text-lg font-semibold tracking-tight text-white">
+              Fit<span className="text-brand-500">Pal</span>
+            </span>
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-stone-400">
+          <nav className="hidden md:flex items-center gap-8 text-sm text-stone-400">
             <div className="relative group">
-              <button className="flex items-center gap-1 text-white">
+              <button className="flex items-center gap-1 hover:text-white transition-colors">
                 Features
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
               </button>
               <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                 <div className="w-56 rounded-xl bg-[#090807]/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
-                  {features.map((f) => (
-                    <Link key={f.href} href={f.href} className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
-                      <div className={`text-sm ${f.href.includes("logbook") ? "text-brand-400" : "text-white"}`}>{f.name}</div>
-                    </Link>
-                  ))}
+                  <Link href="/features/workout-logging" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
+                    <div className="text-sm text-white">Workout Logging</div>
+                    <div className="text-xs text-stone-500">Log sets, reps & weights</div>
+                  </Link>
+                  <Link href="/features/routines" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
+                    <div className="text-sm text-white">Custom Routines</div>
+                    <div className="text-xs text-stone-500">Build your split</div>
+                  </Link>
+                  <Link href="/features/logbook" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
+                    <div className="text-sm text-white">Logbook & PRs</div>
+                    <div className="text-xs text-stone-500">Track history & records</div>
+                  </Link>
+                  <Link href="/features/progress" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
+                    <div className="text-sm text-white">Weekly Progress</div>
+                    <div className="text-xs text-stone-500">Analytics & insights</div>
+                  </Link>
+                  <Link href="/features/rest-timer" className="block px-4 py-2.5 hover:bg-white/5 transition-colors border-b border-white/5">
+                    <div className="text-sm text-white">Rest Timer</div>
+                    <div className="text-xs text-stone-500">Smart rest countdown</div>
+                  </Link>
+                  <Link href="/features/offline-sync" className="block px-4 py-2.5 hover:bg-white/5 transition-colors">
+                    <div className="text-sm text-white">Offline Ready</div>
+                    <div className="text-xs text-stone-500">Train anywhere</div>
+                  </Link>
                 </div>
               </div>
             </div>
             <Link href="/#download" className="hover:text-white transition-colors">Download</Link>
           </nav>
-          <div className="flex items-center gap-4 text-sm">
-            <Link href="/features/routines" className="text-stone-400 hover:text-white transition-colors">←</Link>
-            <Link href="/features/progress" className="text-stone-400 hover:text-white transition-colors">Next →</Link>
-          </div>
+          <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
+            Get the App
+          </Link>
         </div>
       </header>
 
