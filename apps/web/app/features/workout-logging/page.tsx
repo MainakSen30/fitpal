@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { PhoneMockup, WorkoutLoggingMockup } from "@/components/phone-mockup";
-import { ArrowLeft, CheckCircle2, Zap } from "lucide-react";
+import { CheckCircle2, Zap } from "lucide-react";
+import { CometCard } from "@/components/ui/comet-card";
+import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
+import { NoiseBackground } from "@/components/ui/noise-background";
 
 export default function WorkoutLoggingPage() {
   return (
@@ -32,8 +35,18 @@ export default function WorkoutLoggingPage() {
             <Link href="/features/rest-timer" className="hover:text-white transition-colors">Rest Timer</Link>
             <Link href="/features/offline-sync" className="hover:text-white transition-colors">Offline Ready</Link>
           </nav>
-          <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-glow-orange-sm hover:shadow-glow-orange transition-all">
-            Get the App
+          <Link href="/#download" className="group">
+            <NoiseBackground
+              className="rounded-full"
+              containerClassName="rounded-full"
+              gradientColors={["rgba(249,115,22,0.5)", "rgba(234,88,12,0.4)", "rgba(251,146,60,0.3)"]}
+              noiseIntensity={0.2}
+              speed={0.1}
+            >
+              <div className="px-4 py-1.5 rounded-full text-sm font-medium text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                Get the App
+              </div>
+            </NoiseBackground>
           </Link>
         </div>
       </header>
@@ -54,9 +67,13 @@ export default function WorkoutLoggingPage() {
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.05] mb-6">
                   Quick Workout Logging
                 </h1>
-                <p className="text-lg text-stone-400 leading-relaxed mb-10">
-                  Log sets, reps, and weights faster than ever. Start from scratch or from a routine, track your progress set by set, and hit new PRs with intelligent auto-fill and instant PR detection.
-                </p>
+                <div className="text-lg text-stone-400 leading-relaxed mb-10">
+                  <TextGenerateEffect
+                    words="Log sets, reps, and weights faster than ever. Start from scratch or from a routine, track your progress set by set, and hit new PRs with intelligent auto-fill and instant PR detection."
+                    className="max-w-xl"
+                    duration={0.25}
+                  />
+                </div>
                 <div className="space-y-6">
                   {[
                     { title: "Instant Start", desc: "Begin an empty session or load a routine in one tap" },
@@ -82,9 +99,11 @@ export default function WorkoutLoggingPage() {
               >
                 <div className="relative">
                   <div className="absolute -inset-4 bg-gradient-to-b from-brand-500/15 to-transparent rounded-[3rem] blur-2xl" />
-                  <PhoneMockup>
-                    <WorkoutLoggingMockup />
-                  </PhoneMockup>
+                  <CometCard rotateDepth={16} translateDepth={16}>
+                    <PhoneMockup>
+                      <WorkoutLoggingMockup />
+                    </PhoneMockup>
+                  </CometCard>
                 </div>
               </motion.div>
             </div>
@@ -97,8 +116,32 @@ export default function WorkoutLoggingPage() {
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
             <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="/#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-glow-orange-sm">Download for iOS</a>
-              <a href="/#download" className="px-6 py-2.5 rounded-full font-medium text-sm text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-glow-orange-sm hover:shadow-glow-orange transition-all">Download for Android</a>
+              <a href="/#download" className="group">
+                <NoiseBackground
+                  className="rounded-full"
+                  containerClassName="rounded-full"
+                  gradientColors={["rgba(249,115,22,0.6)", "rgba(234,88,12,0.5)", "rgba(251,146,60,0.35)"]}
+                  noiseIntensity={0.22}
+                  speed={0.12}
+                >
+                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                    Download for iOS
+                  </div>
+                </NoiseBackground>
+              </a>
+              <a href="/#download" className="group">
+                <NoiseBackground
+                  className="rounded-full"
+                  containerClassName="rounded-full"
+                  gradientColors={["rgba(249,115,22,0.6)", "rgba(234,88,12,0.5)", "rgba(251,146,60,0.35)"]}
+                  noiseIntensity={0.22}
+                  speed={0.12}
+                >
+                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-white border border-white/10 group-hover:border-brand-500/40 transition-all">
+                    Download for Android
+                  </div>
+                </NoiseBackground>
+              </a>
             </div>
           </div>
         </section>
