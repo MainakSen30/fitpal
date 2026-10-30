@@ -145,29 +145,82 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-          <div className="max-w-2xl mb-10">
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-3">Everything you need</h2>
-            <p className="text-lg text-gray-400">Built for speed, precision, and focus in the gym.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { title: "Quick Workout Logging", desc: "Start, log sets/reps/weight, and complete in seconds.", href: "/features/workout-logging" },
-              { title: "Custom Routines", desc: "Build Push/Pull/Legs or any split tailored to your goals.", href: "/features/routines" },
-              { title: "Logbook & PRs", desc: "Browse history, review details, and track personal records.", href: "/features/logbook" },
-              { title: "Weekly Progress", desc: "Track volume, frequency, and week over week trends.", href: "/features/progress" },
-              { title: "Smart Rest Timer", desc: "Auto countdown with quick adjust to stay on track.", href: "/features/rest-timer" },
-              { title: "Offline Ready", desc: "Train anywhere with full offline support and auto sync.", href: "/features/offline-sync" },
-            ].map((f, i) => (
-              <Link key={i} href={f.href} className="group glass-card rounded-xl p-6 hover:border-brand-500/40 transition-all">
-                <h3 className="text-lg font-medium text-white mb-2 group-hover:text-brand-400 transition-colors">{f.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed mb-4">{f.desc}</p>
-                <div className="flex items-center text-xs text-gray-500 group-hover:text-brand-400 transition-colors gap-1">
-                  <span>Learn more</span>
-                  <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+        <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="max-w-3xl mb-12">
+            <div className="text-xs uppercase tracking-[0.3em] text-brand-400 font-mono mb-4">Built for your training</div>
+            <h2 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white mb-4 leading-tight">
+              Everything you need.<br />Nothing you don't.
+            </h2>
+            <p className="text-lg text-gray-400 max-w-2xl">
+              From your first set to your weekly progress, FitPal keeps your training organized and your goals in sight.
+            </p>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 lg:gap-5">
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.1 }} className="md:col-span-4">
+              <Link href="/features/workout-logging">
+                <div className="group relative overflow-hidden rounded-3xl h-[420px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
+                  <div className="absolute inset-0">
+                    <img src="/features/track-every-set.jpg" alt="Track every set" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-brand-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  </div>
+                  <div className="relative h-full flex flex-col justify-end p-8">
+                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Track</div>
+                    <h3 className="text-3xl sm:text-4xl font-semibold text-white mb-3 tracking-tight">Track Every Set</h3>
+                    <p className="text-base text-gray-300 max-w-md">Log every rep, every set, and every kilogram. Keep your training history accurate and organized.</p>
+                    <div className="mt-6 flex items-center gap-2 text-sm text-brand-400 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+                      <span>Explore workout logging</span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                    </div>
+                  </div>
                 </div>
               </Link>
-            ))}
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }} className="md:col-span-2">
+              <Link href="/features/routines">
+                <div className="group relative overflow-hidden rounded-3xl h-[420px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
+                  <div className="absolute inset-0">
+                    <img src="/features/build-routine.jpg" alt="Build your routine" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent" />
+                  </div>
+                  <div className="relative h-full flex flex-col justify-end p-6">
+                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Plan</div>
+                    <h3 className="text-2xl font-semibold text-white mb-2 tracking-tight">Your Routine. Your Rules.</h3>
+                    <p className="text-sm text-gray-300">Create personalized workout routines that fit your goals.</p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.3 }} className="md:col-span-3">
+              <Link href="/features/progress">
+                <div className="group relative overflow-hidden rounded-3xl h-[380px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
+                  <div className="absolute inset-0">
+                    <img src="/features/own-progress.jpg" alt="Own your progress" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-transparent" />
+                  </div>
+                  <div className="relative h-full flex flex-col justify-end p-7">
+                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Measure</div>
+                    <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-2 tracking-tight">Progress You Can See</h3>
+                    <p className="text-sm text-gray-300 max-w-sm">Look back, compare performance, and see how your training evolves.</p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.4 }} className="md:col-span-3">
+              <Link href="/features/logbook">
+                <div className="group relative overflow-hidden rounded-3xl h-[380px] border border-white/10 hover:border-brand-500/50 transition-all duration-500">
+                  <div className="absolute inset-0">
+                    <img src="/features/training-logbook.jpg" alt="Training logbook" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-transparent" />
+                  </div>
+                  <div className="relative h-full flex flex-col justify-end p-7">
+                    <div className="text-xs uppercase tracking-widest text-brand-400 font-mono mb-3">Record</div>
+                    <h3 className="text-2xl sm:text-3xl font-semibold text-white mb-2 tracking-tight">Every Workout Counts</h3>
+                    <p className="text-sm text-gray-300 max-w-sm">Keep every session in one place and revisit your training history anytime.</p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
           </div>
         </section>
 
