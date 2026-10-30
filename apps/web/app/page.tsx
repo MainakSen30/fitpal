@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { CometCard } from "@/components/ui/comet-card";
 
 export default function Home() {
   return (
@@ -77,59 +78,54 @@ export default function Home() {
             </motion.div>
             <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.15 }} className="lg:col-span-5 relative flex justify-center">
               <div className="absolute inset-0 bg-gradient-to-tr from-brand-600/25 via-amber-500/20 to-transparent rounded-full blur-[80px] -z-10" />
-              <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-6 -right-4 sm:-right-10 z-30 p-3 rounded-2xl bg-[#15120f] border border-brand-500/40 shadow-[0_20px_60px_rgba(249,115,22,0.25)] hidden sm:block max-w-[190px]">
+              <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-6 -right-4 sm:-right-8 z-40 p-3 rounded-2xl bg-[#15120f] border border-brand-500/40 shadow-[0_20px_60px_rgba(249,115,22,0.25)] hidden sm:block max-w-[190px]">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-gray-400">Live Volume</span>
+                  <span className="text-[10px] text-gray-400">Weekly Volume</span>
                   <span className="text-[10px] text-emerald-400 font-mono">+14.2%</span>
                 </div>
                 <div className="text-base font-semibold text-white font-mono">14,850 <span className="text-xs text-gray-400">lbs</span></div>
-                <div className="text-[10px] text-gray-500">Chest & Triceps</div>
               </motion.div>
-              <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1.2 }} className="absolute -left-4 sm:-left-12 top-1/3 z-30 p-2.5 rounded-2xl bg-[#15120f] border border-brand-500/50 shadow-[0_20px_60px_rgba(249,115,22,0.2)] hidden md:block">
-                <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-gradient-to-r from-brand-500/30 to-amber-500/20 border border-brand-500/60 text-brand-300 text-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400" />
-                  <span>Push Day A</span>
-                </div>
-              </motion.div>
-              <motion.div animate={{ y: [0, -14, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2.4 }} className="absolute -bottom-6 -left-4 sm:-left-10 z-30 p-2.5 rounded-2xl bg-[#15120f] border border-amber-500/50 shadow-[0_20px_70px_rgba(251,191,36,0.18)] hidden sm:flex items-center gap-2">
+              <motion.div animate={{ y: [0, -14, 0] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2.4 }} className="absolute -bottom-6 -left-4 sm:-left-8 z-40 p-2.5 rounded-2xl bg-[#15120f] border border-amber-500/50 shadow-[0_20px_70px_rgba(251,191,36,0.18)] hidden sm:flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-brand-600 flex items-center justify-center text-xs">🏆</div>
                 <div>
                   <div className="text-[10px] text-amber-400 font-mono">New PR</div>
                   <div className="text-xs text-white">Bench 255 lbs</div>
                 </div>
               </motion.div>
-              <div className="relative w-[300px] sm:w-[330px] rounded-[48px] p-3 bg-gradient-to-b from-gray-700 via-gray-900 to-black shadow-glow-phone border border-white/20">
-                <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-4 bg-black rounded-full z-10" />
-                <div className="rounded-[40px] bg-[#090a0f] overflow-hidden h-[580px] sm:h-[620px]">
-                  <div className="px-4 pt-9 pb-4 h-full flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-wider text-brand-400 font-mono">Active Session</div>
-                        <div className="text-sm font-semibold text-white">Chest & Triceps</div>
-                      </div>
-                      <div className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono">00:42:15</div>
-                    </div>
-                    <div className="rounded-2xl bg-dark-card border border-white/10 p-3 mb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-medium text-white">Barbell Bench Press</div>
-                        <div className="text-[10px] text-amber-400 font-mono">PR READY</div>
-                      </div>
-                      {[{w:225,r:5,d:true},{w:245,r:5,d:true},{w:255,r:3,d:false}].map((s,i)=>(
-                        <div key={i} className="flex items-center justify-between py-2 border-t border-white/5 first:border-0">
-                          <div className="flex items-center gap-2 text-xs font-mono">
-                            <span className="text-gray-500">{i+1}</span>
-                            <span className="text-white">{s.w} lbs</span>
-                            <span className="text-gray-500">×</span>
-                            <span className="text-white">{s.r}</span>
-                          </div>
-                          <div className={`w-5 h-5 rounded-full ${s.d ? 'bg-emerald-500' : 'border border-white/20'}`} />
+              <CometCard rotateDepth={18} translateDepth={18} className="w-full max-w-[340px]">
+                <div className="relative w-[300px] sm:w-[330px] rounded-[48px] p-3 bg-gradient-to-b from-gray-700 via-gray-900 to-black shadow-glow-phone border border-white/20">
+                  <div className="absolute top-5 left-1/2 -translate-x-1/2 w-24 h-4 bg-black rounded-full z-10" />
+                  <div className="rounded-[40px] bg-[#090a0f] overflow-hidden h-[580px] sm:h-[620px]">
+                    <div className="px-4 pt-9 pb-4 h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-brand-400 font-mono">Active Session</div>
+                          <div className="text-sm font-semibold text-white">Chest & Triceps</div>
                         </div>
-                      ))}
+                        <div className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-mono">00:42:15</div>
+                      </div>
+                      <div className="rounded-2xl bg-dark-card border border-white/10 p-3 mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-white">Barbell Bench Press</div>
+                          <div className="text-[10px] text-amber-400 font-mono">PR READY</div>
+                        </div>
+                        {[{w:225,r:5,d:true},{w:245,r:5,d:true},{w:255,r:3,d:false}].map((s,i)=>(
+                          <div key={i} className="flex items-center justify-between py-2 border-t border-white/5 first:border-0">
+                            <div className="flex items-center gap-2 text-xs font-mono">
+                              <span className="text-gray-500">{i+1}</span>
+                              <span className="text-white">{s.w} lbs</span>
+                              <span className="text-gray-500">×</span>
+                              <span className="text-white">{s.r}</span>
+                            </div>
+                            <div className={`w-5 h-5 rounded-full ${s.d ? 'bg-emerald-500' : 'border border-white/20'}`} />
+                          </div>
+                        ))}
+                      </div>
+                      <button className="mt-auto w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 text-white text-sm font-medium">Complete Set</button>
                     </div>
-                    <button className="mt-auto w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-500 to-amber-500 text-white text-sm font-medium">Complete Set</button>
                   </div>
                 </div>
-              </div>
+              </CometCard>
             </motion.div>
           </div>
         </section>
