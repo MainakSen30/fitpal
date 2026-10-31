@@ -41,6 +41,10 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.gradientBg}>
+        <View style={styles.gradientOrbTop} />
+        <View style={styles.gradientOrbBottom} />
+      </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -182,9 +186,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
+  gradientBg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#060709',
+  },
+  gradientOrbTop: {
+    position: 'absolute',
+    top: -200,
+    right: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: 'rgba(249, 115, 22, 0.18)',
+  },
+  gradientOrbBottom: {
+    position: 'absolute',
+    bottom: -250,
+    left: -150,
+    width: 500,
+    height: 500,
+    borderRadius: 250,
+    backgroundColor: 'rgba(234, 88, 12, 0.12)',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#060709',
+    backgroundColor: 'transparent',
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
@@ -230,14 +260,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formCard: {
-    backgroundColor: 'rgba(13, 16, 22, 0.7)',
+    backgroundColor: 'rgba(13, 16, 22, 0.75)',
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000',
+    borderColor: 'rgba(249, 115, 22, 0.25)',
+    shadowColor: '#f97316',
     shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.25,
     shadowRadius: 40,
     elevation: 10,
   },
