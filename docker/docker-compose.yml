@@ -10,10 +10,10 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fitpal"]
+      test: ["CMD-SHELL", "pg_isready -U fitpal -d fitpal"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -27,35 +27,53 @@ services:
       timeout: 5s
       retries: 5
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    command: sh -c "cd packages/database && bun run migrate"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - miniodata:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      DATABASE_URL: postgres://fitpal:fitpal@postgres:5432/fitpal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.12
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
     ports:
-      - "7700:7700"
+      - "3001:3001"
+    env_file:
+      - ../.env
     environment:
-      MEILI_MASTER_KEY: master-key
-      MEILI_NO_ANALYTICS: "true"
-    volumes:
-      - meilidata:/meili_data
+      DATABASE_URL: postgres://fitpal:fitpal@postgres:5432/fitpal
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - "3000:3000"
+    env_file:
+      - ../.env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   pgdata:
   redisdata:
-  miniodata:
-  meilidata:
