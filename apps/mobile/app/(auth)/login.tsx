@@ -1,5 +1,5 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, type TextInputInstance } from 'react-native';
+import { useState, useRef } from 'react';
 import { Link, router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +7,12 @@ import { z } from 'zod';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../../src/lib/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppBackground } from '../../src/components/ui/AppBackground';
+import { BrandLogo } from '../../src/components/ui/BrandLogo';
+import { GradientText } from '../../src/components/ui/GradientText';
+import { PrimaryButton } from '../../src/components/ui/PrimaryButton';
+import { ScreenEntrance } from '../../src/components/ui/ScreenEntrance';
+import { colors, glow, radii, spacing } from '../../src/theme/tokens';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -18,69 +24,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const passwordRef = useRef<TextInput>(null);
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
-  const orb1Anim = useRef(new Animated.Value(0)).current;
-  const orb2Anim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.back(1.1)),
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(orb1Anim, {
-          toValue: 1,
-          duration: 8000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(orb1Anim, {
-          toValue: 0,
-          duration: 8000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(orb2Anim, {
-          toValue: 1,
-          duration: 10000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(orb2Anim, {
-          toValue: 0,
-          duration: 10000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -103,50 +47,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.gradientBg}>
-        <Animated.View
-          style={[
-            styles.gradientOrbTop,
-            {
-              transform: [
-                {
-                  translateX: orb1Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 30],
-                  }),
-                },
-                {
-                  translateY: orb1Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -20],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.gradientOrbBottom,
-            {
-              transform: [
-                {
-                  translateX: orb2Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -25],
-                  }),
-                },
-                {
-                  translateY: orb2Anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 15],
-                  }),
-                },
-              ],
-            },
-          ]}
-        />
-      </View>
+      <AppBackground />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -157,37 +58,19 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
-            <Animated.View
-              style={[
-                styles.header,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
-            >
-              <View style={styles.logoContainer}>
-                <View style={styles.logoIcon}>
-                  <Text style={styles.logoIconText}>🔥</Text>
+            <ScreenEntrance>
+              <View style={styles.header}>
+                <View style={styles.logoContainer}>
+                  <BrandLogo size={44} />
                 </View>
-                <Text style={styles.logoText}>
-                  Fit<Text style={styles.logoAccent}>Pal</Text>
-                </Text>
+                <Text style={styles.subtitle}>Track Your Workouts. Own Your Progress.</Text>
               </View>
-              <Text style={styles.subtitle}>Track Your Workouts. Own Your Progress.</Text>
-            </Animated.View>
+            </ScreenEntrance>
 
-            <Animated.View
-              style={[
-                styles.formCard,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-                },
-              ]}
-            >
-              <Text style={styles.title}>Sign In</Text>
-              <Text style={styles.description}>Welcome back</Text>
+            <ScreenEntrance delay={120}>
+              <View style={styles.formCard}>
+                <GradientText style={styles.title}>Welcome Back</GradientText>
+                <Text style={styles.description}>Sign in to continue training</Text>
 
               <View style={styles.form}>
                 <Controller
@@ -232,7 +115,7 @@ export default function LoginScreen() {
                           onBlur={onBlur}
                           secureTextEntry={!showPassword}
                           returnKeyType="done"
-                          onSubmitEditing={handleSubmit(onSubmit)}
+                          onSubmitEditing={() => { handleSubmit(onSubmit)(); }}
                         />
                         <TouchableOpacity
                           style={styles.eyeButton}
@@ -253,18 +136,12 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </Link>
 
-                <TouchableOpacity
-                  style={[styles.button, loading && styles.buttonDisabled]}
+                <PrimaryButton
+                  title={loading ? 'Signing In' : 'Sign In'}
+                  loading={loading}
                   onPress={handleSubmit(onSubmit)}
-                  disabled={loading}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.buttonGradient}>
-                    <Text style={styles.buttonText}>
-                      {loading ? 'Signing In...' : 'Sign In'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                  style={styles.button}
+                />
 
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />
@@ -277,22 +154,18 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              <Animated.View
-                style={[
-                  styles.footer,
-                  {
-                    opacity: fadeAnim,
-                  },
-                ]}
-              >
-                <Text style={styles.footerText}>Don't have an account? </Text>
-                <Link href="/(auth)/signup" asChild>
-                  <TouchableOpacity activeOpacity={0.7}>
-                    <Text style={styles.linkText}>Sign Up</Text>
-                  </TouchableOpacity>
-                </Link>
-              </Animated.View>
-            </Animated.View>
+              <ScreenEntrance delay={240}>
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>Don't have an account? </Text>
+                  <Link href="/(auth)/signup" asChild>
+                    <TouchableOpacity activeOpacity={0.7}>
+                      <Text style={styles.linkText}>Sign Up</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
+              </ScreenEntrance>
+              </View>
+            </ScreenEntrance>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -303,7 +176,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#060709',
   },
   keyboardView: {
     flex: 1,
@@ -311,100 +183,43 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  gradientBg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#060709',
-  },
-  gradientOrbTop: {
-    position: 'absolute',
-    top: -200,
-    right: -100,
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: 'rgba(249, 115, 22, 0.18)',
-  },
-  gradientOrbBottom: {
-    position: 'absolute',
-    bottom: -250,
-    left: -150,
-    width: 500,
-    height: 500,
-    borderRadius: 250,
-    backgroundColor: 'rgba(234, 88, 12, 0.12)',
-  },
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 32,
+    marginTop: spacing.xl,
+    marginBottom: spacing.xl,
   },
   logoContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
-  },
-  logoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#f97316',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#f97316',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  logoIconText: {
-    fontSize: 22,
-  },
-  logoText: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: -0.5,
-  },
-  logoAccent: {
-    color: '#f97316',
+    marginBottom: spacing.md,
   },
   subtitle: {
-    color: '#9ca3af',
+    color: colors.textMuted,
     fontSize: 14,
     textAlign: 'center',
   },
   formCard: {
     backgroundColor: 'rgba(13, 16, 22, 0.75)',
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: radii.xl,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.25)',
-    shadowColor: '#f97316',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 40,
-    elevation: 10,
+    borderColor: colors.borderBrand,
+    ...glow.card,
   },
   title: {
-    color: '#ffffff',
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 6,
     letterSpacing: -0.3,
+    color: colors.text,
   },
   description: {
-    color: '#9ca3af',
+    color: colors.textMuted,
     fontSize: 15,
     marginBottom: 28,
   },
@@ -415,21 +230,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: '#f3f4f6',
+    color: colors.text,
     fontSize: 14,
     fontWeight: '600',
   },
   inputWrapper: {
     backgroundColor: 'rgba(19, 22, 31, 0.8)',
-    borderRadius: 14,
+    borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
   },
   inputWrapperError: {
-    borderColor: '#ef4444',
+    borderColor: colors.error,
   },
   input: {
     flex: 1,
@@ -448,45 +263,25 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   eyeText: {
-    color: '#f97316',
+    color: colors.brand400,
     fontSize: 14,
     fontWeight: '600',
   },
   error: {
-    color: '#ef4444',
+    color: colors.error,
     fontSize: 12,
   },
   forgotContainer: {
     alignSelf: 'flex-end',
   },
   forgotPassword: {
-    color: '#f97316',
+    color: colors.brand400,
     fontSize: 14,
     fontWeight: '600',
   },
   button: {
-    borderRadius: 14,
-    overflow: 'hidden',
     marginTop: 6,
-    shadowColor: '#f97316',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonGradient: {
-    backgroundColor: '#f97316',
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...glow.orange,
   },
   divider: {
     flexDirection: 'row',
@@ -499,20 +294,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
   dividerText: {
-    color: '#6b7280',
+    color: colors.textFaint,
     marginHorizontal: 16,
     fontSize: 13,
   },
   otpButton: {
     backgroundColor: 'rgba(19, 22, 31, 0.8)',
     paddingVertical: 16,
-    borderRadius: 14,
+    borderRadius: radii.md,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: colors.border,
   },
   otpButtonText: {
-    color: '#f3f4f6',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -523,11 +318,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   footerText: {
-    color: '#9ca3af',
+    color: colors.textMuted,
     fontSize: 15,
   },
   linkText: {
-    color: '#f97316',
+    color: colors.brand400,
     fontWeight: '600',
     fontSize: 15,
   },
