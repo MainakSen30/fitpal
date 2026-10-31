@@ -1,5 +1,5 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, Animated, Easing } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
 import { Link, router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,6 +21,68 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const orb1Anim = useRef(new Animated.Value(0)).current;
+  const orb2Anim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(orb1Anim, {
+          toValue: 1,
+          duration: 8000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(orb1Anim, {
+          toValue: 0,
+          duration: 8000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(orb2Anim, {
+          toValue: 1,
+          duration: 10000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(orb2Anim, {
+          toValue: 0,
+          duration: 10000,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const { control, handleSubmit, formState: { errors }, setFocus } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
@@ -44,8 +106,48 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.gradientBg}>
-        <View style={styles.gradientOrbTop} />
-        <View style={styles.gradientOrbBottom} />
+        <Animated.View
+          style={[
+            styles.gradientOrbTop,
+            {
+              transform: [
+                {
+                  translateX: orb1Anim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 30],
+                  }),
+                },
+                {
+                  translateY: orb1Anim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -20],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.gradientOrbBottom,
+            {
+              transform: [
+                {
+                  translateX: orb2Anim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -25],
+                  }),
+                },
+                {
+                  translateY: orb2Anim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 15],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
       </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -57,7 +159,15 @@ export default function SignupScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
-            <View style={styles.header}>
+            <Animated.View
+              style={[
+                styles.header,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
               <View style={styles.logoContainer}>
                 <View style={styles.logoIcon}>
                   <Text style={styles.logoIconText}>🔥</Text>
@@ -67,9 +177,17 @@ export default function SignupScreen() {
                 </Text>
               </View>
               <Text style={styles.subtitle}>Track Your Workouts. Own Your Progress.</Text>
-            </View>
+            </Animated.View>
 
-            <View style={styles.formCard}>
+            <Animated.View
+              style={[
+                styles.formCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+                },
+              ]}
+            >
               <Text style={styles.title}>Create Account</Text>
               <Text style={styles.description}>Start your fitness journey today</Text>
 
@@ -170,15 +288,22 @@ export default function SignupScreen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.footer}>
+              <Animated.View
+                style={[
+                  styles.footer,
+                  {
+                    opacity: fadeAnim,
+                  },
+                ]}
+              >
                 <Text style={styles.footerText}>Already have an account? </Text>
                 <Link href="/(auth)/login" asChild>
                   <TouchableOpacity activeOpacity={0.7}>
                     <Text style={styles.linkText}>Sign In</Text>
                   </TouchableOpacity>
                 </Link>
-              </View>
-            </View>
+              </Animated.View>
+            </Animated.View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
