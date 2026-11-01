@@ -124,3 +124,56 @@ locally only — keep them in sync if you set up a new machine.
   against the dockerized postgres.
 - Leftover orphans from the old compose file can be removed with
   `docker compose up -d --remove-orphans` (old `docker-minio-1` / `docker-meilisearch-1`).
+
+## Follow-up: the first full `docker compose up --build` (same day)
+
+All images built clean, migrations applied — then three more issues surfaced while
+actually booting the stack. Logged here because each masks the next.
+
+### F1. Native dev stack owns 3000/3001 → `Bind for 0.0.0.0:3001 failed: port is already allocated`
+
+`turbo dev` (native web + api) still running while compose tried to bind the same
+ports. Fix: stop the native web/api dev processes (`turbo`, `bun run --watch`,
+`next dev`) before `docker compose up` — Expo/mobile is unaffected. (The bind error
+also flapped: the crash-report-looping native api held 3001 intermittently.)
+
+### F2. Pin `build.target` per service — compose silently builds the LAST stage
+
+After adding the `migrate` stage to `Dockerfile.api`, the compose `api` service had no
+`target`, so it built the *last* stage (`FROM base`), which inherits the stock
+`CMD ["bun"]` from the oven image → the api container printed bun's help and exited 0
+→ restart loop → every api "state" flip re-latched host ports inside
+`com.docker.backend` (Docker Desktop), causing phantom
+`port is already allocated` for 3000/3001 even with zero host listeners
+(invisible to `docker ps`, `lsof`, `netstat`).
+
+Fixes/actions:
+- `docker/docker-compose.yml`: explicit `build.target: production` for `api`
+  (`migrate` already pinned to its stage; web's final stage is production).
+- To clear the phantom state: `docker compose down` → check
+  `lsof -nP -iTCP:3000 -sTCP:LISTEN`; if `com.docker.backend` still holds it,
+  `killall com.docker.backend` (supervisor respawns fresh), else quit/reopen
+  Docker Desktop. Data is safe (named volumes).
+
+### F3. Runtime: `Failed to load native binding` (`@node-rs/bcrypt`) — two stacked causes
+
+Container booted with the right CMD but crashed exit 1 on `@node-rs/bcrypt`:
+
+1. **bun's Alpine/musl runtime doesn't export napi_* symbols** — the musl `.node`
+   binding fails dlopen with `napi_is_typedarray: symbol not found` (confirmed via
+   `ldd`). Fix: run **both stages on Debian/glibc** (`oven/bun:1.3.14`), the standard
+   supported combo for prebuilt napi-rs binaries.
+2. **bun's bundler breaks the napi loader**: inside `bun build --target bun` output,
+   the loader's `require("@node-rs/bcrypt-linux-arm64-gnu")` is rewritten to
+   `throw new Error("Cannot require module ./bcrypt.linux-arm64-gnu.node")` stubs, so
+   the bundled copy can never succeed even when the runtime
+   `require("@node-rs/bcrypt")` from node_modules works. Fix: don't bundle this one
+   package — `bun build … --external @node-rs/bcrypt` (the production stage already
+   `COPY`s `/app/node_modules`, so runtime resolution is intact).
+
+Final result: `web` serves 200 on :3000, `api` stays up on :3001 and returns
+`{"error":"Invalid email or password"}` (HTTP 401) for dummy logins — proving the full
+containerized auth roundtrip (api → drizzle → postgres) works. Login with real
+credentials now succeeds; the original `database "mainaksen" does not exist` cannot
+happen again (env-file fix + loud guard).
+
