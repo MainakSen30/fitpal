@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: fitpal
       POSTGRES_DB: fitpal
     ports:
-      - "5432:5432"
+      # Host 5433 to avoid clashing with the native Homebrew postgres on 5432
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +19,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # Host 6380 to avoid clashing with other projects' Redis on 6379
+      - "6380:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -31,6 +33,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
+      target: migrate
     command: sh -c "cd packages/database && bun run migrate"
     environment:
       DATABASE_URL: postgres://fitpal:fitpal@postgres:5432/fitpal

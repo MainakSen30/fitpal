@@ -52,6 +52,6 @@ EXPO_TYPED_ROUTES=0 bun expo start --clear
 ## Notes
 
 - Inside containers, use `postgres:5432` and `redis:6379` for service connections
-- On the host, use `localhost:5432` and `localhost:6379`
+- On the host, use `localhost:5433` and `localhost:6380` (host ports are shifted up to avoid clashing with a native Homebrew postgres on 5432 and other projects' Redis on 6379)
 - Migrations are applied automatically by the `migrate` service when containers start
 - MinIO and Meilisearch have been removed as they're not needed currently

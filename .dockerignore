@@ -1,8 +1,14 @@
-node_modules
+# Patterns are matched against paths relative to the context root.
+# Use ** to match at every depth (plain "node_modules" only matches root).
+**/node_modules
+**/.next
+**/.turbo
+**/.expo
+**/dist
+**/*.tsbuildinfo
 .git
-.next
-dist
+.DS_Store
 *.log
 .env
 .env.local
-.turbo
+.env.*.local
