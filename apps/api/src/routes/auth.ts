@@ -6,6 +6,7 @@ import {
   loginWithPassword,
   generateGoogleOAuthUrl,
   handleGoogleCallback,
+  deepLinkSchemeFromState,
   createSession,
   destroySession,
   sendPasswordResetEmail,
@@ -97,9 +98,10 @@ auth.post("/login", zValidator("json", z.object({
   }
 });
 
-// Google OAuth — redirect to Google
-auth.get("/google", async (c) => {
-  const { url } = generateGoogleOAuthUrl();
+// Google OAuth — redirect to Google; `?scheme=fitpal` routes the final
+// redirect to a mobile app deep link instead of the web CLIENT_URL.
+auth.get("/google", (c) => {
+  const { url } = generateGoogleOAuthUrl(c.req.query("scheme"));
   return c.redirect(url);
 });
 
@@ -107,14 +109,23 @@ auth.get("/google", async (c) => {
 auth.get("/google/callback", async (c) => {
   const code = c.req.query("code");
   const error = c.req.query("error");
+  const deepLinkScheme = deepLinkSchemeFromState(c.req.query("state"));
 
   if (error || !code) {
+    if (deepLinkScheme) {
+      return c.redirect(`${deepLinkScheme}://auth/callback?error=google_auth_failed`);
+    }
     return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
   }
 
   try {
     const user = await handleGoogleCallback(code);
     const sessionId = await createSession(user.id);
+    if (deepLinkScheme) {
+      // Mobile app round-trip: the scheme URL must be registered by the app,
+      // otherwise the auth browser just closes without a result.
+      return c.redirect(`${deepLinkScheme}://auth/callback?token=${sessionId}`);
+    }
     c.header("Set-Cookie", serializeSessionCookie(sessionId));
     return c.redirect(`${process.env.CLIENT_URL}/dashboard`);
   } catch {

@@ -1,11 +1,13 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, type TextInputInstance } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform, Linking, type TextInputInstance } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import { useState, useRef } from 'react';
 import { Link, router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as SecureStore from 'expo-secure-store';
-import { api } from '../../src/lib/api';
+import { api, API_URL } from '../../src/lib/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBackground } from '../../src/components/ui/AppBackground';
 import { BrandLogo } from '../../src/components/ui/BrandLogo';
@@ -13,6 +15,7 @@ import { GradientText } from '../../src/components/ui/GradientText';
 import { PrimaryButton } from '../../src/components/ui/PrimaryButton';
 import { ScreenEntrance } from '../../src/components/ui/ScreenEntrance';
 import { colors, glow, radii, spacing } from '../../src/theme/tokens';
+import { GoogleMark } from '../../src/components/ui/GoogleMark';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -21,8 +24,20 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+/** Reads a search param from an arbitrary URL (RN has no WHATWG URLSearchParams). */
+function paramFromUrl(url: string, key: string): string | null {
+  const qIndex = url.indexOf('?');
+  if (qIndex === -1) return null;
+  for (const part of url.slice(qIndex + 1).split('#')[0].split('&')) {
+    const [k, v] = part.split('=');
+    if (k === key) return decodeURIComponent((v ?? '').replace(/\+/g, ' '));
+  }
+  return null;
+}
+
 export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef<TextInputInstance>(null);
 
@@ -42,6 +57,56 @@ export default function LoginScreen() {
       Alert.alert('Error', error.response?.data?.error || 'Login failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setLoadingGoogle(true);
+    // In Expo Go the app scheme is "exp+<name>"; in dev/standalone builds it's
+    // the scheme registered in app.json ("fitpal").
+    const scheme = Constants.appOwnership === 'expo' ? 'exp+fitpal' : 'fitpal';
+
+    // The API callback redirects to `${scheme}://auth/callback?token=...`.
+    // Capture it on whichever channel gets there first: the auth-session
+    // promise (ASWebAuthenticationSession/Custom Tab) or a deep link that
+    // re-opens the app directly.
+    const capture: { url: string | null } = { url: null };
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      if (!capture.url && url.startsWith(`${scheme}://auth/callback`)) {
+        capture.url = url;
+      }
+    });
+
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(
+        `${API_URL}/api/v1/auth/google?scheme=${encodeURIComponent(scheme)}`,
+        scheme,
+      );
+      if (!capture.url && result.type === 'success' && result.url) {
+        capture.url = result.url;
+      }
+    } catch {
+      Alert.alert('Error', 'Could not open Google Sign-In');
+    } finally {
+      subscription.remove();
+    }
+
+    try {
+      if (!capture.url) return;
+      const token = paramFromUrl(capture.url, 'token');
+      const error = paramFromUrl(capture.url, 'error');
+      if (error) {
+        Alert.alert('Google Sign-In failed', 'Google did not authorize the session. Please try again.');
+        return;
+      }
+      if (token) {
+        await SecureStore.setItemAsync('auth_token', token);
+        router.replace('/(tabs)');
+      } else {
+        Alert.alert('Google Sign-In failed', 'No session was returned. Please try again.');
+      }
+    } finally {
+      setLoadingGoogle(false);
     }
   };
 
@@ -148,6 +213,15 @@ export default function LoginScreen() {
                   <Text style={styles.dividerText}>OR</Text>
                   <View style={styles.dividerLine} />
                 </View>
+
+                <PrimaryButton
+                  title="Continue with Google"
+                  variant="glass"
+                  loading={loadingGoogle}
+                  onPress={handleGoogleSignIn}
+                  icon={<View style={styles.googleIconWrap}><GoogleMark /></View>}
+                  style={styles.button}
+                />
 
                 <TouchableOpacity style={styles.otpButton} activeOpacity={0.7}>
                   <Text style={styles.otpButtonText}>Sign in with OTP</Text>
@@ -309,6 +383,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: '600',
+  },
+  googleIconWrap: {
+    marginRight: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: {
     flexDirection: 'row',

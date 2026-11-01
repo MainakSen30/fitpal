@@ -46,10 +46,20 @@ export async function loginWithPassword(email: string, password: string) {
   return user;
 }
 
-export function generateGoogleOAuthUrl() {
+// Deep-link schemes our API may redirect OAuth results to (e.g. "fitpal").
+// Only scheme names, never full URLs — the final URL is built by the callback.
+const DEEP_LINK_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]{1,63}$/;
+
+export function generateGoogleOAuthUrl(deepLinkScheme?: string) {
   const clientId = process.env.GOOGLE_CLIENT_ID!;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI!;
-  const state = crypto.randomUUID();
+  const scheme =
+    deepLinkScheme && DEEP_LINK_SCHEME_RE.test(deepLinkScheme) ? deepLinkScheme : "";
+
+  // OAuth state is the one parameter Google round-trips to the callback, so it
+  // carries both CSRF nonce and the return target: "<nonce>~<scheme>".
+  // Empty scheme → the callback falls back to the web CLIENT_URL redirect.
+  const state = `${crypto.randomUUID()}~${scheme}`;
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -61,6 +71,12 @@ export function generateGoogleOAuthUrl() {
   });
 
   return { url: `https://accounts.google.com/o/oauth2/v2/auth?${params}`, state };
+}
+
+/** Extracts the app deep-link scheme encoded into the OAuth state. */
+export function deepLinkSchemeFromState(state: string | undefined): string {
+  const scheme = state?.includes("~") ? state.split("~")[1] : "";
+  return scheme && DEEP_LINK_SCHEME_RE.test(scheme) ? scheme : "";
 }
 
 export async function handleGoogleCallback(code: string) {
