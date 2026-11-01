@@ -31,18 +31,19 @@ type TabBarProps = {
  */
 export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProps) {
   const insets = useSafeAreaInsets();
-  const [tabWidth, setTabWidth] = useState(0);
+  const [trackWidth, setTrackWidth] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const indicatorX = useRef(new Animated.Value(0)).current;
   const indicatorOpacity = useRef(new Animated.Value(0)).current;
   const hasAppeared = useRef(false);
+  const tabWidth = state.routes.length > 0 ? trackWidth / state.routes.length : 0;
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
   }, []);
 
   useLayoutEffect(() => {
-    if (tabWidth === 0) return;
+    if (trackWidth === 0) return;
     const indicatorWidth = tabWidth * INDICATOR_WIDTH_RATIO;
     const target = state.index * tabWidth + (tabWidth - indicatorWidth) / 2;
     if (reduceMotion) {
@@ -65,51 +66,65 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
       speed: 30,
       bounciness: 4,
     }).start();
-  }, [state.index, tabWidth, reduceMotion, indicatorX, indicatorOpacity]);
+  }, [state.index, tabWidth, trackWidth, reduceMotion, indicatorX, indicatorOpacity]);
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrapper, { bottom: insets.bottom + spacing.sm }] as StyleProp<ViewStyle>}>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.wrapper,
+        {
+          bottom: insets.bottom + spacing.xs,
+          paddingHorizontal: spacing.lg,
+        },
+      ] as StyleProp<ViewStyle>}
+    >
       <View style={styles.pillShadow}>
         <View style={styles.pillClip}>
           <BlurView intensity={28} tint="dark" style={styles.blur} experimentalBlurMethod="dimezisBlurView">
             <View style={styles.pillInner}>
-              <Animated.View
-                style={[
-                  styles.indicator,
-                  {
-                    opacity: indicatorOpacity,
-                    width: tabWidth * INDICATOR_WIDTH_RATIO,
-                    transform: [{ translateX: indicatorX }],
-                  },
-                ]}
-              />
-              {state.routes.map((route, index) => {
-                const { options } = descriptors[route.key];
-                const isFocused = state.index === index;
+              <View style={styles.track} onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}>
+                <Animated.View
+                  style={[
+                    styles.indicator,
+                    {
+                      opacity: indicatorOpacity,
+                      width: tabWidth * INDICATOR_WIDTH_RATIO,
+                      transform: [{ translateX: indicatorX }],
+                    },
+                  ]}
+                />
+                {state.routes.map((route, index) => {
+                  const { options } = descriptors[route.key];
+                  const isFocused = state.index === index;
 
-                const onPress = () => {
-                  if (!isFocused) {
-                    navigateToTab(route.key);
-                  }
-                };
+                  const onPress = () => {
+                    if (!isFocused) {
+                      navigateToTab(route.key);
+                    }
+                  };
 
-                return (
-                  <Pressable
-                    key={route.key}
-                    accessibilityRole="tab"
-                    accessibilityState={isFocused ? { selected: true } : {}}
-                    accessibilityLabel={options.tabBarAccessibilityLabel}
-                    onLayout={index === 0 ? (e) => setTabWidth(e.nativeEvent.layout.width) : undefined}
-                    onPress={onPress}
-                    style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
-                  >
-                    {options.tabBarIcon?.({ color: isFocused ? colors.brand400 : colors.textFaint, size: 22, focused: isFocused })}
-                    <Text style={[styles.label, { color: isFocused ? colors.brand400 : colors.textFaint }]}>
-                      {options.title ?? route.name}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                  return (
+                    <Pressable
+                      key={route.key}
+                      accessibilityRole="tab"
+                      accessibilityState={isFocused ? { selected: true } : {}}
+                      accessibilityLabel={options.tabBarAccessibilityLabel}
+                      onPress={onPress}
+                      style={({ pressed }) => [styles.tab, pressed && styles.tabPressed]}
+                    >
+                      {options.tabBarIcon?.({ color: isFocused ? colors.brand400 : colors.textFaint, size: 22, focused: isFocused })}
+                      <Text
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        style={[styles.label, { color: isFocused ? colors.brand400 : colors.textFaint }]}
+                      >
+                        {options.title ?? route.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           </BlurView>
         </View>
@@ -125,9 +140,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    alignItems: 'center',
   },
   pillShadow: {
+    alignSelf: 'stretch',
     borderRadius: radii.pill,
     shadowColor: '#000',
     shadowOpacity: 0.55,
@@ -136,6 +151,7 @@ const styles = StyleSheet.create({
     elevation: 14,
   },
   pillClip: {
+    alignSelf: 'stretch',
     borderRadius: radii.pill,
     overflow: 'hidden',
     borderWidth: 1,
@@ -146,16 +162,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(9, 8, 7, 0.35)',
   },
   pillInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
+  track: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: radii.pill,
+  },
   indicator: {
     position: 'absolute',
-    top: 4,
-    bottom: 4,
+    top: 2,
+    bottom: 2,
     borderRadius: radii.pill,
     backgroundColor: 'rgba(249, 115, 22, 0.14)',
     borderWidth: 1,
@@ -170,7 +189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   tabPressed: {
     opacity: 0.7,
