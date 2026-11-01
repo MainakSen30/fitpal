@@ -62,9 +62,10 @@ export default function LoginScreen() {
 
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
-    // In Expo Go the app scheme is "exp+<name>"; in dev/standalone builds it's
-    // the scheme registered in app.json ("fitpal").
-    const scheme = Constants.appOwnership === 'expo' ? 'exp+fitpal' : 'fitpal';
+    // Deep-link back into the app: Expo Go only registers the generic "exp"
+    // scheme (project-specific schemes like exp+fitpal are not claimable by
+    // Expo Go), while dev/standalone builds register "fitpal" from app.json.
+    const scheme = Constants.appOwnership === 'expo' ? 'exp' : 'fitpal';
 
     // The API callback redirects to `${scheme}://auth/callback?token=...`.
     // Capture it on whichever channel gets there first: the auth-session
