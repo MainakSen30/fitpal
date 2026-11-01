@@ -1,50 +1,49 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { ClipboardList, Dumbbell, House, BookOpen, User } from 'lucide-react-native';
+import { FloatingTabBar } from '../../src/components/navigation/FloatingTabBar';
+import { colors } from '../../src/theme/tokens';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#000' },
-        headerTintColor: '#fff',
-        tabBarStyle: { backgroundColor: '#000', borderTopColor: '#333' },
-        tabBarActiveTintColor: '#ff6b35',
-        tabBarInactiveTintColor: '#666',
+        headerShown: false,
       }}
+      tabBar={(props) => <FloatingTabBar {...(props as React.ComponentProps<typeof FloatingTabBar>)} />}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ color, size }) => <House size={size} color={color} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="workout"
         options={{
           title: 'Workout',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>💪</Text>,
+          tabBarIcon: ({ color, size }) => <Dumbbell size={size} color={color} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="routines"
         options={{
           title: 'Routines',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📋</Text>,
+          tabBarIcon: ({ color, size }) => <ClipboardList size={size} color={color} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="logbook"
         options={{
           title: 'Logbook',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📊</Text>,
+          tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} strokeWidth={1.8} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} strokeWidth={1.8} />,
         }}
       />
     </Tabs>
