@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     paddingVertical: 16,
-    borderRadius: radii.md,
+    borderRadius: radii.xl,
     backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(239, 68, 68, 0.3)',

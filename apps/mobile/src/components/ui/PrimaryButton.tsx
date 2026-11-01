@@ -88,17 +88,16 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radii.md,
+    borderRadius: radii.xl,
     overflow: 'hidden',
     minHeight: 52,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.sm,
   },
   solid: {
+    backgroundColor: colors.brand600,
     ...glow.orange,
     elevation: 8,
   },
@@ -109,9 +108,10 @@ const styles = StyleSheet.create({
   },
   fill: {
     flex: 1,
+    alignSelf: 'stretch',
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: 14,

@@ -44,8 +44,8 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
 
   useLayoutEffect(() => {
     if (trackWidth === 0) return;
-    const indicatorWidth = tabWidth * INDICATOR_WIDTH_RATIO;
-    const target = state.index * tabWidth + (tabWidth - indicatorWidth) / 2;
+    const indicatorWidth = tabWidth - INDICATOR_INSET * 2;
+    const target = state.index * tabWidth + INDICATOR_INSET;
     if (reduceMotion) {
       indicatorX.setValue(target);
       indicatorOpacity.setValue(1);
@@ -55,7 +55,7 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
     if (!hasAppeared.current) {
       hasAppeared.current = true;
       Animated.parallel([
-        Animated.spring(indicatorX, { toValue: target, useNativeDriver: true, speed: 30, bounciness: 4 }),
+        Animated.spring(indicatorX, { toValue: target, useNativeDriver: true, speed: 30, bounciness: 0 }),
         Animated.timing(indicatorOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
       return;
@@ -64,7 +64,7 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
       toValue: target,
       useNativeDriver: true,
       speed: 30,
-      bounciness: 4,
+      bounciness: 0,
     }).start();
   }, [state.index, tabWidth, trackWidth, reduceMotion, indicatorX, indicatorOpacity]);
 
@@ -89,7 +89,7 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
                     styles.indicator,
                     {
                       opacity: indicatorOpacity,
-                      width: tabWidth * INDICATOR_WIDTH_RATIO,
+                      width: Math.max(0, tabWidth - INDICATOR_INSET * 2),
                       transform: [{ translateX: indicatorX }],
                     },
                   ]}
@@ -133,7 +133,7 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
   );
 }
 
-const INDICATOR_WIDTH_RATIO = 0.62;
+const INDICATOR_INSET = 5;
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -173,8 +173,8 @@ const styles = StyleSheet.create({
   },
   indicator: {
     position: 'absolute',
-    top: 2,
-    bottom: 2,
+    top: 0,
+    bottom: 0,
     borderRadius: radii.pill,
     backgroundColor: 'rgba(249, 115, 22, 0.14)',
     borderWidth: 1,
@@ -188,8 +188,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    paddingVertical: 8,
+    gap: 4,
+    paddingVertical: 10,
   },
   tabPressed: {
     opacity: 0.7,

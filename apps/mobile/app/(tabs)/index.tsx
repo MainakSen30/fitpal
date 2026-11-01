@@ -10,7 +10,7 @@ import { GlassCard } from '../../src/components/ui/GlassCard';
 import { SectionHeader } from '../../src/components/ui/SectionHeader';
 import { ScreenEntrance } from '../../src/components/ui/ScreenEntrance';
 import { StatCard } from '../../src/components/ui/StatCard';
-import { colors, glow, radii, spacing } from '../../src/theme/tokens';
+import { colors, radii, spacing } from '../../src/theme/tokens';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -64,7 +64,6 @@ export default function HomeScreen() {
               title="Start Workout"
               icon={<Flame size={18} color="#ffffff" strokeWidth={2.2} />}
               onPress={() => router.push('/(tabs)/workout')}
-              style={styles.cta}
             />
           </View>
         </ScreenEntrance>
@@ -171,9 +170,6 @@ const styles = StyleSheet.create({
   },
   ctaRow: {
     marginBottom: spacing.md,
-  },
-  cta: {
-    ...glow.orange,
   },
   statRow: {
     flexDirection: 'row',

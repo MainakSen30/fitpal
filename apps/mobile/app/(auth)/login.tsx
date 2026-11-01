@@ -281,7 +281,6 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 6,
-    ...glow.orange,
   },
   divider: {
     flexDirection: 'row',
@@ -301,7 +300,7 @@ const styles = StyleSheet.create({
   otpButton: {
     backgroundColor: 'rgba(19, 22, 31, 0.8)',
     paddingVertical: 16,
-    borderRadius: radii.md,
+    borderRadius: radii.xl,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,

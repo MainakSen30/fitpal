@@ -284,7 +284,6 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 10,
-    ...glow.orange,
   },
   footer: {
     flexDirection: 'row',
