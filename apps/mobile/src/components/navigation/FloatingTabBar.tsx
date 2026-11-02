@@ -81,7 +81,7 @@ export function FloatingTabBar({ state, descriptors, navigateToTab }: TabBarProp
     >
       <View style={styles.pillShadow}>
         <View style={styles.pillClip}>
-          <BlurView intensity={28} tint="dark" style={styles.blur} experimentalBlurMethod="dimezisBlurView">
+          <BlurView intensity={28} tint="dark" style={styles.blur} blurMethod="dimezisBlurView">
             <View style={styles.pillInner}>
               <View style={styles.track} onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}>
                 <Animated.View
