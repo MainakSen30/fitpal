@@ -14,6 +14,13 @@ RUN npm ci
 # Copy source
 COPY . .
 
+# NEXT_PUBLIC_* variables are inlined into the browser bundle at build time
+# (next docs: they are frozen with the build). Compose also passes
+# NEXT_PUBLIC_API_URL at runtime for server-side reads — the two must match
+# whatever host port the api is published on locally / per environment.
+ARG NEXT_PUBLIC_API_URL=http://localhost:3011
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build
 RUN npm run build --workspace=@fitpal/web
 

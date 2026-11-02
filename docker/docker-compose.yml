@@ -51,7 +51,8 @@ services:
       # just prints bun's help).
       target: production
     ports:
-      - "3001:3001"
+      # Host 3011 so 3001 stays free for other projects' containers (e.g. GNetra)
+      - "3011:3001"
     env_file:
       - ../.env
     environment:
@@ -70,12 +71,17 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.web
+      args:
+        # Baked into the client bundle at build time; must match the api's
+        # published host port below (3011).
+        NEXT_PUBLIC_API_URL: http://localhost:3011
     ports:
-      - "3000:3000"
+      # Host 3002 so 3000 stays free for other projects' containers (e.g. Grafana)
+      - "3002:3000"
     env_file:
       - ../.env
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3011
     depends_on:
       api:
         condition: service_started

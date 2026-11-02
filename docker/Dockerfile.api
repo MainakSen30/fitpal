@@ -27,7 +27,16 @@ RUN bun run --cwd apps/api build
 FROM oven/bun:1.3.14 AS production
 WORKDIR /app
 COPY --from=base /app/apps/api/dist ./dist
+# bun's isolated layout links native deps only inside the owning workspace's
+# node_modules (apps/api/node_modules), which this stage does not ship. The
+# bundle keeps @node-rs/bcrypt external (see build script), so re-seed its
+# scope directly at /app/node_modules for dist/index.js to resolve.
+# COPY preserves symlinks (and would leave them dangling after the re-root),
+# so materialize real dirs from the in-image store instead.
 COPY --from=base /app/node_modules ./node_modules
+RUN rm -rf /app/node_modules/@node-rs && \
+    mkdir -p /app/node_modules/@node-rs && \
+    cp -RL /app/node_modules/.bun/@node-rs+bcrypt@*/node_modules/@node-rs/. /app/node_modules/@node-rs/
 
 EXPOSE 3001
 CMD ["bun", "run", "dist/index.js"]
