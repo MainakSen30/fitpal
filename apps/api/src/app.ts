@@ -8,7 +8,9 @@ export const app = new Hono();
 app.use("*", logger());
 app.use("*", secureHeaders());
 app.use("*", cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  // Comma-separated allowlist; must include every web origin in use.
+  // (3000 = web dev server, 3002 = web in docker compose)
+  origin: (process.env.CORS_ORIGIN || "http://localhost:3000,http://localhost:3002").split(","),
   credentials: true,
 }));
 
