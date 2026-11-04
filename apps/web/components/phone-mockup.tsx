@@ -1,7 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
-
 interface PhoneMockupProps {
   children: React.ReactNode;
   className?: string;

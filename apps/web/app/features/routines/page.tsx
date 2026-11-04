@@ -7,7 +7,7 @@ import { CometCard } from "@/components/ui/comet-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { NoiseBackground } from "@/components/ui/noise-background";
 import { CanvasText } from "@/components/ui/canvas-text";
-import { ArrowLeft, CheckCircle2, ListChecks } from "lucide-react";
+import { CheckCircle2, ListChecks } from "lucide-react";
 
 export default function RoutinesPage() {
   return (
@@ -113,7 +113,7 @@ export default function RoutinesPage() {
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
             <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="/#download" className="group">
+              <Link href="/#download" className="group">
                 <NoiseBackground
                   className="rounded-full"
                   containerClassName="rounded-full"
@@ -125,8 +125,8 @@ export default function RoutinesPage() {
                     Download for iOS
                   </div>
                 </NoiseBackground>
-              </a>
-              <a href="/#download" className="group">
+              </Link>
+              <Link href="/#download" className="group">
                 <NoiseBackground
                   className="rounded-full"
                   containerClassName="rounded-full"
@@ -138,7 +138,7 @@ export default function RoutinesPage() {
                     Download for Android
                   </div>
                 </NoiseBackground>
-              </a>
+              </Link>
             </div>
           </div>
         </section>
