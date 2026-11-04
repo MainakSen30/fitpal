@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Pressable, PressableProps, StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Pressable, type PressableProps, StyleSheet, View, type ViewStyle, type StyleProp } from 'react-native';
 import { colors, glow, radii } from '../../theme/tokens';
 
 interface GlassCardProps extends Pick<PressableProps, 'onPress' | 'disabled'> {

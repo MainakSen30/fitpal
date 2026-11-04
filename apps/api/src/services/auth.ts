@@ -4,13 +4,21 @@ import { users, passwordResetTokens, otpCodes } from "@fitpal/database";
 import { redis } from "../lib/redis";
 import { SignJWT, jwtVerify } from "jose";
 import { hash, verify } from "@node-rs/bcrypt";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
 const SESSION_PREFIX = "session:";
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-dev-secret-min-32-chars!!"
 );
+
+function requireEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
 
 function generateOtpCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -51,8 +59,8 @@ export async function loginWithPassword(email: string, password: string) {
 const DEEP_LINK_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]{1,63}$/;
 
 export function generateGoogleOAuthUrl(deepLinkScheme?: string) {
-  const clientId = process.env.GOOGLE_CLIENT_ID!;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI!;
+  const clientId = requireEnv("GOOGLE_CLIENT_ID");
+  const redirectUri = requireEnv("GOOGLE_REDIRECT_URI");
   const scheme =
     deepLinkScheme && DEEP_LINK_SCHEME_RE.test(deepLinkScheme) ? deepLinkScheme : "";
 
@@ -85,9 +93,9 @@ export async function handleGoogleCallback(code: string) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+      client_id: requireEnv("GOOGLE_CLIENT_ID"),
+      client_secret: requireEnv("GOOGLE_CLIENT_SECRET"),
+      redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
       grant_type: "authorization_code",
     }),
   });

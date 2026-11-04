@@ -9,6 +9,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "lint": "biome lint app/ src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

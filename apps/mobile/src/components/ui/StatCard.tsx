@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ViewStyle, StyleProp } from 'react-native';
+import { StyleSheet, Text, View, type ViewStyle, type StyleProp } from 'react-native';
 import { colors, radii, spacing, fontFamily } from '../../theme/tokens';
 
 interface StatCardProps {

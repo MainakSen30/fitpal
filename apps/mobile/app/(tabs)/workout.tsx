@@ -61,6 +61,7 @@ export default function WorkoutScreen() {
             </View>
 
             {previewExercise.sets.map((set, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static preview rows, no stable id to key yet
               <View key={index} style={styles.setRow}>
                 <Text style={styles.setIndex}>{index + 1}</Text>
                 <Text style={styles.setDetail}>

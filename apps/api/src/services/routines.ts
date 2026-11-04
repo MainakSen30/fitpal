@@ -144,7 +144,7 @@ export async function startWorkoutFromRoutine(userId: string, routineId: string)
       .values({
         workoutId: workout.id,
         exerciseId: re.exerciseId,
-        exerciseNameSnapshot: (re as any).exercise?.name || "",
+        exerciseNameSnapshot: re.exercise?.name || "",
         position: re.position,
       })
       .returning();

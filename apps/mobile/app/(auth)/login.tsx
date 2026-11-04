@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as SecureStore from 'expo-secure-store';
 import { api, API_URL } from '../../src/lib/api';
+import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBackground } from '../../src/components/ui/AppBackground';
 import { BrandLogo } from '../../src/components/ui/BrandLogo';
@@ -53,8 +54,9 @@ export default function LoginScreen() {
         await SecureStore.setItemAsync('auth_token', response.data.token);
         router.replace('/(tabs)');
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Login failed');
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      Alert.alert('Error', message || 'Login failed');
     } finally {
       setLoading(false);
     }

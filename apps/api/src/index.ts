@@ -1,7 +1,7 @@
 import { serve } from "bun";
 import { app } from "./app";
 
-const port = parseInt(process.env.PORT || "3001");
+const port = Number.parseInt(process.env.PORT || "3001");
 
 serve({
   fetch: app.fetch,

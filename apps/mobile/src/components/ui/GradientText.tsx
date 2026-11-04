@@ -1,5 +1,5 @@
-import React from 'react';
-import { Text, TextProps, StyleSheet, StyleProp, TextStyle } from 'react-native';
+import type React from 'react';
+import { Text, type TextProps, StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 // typed cast below keeps TS 6 + React 19 JSX checks happy with this package's legacy class types
 import MaskedViewDefault from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';

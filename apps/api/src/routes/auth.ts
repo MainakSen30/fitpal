@@ -219,10 +219,10 @@ function serializeSessionCookie(sessionId: string, maxAge?: number) {
   const age = maxAge ?? 7 * 24 * 60 * 60;
   return [
     `session=${sessionId}`,
-    `HttpOnly`,
-    `Secure`,
-    `SameSite=Lax`,
-    `Path=/`,
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    "Path=/",
     `Max-Age=${age}`,
   ].join("; ");
 }

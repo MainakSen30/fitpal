@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, View, AccessibilityInfo, ViewStyle, StyleProp } from 'react-native';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, View, AccessibilityInfo, type ViewStyle, type StyleProp } from 'react-native';
 
 interface AppBackgroundProps {
   /** Extra overlays rendered above the orbs (below content). */
