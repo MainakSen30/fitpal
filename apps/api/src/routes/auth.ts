@@ -16,9 +16,9 @@ import {
   verifyOtp,
   loginWithOtp,
 } from "../services/auth";
-import { requireAuth } from "../middleware/requireAuth";
+import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
 
-const auth = new Hono();
+const auth = new Hono<AuthEnv>();
 
 // Email/password registration
 auth.post("/register", zValidator("json", z.object({
@@ -32,7 +32,8 @@ auth.post("/register", zValidator("json", z.object({
     const sessionId = await createSession(user.id);
 
     c.header("Set-Cookie", serializeSessionCookie(sessionId));
-    return c.json({ user }, 201);
+    // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
+    return c.json({ user, token: sessionId }, 201);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Registration failed";
     return c.json({ error: message }, 409);
@@ -68,7 +69,7 @@ auth.post("/otp/verify", zValidator("json", z.object({
       const user = await loginWithOtp(email);
       const sessionId = await createSession(user.id);
       c.header("Set-Cookie", serializeSessionCookie(sessionId));
-      return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl } });
+      return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, token: sessionId });
     }
     
     return c.json({ success: true });
@@ -91,6 +92,8 @@ auth.post("/login", zValidator("json", z.object({
     c.header("Set-Cookie", serializeSessionCookie(sessionId));
     return c.json({
       user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
+      token: sessionId,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Login failed";
@@ -164,7 +167,8 @@ auth.post("/reset-password", zValidator("json", z.object({
 
 // Logout
 auth.post("/logout", async (c) => {
-  const sessionId = c.req.cookie("session");
+  // Mobile sends the session as Bearer; web relies on the cookie.
+  const sessionId = sessionTokenFromRequest(c);
   if (sessionId) {
     await destroySession(sessionId);
   }
@@ -189,7 +193,7 @@ auth.delete("/account", requireAuth, async (c) => {
 
 // Get current session
 auth.get("/me", async (c) => {
-  const sessionId = c.req.cookie("session");
+  const sessionId = sessionTokenFromRequest(c);
   if (!sessionId) {
     return c.json({ user: null });
   }

@@ -37,7 +37,7 @@ export default function SignupScreen() {
     try {
       const response = await api.post('/auth/register', data);
       if (response.data.user) {
-        await SecureStore.setItemAsync('auth_token', 'session');
+        await SecureStore.setItemAsync('auth_token', response.data.token);
         router.replace('/(tabs)');
       }
     } catch (error: any) {

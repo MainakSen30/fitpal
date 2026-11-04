@@ -50,7 +50,7 @@ export default function LoginScreen() {
     try {
       const response = await api.post('/auth/login', data);
       if (response.data.user) {
-        await SecureStore.setItemAsync('auth_token', 'session');
+        await SecureStore.setItemAsync('auth_token', response.data.token);
         router.replace('/(tabs)');
       }
     } catch (error: any) {
