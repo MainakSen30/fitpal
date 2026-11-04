@@ -2,7 +2,7 @@ import { db } from "../db";
 import { workouts, workoutExercises, workoutSets, profiles } from "@fitpal/database";
 import { eq, and, gte, lt } from "drizzle-orm";
 
-function getWeekBounds(date: Date, tz = "UTC") {
+export function getWeekBounds(date: Date, tz = "UTC") {
   // Get start of week (Monday) in UTC approximation - for simplicity use UTC
   // In production, use proper TZ handling
   const d = new Date(date);

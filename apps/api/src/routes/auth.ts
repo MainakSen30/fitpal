@@ -17,6 +17,7 @@ import {
   loginWithOtp,
 } from "../services/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
+import { serializeSessionCookie } from "../lib/cookies";
 
 const auth = new Hono<AuthEnv>();
 
@@ -214,17 +215,5 @@ auth.get("/me", async (c) => {
     user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
   });
 });
-
-function serializeSessionCookie(sessionId: string, maxAge?: number) {
-  const age = maxAge ?? 7 * 24 * 60 * 60;
-  return [
-    `session=${sessionId}`,
-    "HttpOnly",
-    "Secure",
-    "SameSite=Lax",
-    "Path=/",
-    `Max-Age=${age}`,
-  ].join("; ");
-}
 
 export { auth as authRoutes };
