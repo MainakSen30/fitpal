@@ -7,6 +7,7 @@ import { AppBackground } from '../../src/components/ui/AppBackground';
 import { GradientText } from '../../src/components/ui/GradientText';
 import { PrimaryButton } from '../../src/components/ui/PrimaryButton';
 import { api } from '../../src/lib/api';
+import axios from 'axios';
 import { colors, glow, radii, spacing } from '../../src/theme/tokens';
 
 export default function ForgotPasswordScreen() {
@@ -35,8 +36,9 @@ export default function ForgotPasswordScreen() {
           Animated.spring(sentScale, { toValue: 1, useNativeDriver: true, speed: 26, bounciness: 5 }),
         ]).start();
       }
-    } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.error || 'Something went wrong');
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      Alert.alert('Error', message || 'Something went wrong');
     } finally {
       setLoading(false);
     }

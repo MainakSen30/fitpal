@@ -115,7 +115,7 @@ export default function WorkoutLoggingPage() {
             <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-4">Ready to start your journey?</h2>
             <p className="text-lg text-gray-400 mb-10">Download FitPal and track every rep towards your goals.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a href="/#download" className="group">
+              <Link href="/#download" className="group">
                 <NoiseBackground
                   className="rounded-full"
                   containerClassName="rounded-full"
@@ -127,8 +127,8 @@ export default function WorkoutLoggingPage() {
                     Download for iOS
                   </div>
                 </NoiseBackground>
-              </a>
-              <a href="/#download" className="group">
+              </Link>
+              <Link href="/#download" className="group">
                 <NoiseBackground
                   className="rounded-full"
                   containerClassName="rounded-full"
@@ -140,7 +140,7 @@ export default function WorkoutLoggingPage() {
                     Download for Android
                   </div>
                 </NoiseBackground>
-              </a>
+              </Link>
             </div>
           </div>
         </section>

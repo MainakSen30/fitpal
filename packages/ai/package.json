@@ -15,7 +15,8 @@
     "@fitpal/shared": "*"
   },
   "devDependencies": {
-    "typescript": "^5",
-    "@biomejs/biome": "^1"
+    "@biomejs/biome": "^1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5"
   }
 }

@@ -7,16 +7,7 @@ import { CometCard } from "@/components/ui/comet-card";
 import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
 import { NoiseBackground } from "@/components/ui/noise-background";
 import { CanvasText } from "@/components/ui/canvas-text";
-import { ArrowLeft, CheckCircle2, TrendingUp } from "lucide-react";
-
-const features = [
-  { name: "Workout Logging", href: "/features/workout-logging" },
-  { name: "Custom Routines", href: "/features/routines" },
-  { name: "Logbook & PRs", href: "/features/logbook" },
-  { name: "Weekly Progress", href: "/features/progress" },
-  { name: "Rest Timer", href: "/features/rest-timer" },
-  { name: "Offline Ready", href: "/features/offline-sync" },
-];
+import { CheckCircle2, TrendingUp } from "lucide-react";
 
 export default function ProgressPage() {
   return (

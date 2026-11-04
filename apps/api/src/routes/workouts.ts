@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { requireAuth } from "../middleware/requireAuth";
+import { requireAuth, type AuthEnv } from "../middleware/requireAuth";
 import {
   startWorkout,
   getWorkout,
@@ -17,7 +17,7 @@ import {
   deleteWorkout,
 } from "../services/workout";
 
-const workouts = new Hono();
+const workouts = new Hono<AuthEnv>();
 
 workouts.use("*", requireAuth);
 

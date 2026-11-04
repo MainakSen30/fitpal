@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { requireAuth } from "../middleware/requireAuth";
+import { requireAuth, type AuthEnv } from "../middleware/requireAuth";
 import { getWeeklyProgress } from "../services/progress";
 
-const progress = new Hono();
+const progress = new Hono<AuthEnv>();
 
 progress.use("*", requireAuth);
 

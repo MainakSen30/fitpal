@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Pressable, StyleSheet, Text, TextProps, ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Pressable, StyleSheet, Text, type TextProps, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, glow, radii, spacing } from '../../theme/tokens';
 

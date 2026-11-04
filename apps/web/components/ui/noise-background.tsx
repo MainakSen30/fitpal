@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import {
   motion,
   useAnimationFrame,
@@ -216,9 +217,10 @@ export const NoiseBackground = ({
 
       {/* Static Noise Pattern */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <img
+        <Image
           src="https://assets.aceternity.com/noise.webp"
           alt=""
+          fill
           className="h-full w-full object-cover opacity-[var(--noise-opacity)]"
           style={{ mixBlendMode: "overlay" }}
         />

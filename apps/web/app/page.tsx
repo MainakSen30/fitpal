@@ -252,7 +252,7 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Weekly Progress</h3>
-                      <p className="text-sm text-gray-400 leading-relaxed">See your weekly training activity and understand how consistently you're progressing.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">See your weekly training activity and understand how consistently you&apos;re progressing.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>
@@ -288,7 +288,7 @@ export default function Home() {
                         </svg>
                       </div>
                       <h3 className="text-xl font-semibold text-white mb-2 tracking-tight">Offline Ready</h3>
-                      <p className="text-sm text-gray-400 leading-relaxed">Keep logging your workouts even when you don't have an internet connection.</p>
+                      <p className="text-sm text-gray-400 leading-relaxed">Keep logging your workouts even when you don&apos;t have an internet connection.</p>
                     </div>
                     <div className="mt-4 text-xs text-brand-400">Learn more</div>
                   </div>

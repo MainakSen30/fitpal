@@ -91,7 +91,8 @@ export async function addExerciseToRoutine(userId: string, routineId: string, da
       position,
       targetSets: data.targetSets ?? null,
       targetReps: data.targetReps ?? null,
-      targetWeightKg: data.targetWeightKg ?? null,
+      // numeric column flows as string through drizzle; boundary converts
+      targetWeightKg: data.targetWeightKg != null ? String(data.targetWeightKg) : null,
     })
     .returning();
 
@@ -143,7 +144,7 @@ export async function startWorkoutFromRoutine(userId: string, routineId: string)
       .values({
         workoutId: workout.id,
         exerciseId: re.exerciseId,
-        exerciseNameSnapshot: (re as any).exercise?.name || "",
+        exerciseNameSnapshot: re.exercise?.name || "",
         position: re.position,
       })
       .returning();

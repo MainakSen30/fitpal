@@ -1,16 +1,24 @@
-import { eq, or, and, gt, isNull } from "drizzle-orm";
+import { eq, or, and, gt, isNull, desc, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, passwordResetTokens, otpCodes } from "@fitpal/database";
 import { redis } from "../lib/redis";
 import { SignJWT, jwtVerify } from "jose";
 import { hash, verify } from "@node-rs/bcrypt";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
 const SESSION_PREFIX = "session:";
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-dev-secret-min-32-chars!!"
 );
+
+function requireEnv(key: string): string {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+  return value;
+}
 
 function generateOtpCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -51,8 +59,8 @@ export async function loginWithPassword(email: string, password: string) {
 const DEEP_LINK_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]{1,63}$/;
 
 export function generateGoogleOAuthUrl(deepLinkScheme?: string) {
-  const clientId = process.env.GOOGLE_CLIENT_ID!;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI!;
+  const clientId = requireEnv("GOOGLE_CLIENT_ID");
+  const redirectUri = requireEnv("GOOGLE_REDIRECT_URI");
   const scheme =
     deepLinkScheme && DEEP_LINK_SCHEME_RE.test(deepLinkScheme) ? deepLinkScheme : "";
 
@@ -85,9 +93,9 @@ export async function handleGoogleCallback(code: string) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+      client_id: requireEnv("GOOGLE_CLIENT_ID"),
+      client_secret: requireEnv("GOOGLE_CLIENT_SECRET"),
+      redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
       grant_type: "authorization_code",
     }),
   });
@@ -200,6 +208,8 @@ export async function deleteAccount(userId: string) {
   return { success: true };
 }
 
+const OTP_MAX_ATTEMPTS = 5;
+
 export async function sendOtp(email: string, purpose: "email_verification" | "login") {
   const code = generateOtpCode();
   const codeHash = hashToken(code);
@@ -210,7 +220,6 @@ export async function sendOtp(email: string, purpose: "email_verification" | "lo
     codeHash,
     purpose,
     expiresAt,
-    attempts: "0",
   });
 
   if (process.env.NODE_ENV !== "production") {
@@ -222,13 +231,27 @@ export async function sendOtp(email: string, purpose: "email_verification" | "lo
 
 export async function verifyOtp(email: string, code: string, purpose: "email_verification" | "login") {
   const codeHash = hashToken(code);
+
+  // The active code is the most recent unverified, unused, unexpired OTP for
+  // this email+purpose (sendOtp may be called repeatedly; latest wins).
   const [otp] = await db
     .select()
     .from(otpCodes)
-    .where(and(eq(otpCodes.email, email), eq(otpCodes.codeHash, codeHash), eq(otpCodes.purpose, purpose), eq(otpCodes.verified, false), gt(otpCodes.expiresAt, new Date()), isNull(otpCodes.usedAt)))
+    .where(and(eq(otpCodes.email, email), eq(otpCodes.purpose, purpose), eq(otpCodes.verified, false), gt(otpCodes.expiresAt, new Date()), isNull(otpCodes.usedAt)))
+    .orderBy(desc(otpCodes.createdAt))
     .limit(1);
 
   if (!otp) {
+    throw new Error("Invalid or expired OTP");
+  }
+
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+    throw new Error("Too many incorrect attempts. Request a new code.");
+  }
+
+  if (otp.codeHash !== codeHash) {
+    // Wrong code — burn one attempt, then reject.
+    await db.update(otpCodes).set({ attempts: sql`${otpCodes.attempts} + 1` }).where(eq(otpCodes.id, otp.id));
     throw new Error("Invalid or expired OTP");
   }
 

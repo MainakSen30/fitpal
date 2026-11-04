@@ -2,7 +2,7 @@ import { db } from "../db";
 import { workouts, workoutExercises, workoutSets, profiles } from "@fitpal/database";
 import { eq, and, gte, lt } from "drizzle-orm";
 
-function getWeekBounds(date: Date, tz: string = "UTC") {
+function getWeekBounds(date: Date, tz = "UTC") {
   // Get start of week (Monday) in UTC approximation - for simplicity use UTC
   // In production, use proper TZ handling
   const d = new Date(date);
@@ -64,7 +64,7 @@ export async function getWeeklyProgress(userId: string, weekStartDate?: string) 
       let exVolumeKg = 0;
       for (const s of completedSets) {
         const reps = s.reps || 0;
-        const weightKg = s.weightKg ? parseFloat(s.weightKg) : 0;
+        const weightKg = s.weightKg ? Number.parseFloat(s.weightKg) : 0;
         exVolumeKg += reps * weightKg;
         totalVolumeKg += reps * weightKg;
       }
@@ -85,7 +85,7 @@ export async function getWeeklyProgress(userId: string, weekStartDate?: string) 
       const sets = await db.select().from(workoutSets).where(eq(workoutSets.workoutExerciseId, ex.id));
       for (const s of sets.filter((s) => s.completed)) {
         const reps = s.reps || 0;
-        const weightKg = s.weightKg ? parseFloat(s.weightKg) : 0;
+        const weightKg = s.weightKg ? Number.parseFloat(s.weightKg) : 0;
         prevTotalVolumeKg += reps * weightKg;
       }
     }

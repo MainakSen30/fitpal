@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
+import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, StyleSheet, View, type ViewStyle, type StyleProp } from 'react-native';
 
 interface ScreenEntranceProps {
   children: React.ReactNode;
