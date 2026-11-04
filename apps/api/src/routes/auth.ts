@@ -17,8 +17,16 @@ import {
   loginWithOtp,
 } from "../services/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
+import { serializeSessionCookie } from "../lib/cookies";
+import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
 
 const auth = new Hono<AuthEnv>();
+
+// Double-submit CSRF token for browser clients. Safe to call without a
+// session; the client reads the cookie and echoes it in X-CSRF-Token.
+auth.get("/csrf", (c) => {
+  return c.json({ csrfToken: getOrCreateCsrfToken(c) });
+});
 
 // Email/password registration
 auth.post("/register", zValidator("json", z.object({
@@ -32,6 +40,7 @@ auth.post("/register", zValidator("json", z.object({
     const sessionId = await createSession(user.id);
 
     c.header("Set-Cookie", serializeSessionCookie(sessionId));
+    getOrCreateCsrfToken(c);
     // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
     return c.json({ user, token: sessionId }, 201);
   } catch (e) {
@@ -69,6 +78,7 @@ auth.post("/otp/verify", zValidator("json", z.object({
       const user = await loginWithOtp(email);
       const sessionId = await createSession(user.id);
       c.header("Set-Cookie", serializeSessionCookie(sessionId));
+      getOrCreateCsrfToken(c);
       return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, token: sessionId });
     }
     
@@ -90,6 +100,7 @@ auth.post("/login", zValidator("json", z.object({
     const sessionId = await createSession(user.id);
 
     c.header("Set-Cookie", serializeSessionCookie(sessionId));
+    getOrCreateCsrfToken(c);
     return c.json({
       user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
       // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
@@ -130,6 +141,7 @@ auth.get("/google/callback", async (c) => {
       return c.redirect(`${deepLinkScheme}://auth/callback?token=${sessionId}`);
     }
     c.header("Set-Cookie", serializeSessionCookie(sessionId));
+    getOrCreateCsrfToken(c);
     return c.redirect(`${process.env.CLIENT_URL}/dashboard`);
   } catch {
     return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
@@ -173,6 +185,7 @@ auth.post("/logout", async (c) => {
     await destroySession(sessionId);
   }
   c.header("Set-Cookie", serializeSessionCookie("", 0));
+  clearCsrfToken(c);
   return c.json({ success: true });
 });
 
@@ -184,6 +197,7 @@ auth.delete("/account", requireAuth, async (c) => {
     await destroySession(sessionId);
     await deleteAccount(userId);
     c.header("Set-Cookie", serializeSessionCookie("", 0));
+    clearCsrfToken(c);
     return c.json({ success: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to delete account";
@@ -214,17 +228,5 @@ auth.get("/me", async (c) => {
     user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
   });
 });
-
-function serializeSessionCookie(sessionId: string, maxAge?: number) {
-  const age = maxAge ?? 7 * 24 * 60 * 60;
-  return [
-    `session=${sessionId}`,
-    "HttpOnly",
-    "Secure",
-    "SameSite=Lax",
-    "Path=/",
-    `Max-Age=${age}`,
-  ].join("; ");
-}
 
 export { auth as authRoutes };

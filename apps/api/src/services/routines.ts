@@ -1,10 +1,7 @@
 import { db } from "../db";
 import { routines, routineExercises, exercises, workouts, workoutExercises, workoutSets } from "@fitpal/database";
 import { eq, and, asc } from "drizzle-orm";
-
-function normalizeName(name: string) {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
-}
+import { findOrCreateExercise } from "./exercises";
 
 export async function createRoutine(userId: string, name: string) {
   const [routine] = await db.insert(routines).values({ userId, name }).returning();
@@ -61,19 +58,7 @@ export async function addExerciseToRoutine(userId: string, routineId: string, da
     .limit(1);
   if (!routine) throw new Error("Routine not found");
 
-  const normalized = normalizeName(data.exerciseName);
-  let [exercise] = await db
-    .select()
-    .from(exercises)
-    .where(and(eq(exercises.userId, userId), eq(exercises.normalizedName, normalized)))
-    .limit(1);
-
-  if (!exercise) {
-    [exercise] = await db
-      .insert(exercises)
-      .values({ userId, name: data.exerciseName.trim(), normalizedName: normalized })
-      .returning();
-  }
+  const exercise = await findOrCreateExercise(userId, data.exerciseName);
 
   const existing = await db
     .select()

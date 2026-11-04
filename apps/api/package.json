@@ -7,8 +7,9 @@
     "dev": "bun run --env-file=../../.env --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun --external @node-rs/bcrypt",
     "start": "bun run dist/index.js",
-    "lint": "biome lint src/",
-    "typecheck": "tsc --noEmit"
+    "lint": "biome lint src/ test/",
+    "typecheck": "tsc --noEmit",
+    "test": "TZ=UTC bun test"
   },
   "dependencies": {
     "hono": "^4",

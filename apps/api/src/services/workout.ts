@@ -1,10 +1,7 @@
 import { db } from "../db";
-import { workouts, workoutExercises, workoutSets, exercises } from "@fitpal/database";
+import { workouts, workoutExercises, workoutSets } from "@fitpal/database";
 import { eq, and, desc } from "drizzle-orm";
-
-function normalizeName(name: string) {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
-}
+import { findOrCreateExercise } from "./exercises";
 
 /** The workout iff it exists AND belongs to this user. */
 async function getOwnedWorkout(userId: string, workoutId: string) {
@@ -71,20 +68,7 @@ export async function listWorkouts(userId: string) {
 export async function addExerciseToWorkout(userId: string, workoutId: string, exerciseName: string, position?: number) {
   await getActiveWorkout(userId, workoutId);
 
-  const normalized = normalizeName(exerciseName);
-
-  let [exercise] = await db
-    .select()
-    .from(exercises)
-    .where(and(eq(exercises.userId, userId), eq(exercises.normalizedName, normalized)))
-    .limit(1);
-
-  if (!exercise) {
-    [exercise] = await db
-      .insert(exercises)
-      .values({ userId, name: exerciseName.trim(), normalizedName: normalized })
-      .returning();
-  }
+  const exercise = await findOrCreateExercise(userId, exerciseName);
 
   const existing = await db
     .select()
