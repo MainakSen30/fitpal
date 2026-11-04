@@ -91,7 +91,8 @@ export async function addExerciseToRoutine(userId: string, routineId: string, da
       position,
       targetSets: data.targetSets ?? null,
       targetReps: data.targetReps ?? null,
-      targetWeightKg: data.targetWeightKg ?? null,
+      // numeric column flows as string through drizzle; boundary converts
+      targetWeightKg: data.targetWeightKg != null ? String(data.targetWeightKg) : null,
     })
     .returning();
 

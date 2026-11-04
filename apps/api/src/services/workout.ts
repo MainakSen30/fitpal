@@ -152,7 +152,8 @@ export async function addSet(userId: string, workoutId: string, workoutExerciseI
       workoutExerciseId,
       setNumber,
       reps: data.reps ?? null,
-      weightKg: data.weightKg ?? null,
+      // numeric columns flow as strings through drizzle; boundary converts
+      weightKg: data.weightKg != null ? String(data.weightKg) : null,
       completed: data.completed ?? false,
     })
     .returning();
@@ -169,7 +170,16 @@ export async function updateSet(userId: string, workoutId: string, setId: string
   if (!workout) throw new Error("Workout not found");
   if (workout.status === "completed") throw new Error("Cannot modify completed workout");
 
-  const [set] = await db.update(workoutSets).set(data).where(eq(workoutSets.id, setId)).returning();
+  // numeric columns flow as strings through drizzle; boundary converts
+  const [set] = await db
+    .update(workoutSets)
+    .set({
+      ...(data.reps !== undefined && { reps: data.reps }),
+      ...(data.weightKg !== undefined && { weightKg: String(data.weightKg) }),
+      ...(data.completed !== undefined && { completed: data.completed }),
+    })
+    .where(eq(workoutSets.id, setId))
+    .returning();
   return set;
 }
 
