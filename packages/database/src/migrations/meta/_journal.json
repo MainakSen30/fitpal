@@ -29,6 +29,13 @@
       "when": 1793772208711,
       "tag": "0003_flippant_wither",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793817147592,
+      "tag": "0004_heavy_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

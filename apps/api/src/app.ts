@@ -21,11 +21,13 @@ const v1 = app.basePath("/api/v1");
 import { authRoutes } from "./routes/auth";
 import { workoutRoutes } from "./routes/workouts";
 import { routineRoutes } from "./routes/routines";
+import { exercisesRoutes } from "./routes/exercises";
 import { progressRoutes } from "./routes/progress";
 
 v1.route("/auth", authRoutes);
 v1.route("/workouts", workoutRoutes);
 v1.route("/routines", routineRoutes);
+v1.route("/exercises", exercisesRoutes);
 v1.route("/progress", progressRoutes);
 // v1.route("/nutrition", nutritionRoutes);
 // v1.route("/community", communityRoutes);
