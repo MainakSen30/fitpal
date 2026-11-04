@@ -1,4 +1,4 @@
-import { eq, or, and, gt, isNull } from "drizzle-orm";
+import { eq, or, and, gt, isNull, desc, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, passwordResetTokens, otpCodes } from "@fitpal/database";
 import { redis } from "../lib/redis";
@@ -200,6 +200,8 @@ export async function deleteAccount(userId: string) {
   return { success: true };
 }
 
+const OTP_MAX_ATTEMPTS = 5;
+
 export async function sendOtp(email: string, purpose: "email_verification" | "login") {
   const code = generateOtpCode();
   const codeHash = hashToken(code);
@@ -210,7 +212,6 @@ export async function sendOtp(email: string, purpose: "email_verification" | "lo
     codeHash,
     purpose,
     expiresAt,
-    attempts: "0",
   });
 
   if (process.env.NODE_ENV !== "production") {
@@ -222,13 +223,27 @@ export async function sendOtp(email: string, purpose: "email_verification" | "lo
 
 export async function verifyOtp(email: string, code: string, purpose: "email_verification" | "login") {
   const codeHash = hashToken(code);
+
+  // The active code is the most recent unverified, unused, unexpired OTP for
+  // this email+purpose (sendOtp may be called repeatedly; latest wins).
   const [otp] = await db
     .select()
     .from(otpCodes)
-    .where(and(eq(otpCodes.email, email), eq(otpCodes.codeHash, codeHash), eq(otpCodes.purpose, purpose), eq(otpCodes.verified, false), gt(otpCodes.expiresAt, new Date()), isNull(otpCodes.usedAt)))
+    .where(and(eq(otpCodes.email, email), eq(otpCodes.purpose, purpose), eq(otpCodes.verified, false), gt(otpCodes.expiresAt, new Date()), isNull(otpCodes.usedAt)))
+    .orderBy(desc(otpCodes.createdAt))
     .limit(1);
 
   if (!otp) {
+    throw new Error("Invalid or expired OTP");
+  }
+
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+    throw new Error("Too many incorrect attempts. Request a new code.");
+  }
+
+  if (otp.codeHash !== codeHash) {
+    // Wrong code — burn one attempt, then reject.
+    await db.update(otpCodes).set({ attempts: sql`${otpCodes.attempts} + 1` }).where(eq(otpCodes.id, otp.id));
     throw new Error("Invalid or expired OTP");
   }
 
