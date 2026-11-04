@@ -1,17 +1,43 @@
-FROM node:22-alpine AS base
+# ---------- deps: install the workspace with bun ----------------------------
+# Single source of truth is bun.lock. The previous npm ci + package-lock.json
+# pair drifted out of sync on every `bun add` (phase1 issue #7) and rejected
+# the build outright. Bun is the installer only: Next.js officially targets
+# Node, so BuildKit-style stages below run node; the bun image and node image
+# are both glibc (debian) so platform-native binaries (next/swc) keep matching.
+FROM oven/bun:1.3.14 AS deps
 WORKDIR /app
 
-# Install dependencies
-# npm workspaces = all workspaces, so apps/mobile's package.json is needed too
-COPY package.json package-lock.json* ./
-COPY apps/web/package.json ./apps/web/
+# All workspace package.jsons must be present: bun.lock tracks every workspace,
+# a missing one makes bun treat the lockfile as stale and fail --frozen-lockfile.
+COPY package.json bun.lock* ./
+COPY apps/api/package.json ./apps/api/
 COPY apps/mobile/package.json ./apps/mobile/
+COPY apps/web/package.json ./apps/web/
 COPY packages/database/package.json ./packages/database/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ai/package.json ./packages/ai/
-RUN npm ci
+RUN bun install --frozen-lockfile
 
-# Copy source
+# ---------- build: Next compiles on Node -------------------------------------
+# Bun 1.3 defaults to the isolated install layout: the central store lives in
+# /app/node_modules/.bun and each workspace gets its own node_modules with
+# links to it (so `next` resolves from apps/web/node_modules/.bin, NOT the
+# root .bin — same reality the api Dockerfile is structured around).
+FROM node:22 AS base
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+
+# npm needs manifests reachable from the root to resolve --workspace scripts.
+COPY package.json ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY apps/web/package.json ./apps/web/
+COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/ai/package.json ./packages/ai/
+
+# Copy source (context is pruned by /dockerignore: node_modules, .next etc.)
 COPY . .
 
 # NEXT_PUBLIC_* variables are inlined into the browser bundle at build time
@@ -24,13 +50,22 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Build
 RUN npm run build --workspace=@fitpal/web
 
-# Production image
-FROM node:22-alpine AS production
+# ---------- production --------------------------------------------------------
+# Runs from the web workspace directory so `npm run start` (next start) finds
+# the workspace-local .bin/next, its config, and the central store via the
+# relative links copied above. Root /app/node_modules must sit at the same
+# path as build for symlink targets to resolve.
+FROM node:22 AS production
 WORKDIR /app
-COPY --from=base /app/apps/web/.next ./.next
-COPY --from=base /app/apps/web/public ./public
-COPY --from=base /app/apps/web/package.json ./package.json
 COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/apps/web/node_modules ./apps/web/node_modules
 
+# Next server bits + enough source tree for `next start`
+COPY --from=base /app/apps/web/package.json ./apps/web/package.json
+COPY --from=base /app/apps/web/next.config.ts ./apps/web/next.config.ts
+COPY --from=base /app/apps/web/public ./apps/web/public
+COPY --from=base /app/apps/web/.next ./apps/web/.next
+
+WORKDIR /app/apps/web
 EXPOSE 3000
 CMD ["npm", "run", "start"]
