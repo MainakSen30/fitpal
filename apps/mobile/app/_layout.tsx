@@ -1,6 +1,13 @@
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { ErrorFallback } from '../src/components/ui/ErrorFallback';
+
+// Expo Router renders this when anything below the root layout throws during
+// render, instead of leaving the user on a blank screen.
+export function ErrorBoundary(props: ErrorBoundaryProps) {
+  return <ErrorFallback {...props} />;
+}
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
