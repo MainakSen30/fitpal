@@ -19,7 +19,13 @@ import {
   weekStart,
   wideUtcWindow,
 } from "../lib/timezone";
-import { serializeTotals, sumNutritionSnapshots } from "./nutrition-calculations";
+import {
+  MONEY_SCALE,
+  NUTRITION_SCALE,
+  roundDecimal,
+  serializeTotals,
+  sumNutritionSnapshots,
+} from "./nutrition-calculations";
 
 type NutritionGoal = "cutting" | "bulking" | "maintaining" | "undecided";
 type BudgetPeriod = "daily" | "weekly" | "monthly";
@@ -74,11 +80,11 @@ export async function getPreferences(userId: string) {
 }
 
 function moneyOrNull(value: number | null) {
-  return value == null ? null : value.toFixed(2);
+  return value == null ? null : roundDecimal(value, MONEY_SCALE);
 }
 
 function gramsOrNull(value: number | null) {
-  return value == null ? null : value.toFixed(2);
+  return value == null ? null : roundDecimal(value, NUTRITION_SCALE);
 }
 
 export async function upsertPreferences(userId: string, input: PreferencesInput) {

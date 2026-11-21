@@ -2,7 +2,7 @@ import { z } from "zod";
 import { dbDateOnlySchema } from "@fitpal/shared";
 
 const money = z.number().finite().nonnegative().max(9_999_999_999.99);
-const grams = z.number().finite().nonnegative().max(9_999_999.99);
+const grams = z.number().finite().nonnegative().max(9_999_999.999);
 
 export const dailyQuery = z.object({
   date: dbDateOnlySchema.optional(),

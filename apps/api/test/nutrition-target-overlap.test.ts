@@ -166,6 +166,6 @@ describeApi("nutrition target overlap constraint", () => {
     const response = await json(await callAs(user.id, "/nutrition/targets?date=15-11-2026"));
 
     expect(response.targets).toHaveLength(2);
-    expect(response.active.dailyCalories).toBe("2000.00");
+    expect(response.active.dailyCalories).toBe("2000.000");
   });
 });

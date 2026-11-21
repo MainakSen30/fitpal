@@ -7,7 +7,9 @@ import { getFoodForUser } from "./foods";
 import {
   buildNutritionSnapshot,
   calculateConsumedNutrition,
+  NUTRITION_SCALE,
   per100gFromSnapshot,
+  roundDecimal,
   serializeTotals,
   sumNutritionSnapshots,
   type NutritionPer100g,
@@ -149,7 +151,7 @@ export async function deleteMeal(userId: string, mealId: string) {
 
 export async function addMealItem(userId: string, mealId: string, input: AddItemInput) {
   await getOwnedMeal(userId, mealId);
-  const quantity = String(input.quantityGrams);
+  const quantity = roundDecimal(input.quantityGrams, NUTRITION_SCALE);
 
   let food: Awaited<ReturnType<typeof getFoodForUser>> | undefined;
   if (input.foodId) food = await getFoodForUser(userId, input.foodId);
@@ -173,7 +175,9 @@ export async function addMealItem(userId: string, mealId: string, input: AddItem
 export async function updateMealItem(userId: string, mealId: string, itemId: string, input: UpdateItemInput) {
   await getOwnedMeal(userId, mealId);
   const item = await getMealItem(mealId, itemId);
-  const quantity = input.quantityGrams !== undefined ? String(input.quantityGrams) : item.quantityGrams;
+  const quantity = input.quantityGrams !== undefined
+    ? roundDecimal(input.quantityGrams, NUTRITION_SCALE)
+    : item.quantityGrams;
 
   let snapshot: ReturnType<typeof buildNutritionSnapshot>;
   let name = item.foodNameSnapshot;

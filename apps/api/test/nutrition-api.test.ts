@@ -203,7 +203,7 @@ describeApi("nutrition API", () => {
     expect(put.status).toBe(201);
     const target = (await json(put)).target;
     expect(target.dailyCalories).toBeNull();
-    expect(target.proteinGrams).toBe("120.00");
+    expect(target.proteinGrams).toBe("120.000");
     expect(target.effectiveFrom).toBe("21-11-2026");
     expect(target.effectiveUntil).toBeNull();
 

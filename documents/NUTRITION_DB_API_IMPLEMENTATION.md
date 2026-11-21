@@ -7,6 +7,7 @@ This records the approved spec v1.1 foundation delivered for nutrition only. No 
 - Added and exported `foods`, `meal_logs`, `meal_log_items`, `nutrition_preferences`, `nutrition_targets`, `meal_plans`, and `meal_plan_items`.
 - Migration `0005_amused_jazinda.sql` creates those tables with UUID keys, foreign keys, cascades/set-null behavior, indexes, checks, and the partial unique indexes for shared vs per-user food names.
 - Migration `0006_reconcile_preferences.sql` backfills canonical `users.unit_system`/`users.timezone` only from non-default legacy profile values. Legacy profile columns remain for compatibility.
+- Migration `0008_reflective_quentin_quire.sql` widens the four `nutrition_targets` numeric columns from scale 2 to scale 3 to match the canonical nutrition precision contract.
 - Applied migrations only to disposable local databases; no production migration was run.
 - Existing-data check on a cloned database preserved all 3 users, retained the existing `otp_codes.attempts` integer column, created all 7 nutrition tables, and reconciled a `lb`/`Asia/Kolkata` profile to `imperial`/`Asia/Kolkata`.
 

@@ -14,7 +14,10 @@ import { getOwnedMeal } from "./meals";
 import {
   buildNutritionSnapshot,
   calculateConsumedNutrition,
+  MONEY_SCALE,
+  NUTRITION_SCALE,
   per100gFromSnapshot,
+  roundDecimal,
   type NutritionPer100g,
 } from "./nutrition-calculations";
 
@@ -154,7 +157,7 @@ export async function addMealPlanItem(userId: string, planId: string, input: Add
     const plan = await getOwnedPlanForUpdate(userId, planId, tx);
     assertPlannedDate(plan, input.plannedDate);
 
-    const quantity = input.quantityGrams == null ? null : String(input.quantityGrams);
+    const quantity = input.quantityGrams == null ? null : roundDecimal(input.quantityGrams, NUTRITION_SCALE);
     let foodId: string | null = null;
     let source: NutritionPer100g | undefined;
     let name: string | undefined;
@@ -180,7 +183,7 @@ export async function addMealPlanItem(userId: string, planId: string, input: Add
         foodNameSnapshot: name,
         quantityGrams: quantity,
         ...(quantity ? buildNutritionSnapshot(source, quantity) : {}),
-        estimatedCost: input.estimatedCost == null ? null : input.estimatedCost.toFixed(2),
+        estimatedCost: input.estimatedCost == null ? null : roundDecimal(input.estimatedCost, MONEY_SCALE),
         currencyCode: input.currencyCode?.toUpperCase() ?? null,
         notes: input.notes ?? null,
       })
@@ -197,7 +200,7 @@ export async function updateMealPlanItem(userId: string, planId: string, itemId:
     assertPlannedDate(plan, plannedDate);
 
     const quantity = input.quantityGrams !== undefined
-      ? (input.quantityGrams == null ? null : String(input.quantityGrams))
+      ? (input.quantityGrams == null ? null : roundDecimal(input.quantityGrams, NUTRITION_SCALE))
       : item.quantityGrams;
 
     let snapshot: ReturnType<typeof buildNutritionSnapshot> | undefined;
@@ -244,7 +247,7 @@ export async function updateMealPlanItem(userId: string, planId: string, itemId:
         quantityGrams: quantity,
         ...(snapshot ?? clearedSnapshots),
         ...(input.estimatedCost !== undefined && {
-          estimatedCost: input.estimatedCost == null ? null : input.estimatedCost.toFixed(2),
+          estimatedCost: input.estimatedCost == null ? null : roundDecimal(input.estimatedCost, MONEY_SCALE),
         }),
         ...(input.currencyCode !== undefined && { currencyCode: input.currencyCode?.toUpperCase() ?? null }),
         ...(input.notes !== undefined && { notes: input.notes }),

@@ -39,10 +39,10 @@ export const nutritionTargets = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    dailyCalories: numeric("daily_calories", { precision: 12, scale: 2 }),
-    proteinGrams: numeric("protein_grams", { precision: 10, scale: 2 }),
-    carbohydratesGrams: numeric("carbohydrates_grams", { precision: 10, scale: 2 }),
-    fatGrams: numeric("fat_grams", { precision: 10, scale: 2 }),
+    dailyCalories: numeric("daily_calories", { precision: 12, scale: 3 }),
+    proteinGrams: numeric("protein_grams", { precision: 10, scale: 3 }),
+    carbohydratesGrams: numeric("carbohydrates_grams", { precision: 10, scale: 3 }),
+    fatGrams: numeric("fat_grams", { precision: 10, scale: 3 }),
     effectiveFrom: date("effective_from").notNull(),
     effectiveUntil: date("effective_until"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

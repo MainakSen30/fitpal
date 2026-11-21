@@ -2,6 +2,7 @@ import { db } from "../db";
 import { foods, type Food } from "@fitpal/database";
 import { and, eq, ilike, isNull, or } from "drizzle-orm";
 import { ApiError } from "../lib/errors";
+import { NUTRITION_SCALE, roundDecimal } from "./nutrition-calculations";
 
 /** Canonical form used for case/whitespace-insensitive food matching. */
 export function normalizeFoodName(name: string) {
@@ -56,7 +57,7 @@ type FoodInput = {
 };
 
 function numericOrNull(value: number | null | undefined) {
-  return value == null ? null : String(value);
+  return value == null ? null : roundDecimal(value, NUTRITION_SCALE);
 }
 
 function valuesFrom(input: Partial<FoodInput>) {
