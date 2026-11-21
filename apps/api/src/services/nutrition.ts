@@ -115,15 +115,15 @@ async function activeTarget(userId: string, dateKey: string) {
 }
 
 export async function getTargets(userId: string, dateKey?: string) {
+  const lookupDate = dateKey ?? localDateKey(new Date(), await userTimezone(userId));
   const targets = await db
     .select()
     .from(nutritionTargets)
     .where(eq(nutritionTargets.userId, userId))
     .orderBy(desc(nutritionTargets.effectiveFrom));
-  const today = new Date().toISOString().slice(0, 10);
   return {
     targets: targets.map(serializeTarget),
-    active: serializeTarget(await activeTarget(userId, dateKey ?? today)),
+    active: serializeTarget(await activeTarget(userId, lookupDate)),
   };
 }
 
