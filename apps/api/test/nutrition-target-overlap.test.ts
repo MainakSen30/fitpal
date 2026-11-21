@@ -83,8 +83,8 @@ async function concurrentOverlappingRequests(userId: string) {
 
   try {
     return await Promise.all([
-      putTarget(userId, "2026-11-01", "2026-12-01"),
-      putTarget(userId, "2026-11-15", "2026-11-20"),
+      putTarget(userId, "01-11-2026", "01-12-2026"),
+      putTarget(userId, "15-11-2026", "20-11-2026"),
     ]);
   } finally {
     spy.mockRestore();
@@ -96,8 +96,8 @@ describeApi("nutrition target overlap constraint", () => {
 
   it("rejects sequential overlapping periods with 409", async () => {
     const user = await makeUser("sequential");
-    const first = await putTarget(user.id, "2026-11-01", "2026-12-01");
-    const overlap = await putTarget(user.id, "2026-11-15", "2026-11-20");
+    const first = await putTarget(user.id, "01-11-2026", "01-12-2026");
+    const overlap = await putTarget(user.id, "15-11-2026", "20-11-2026");
 
     expect(first.status).toBe(201);
     expect(overlap.status).toBe(409);
@@ -117,8 +117,8 @@ describeApi("nutrition target overlap constraint", () => {
 
   it("accepts adjacent periods", async () => {
     const user = await makeUser("adjacent");
-    const first = await putTarget(user.id, "2026-11-01", "2026-12-01");
-    const second = await putTarget(user.id, "2026-12-01", null);
+    const first = await putTarget(user.id, "01-11-2026", "01-12-2026");
+    const second = await putTarget(user.id, "01-12-2026", null);
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
@@ -127,8 +127,8 @@ describeApi("nutrition target overlap constraint", () => {
 
   it("conflicts with a later overlapping period when an open-ended target exists", async () => {
     const user = await makeUser("open-ended");
-    const first = await putTarget(user.id, "2026-11-01", null);
-    const overlap = await putTarget(user.id, "2026-11-15", "2026-11-20");
+    const first = await putTarget(user.id, "01-11-2026", null);
+    const overlap = await putTarget(user.id, "15-11-2026", "20-11-2026");
 
     expect(first.status).toBe(201);
     expect(overlap.status).toBe(409);
@@ -138,8 +138,8 @@ describeApi("nutrition target overlap constraint", () => {
   it("accepts identical periods for different users", async () => {
     const firstUser = await makeUser("user-one");
     const secondUser = await makeUser("user-two");
-    const first = await putTarget(firstUser.id, "2026-11-01", "2026-12-01");
-    const second = await putTarget(secondUser.id, "2026-11-01", "2026-12-01");
+    const first = await putTarget(firstUser.id, "01-11-2026", "01-12-2026");
+    const second = await putTarget(secondUser.id, "01-11-2026", "01-12-2026");
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
@@ -163,7 +163,7 @@ describeApi("nutrition target overlap constraint", () => {
       },
     ]);
 
-    const response = await json(await callAs(user.id, "/nutrition/targets?date=2026-11-15"));
+    const response = await json(await callAs(user.id, "/nutrition/targets?date=15-11-2026"));
 
     expect(response.targets).toHaveLength(2);
     expect(response.active.dailyCalories).toBe("2000.00");

@@ -91,26 +91,26 @@ describeApi("meal plan date range integrity", () => {
 
   it("shrinks the range when every existing item remains inside it", async () => {
     const user = await makeUser("shrink-ok");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-29");
-    await addItem(user.id, plan.id, "2026-11-25");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "29-11-2026");
+    await addItem(user.id, plan.id, "25-11-2026");
 
     const response = await patchPlan(user.id, plan.id, {
-      startDate: "2026-11-23",
-      endDate: "2026-11-25",
+      startDate: "23-11-2026",
+      endDate: "25-11-2026",
     });
 
     expect(response.status).toBe(200);
     const updated = (await json(response)).plan;
-    expect(updated.startDate).toBe("2026-11-23");
-    expect(updated.endDate).toBe("2026-11-25");
+    expect(updated.startDate).toBe("23-11-2026");
+    expect(updated.endDate).toBe("25-11-2026");
   });
 
   it("rejects a shrink that would exclude an existing item", async () => {
     const user = await makeUser("shrink-blocked");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-29");
-    await addItem(user.id, plan.id, "2026-11-29");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "29-11-2026");
+    await addItem(user.id, plan.id, "29-11-2026");
 
-    const response = await patchPlan(user.id, plan.id, { endDate: "2026-11-25" });
+    const response = await patchPlan(user.id, plan.id, { endDate: "25-11-2026" });
 
     expect(response.status).toBe(409);
     expect(await json(response)).toEqual({ error: "Meal plan date range cannot exclude existing planned items" });
@@ -118,35 +118,35 @@ describeApi("meal plan date range integrity", () => {
 
   it("extends the range", async () => {
     const user = await makeUser("extend");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-25");
-    await addItem(user.id, plan.id, "2026-11-25");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "25-11-2026");
+    await addItem(user.id, plan.id, "25-11-2026");
 
-    const response = await patchPlan(user.id, plan.id, { endDate: "2026-11-29" });
+    const response = await patchPlan(user.id, plan.id, { endDate: "29-11-2026" });
 
     expect(response.status).toBe(200);
-    expect((await json(response)).plan.endDate).toBe("2026-11-29");
+    expect((await json(response)).plan.endDate).toBe("29-11-2026");
   });
 
   it("preserves existing behavior when only the plan name changes", async () => {
     const user = await makeUser("name-only");
-    const plan = await createPlan(user.id, "Old name", "2026-11-01", "2026-11-29");
-    await addItem(user.id, plan.id, "2026-11-29");
+    const plan = await createPlan(user.id, "Old name", "01-11-2026", "29-11-2026");
+    await addItem(user.id, plan.id, "29-11-2026");
 
     const response = await patchPlan(user.id, plan.id, { name: "New name" });
 
     expect(response.status).toBe(200);
     const updated = (await json(response)).plan;
     expect(updated.name).toBe("New name");
-    expect(updated.startDate).toBe("2026-11-01");
-    expect(updated.endDate).toBe("2026-11-29");
+    expect(updated.startDate).toBe("01-11-2026");
+    expect(updated.endDate).toBe("29-11-2026");
   });
 
   it("rejects moving an item outside the plan range", async () => {
     const user = await makeUser("move-blocked");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-29");
-    const item = await addItem(user.id, plan.id, "2026-11-25");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "29-11-2026");
+    const item = await addItem(user.id, plan.id, "25-11-2026");
 
-    const response = await patchItem(user.id, plan.id, item.id, { plannedDate: "2026-11-30" });
+    const response = await patchItem(user.id, plan.id, item.id, { plannedDate: "30-11-2026" });
 
     expect(response.status).toBe(422);
     expect((await itemRows(plan.id))[0].plannedDate).toBe("2026-11-25");
@@ -154,12 +154,12 @@ describeApi("meal plan date range integrity", () => {
 
   it("rejects adding an item outside the plan range", async () => {
     const user = await makeUser("add-blocked");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-29");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "29-11-2026");
 
     const response = await callAs(user.id, `/meal-plans/${plan.id}/items`, {
       method: "POST",
       body: {
-        plannedDate: "2026-11-30",
+        plannedDate: "30-11-2026",
         mealType: "lunch",
         customFood: { name: "Salad" },
         quantityGrams: 100,
@@ -172,12 +172,12 @@ describeApi("meal plan date range integrity", () => {
 
   it("leaves the plan and its items unchanged after a rejected update", async () => {
     const user = await makeUser("unchanged");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-29");
-    await addItem(user.id, plan.id, "2026-11-25");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "29-11-2026");
+    await addItem(user.id, plan.id, "25-11-2026");
     const beforePlan = await planRows(plan.id);
     const beforeItems = await itemRows(plan.id);
 
-    const response = await patchPlan(user.id, plan.id, { startDate: "2026-11-26" });
+    const response = await patchPlan(user.id, plan.id, { startDate: "26-11-2026" });
 
     expect(response.status).toBe(409);
     expect(await planRows(plan.id)).toEqual(beforePlan);
@@ -187,17 +187,17 @@ describeApi("meal plan date range integrity", () => {
   it("does not let another user change a plan or its items", async () => {
     const owner = await makeUser("owner");
     const other = await makeUser("other");
-    const plan = await createPlan(owner.id, "Private", "2026-11-01", "2026-11-29");
-    const item = await addItem(owner.id, plan.id, "2026-11-25");
+    const plan = await createPlan(owner.id, "Private", "01-11-2026", "29-11-2026");
+    const item = await addItem(owner.id, plan.id, "25-11-2026");
     const beforePlan = await planRows(plan.id);
     const beforeItems = await itemRows(plan.id);
 
-    const planUpdate = await patchPlan(other.id, plan.id, { endDate: "2026-11-25" });
-    const itemUpdate = await patchItem(other.id, plan.id, item.id, { plannedDate: "2026-11-29" });
+    const planUpdate = await patchPlan(other.id, plan.id, { endDate: "25-11-2026" });
+    const itemUpdate = await patchItem(other.id, plan.id, item.id, { plannedDate: "29-11-2026" });
     const itemAdd = await callAs(other.id, `/meal-plans/${plan.id}/items`, {
       method: "POST",
       body: {
-        plannedDate: "2026-11-27",
+        plannedDate: "27-11-2026",
         mealType: "dinner",
         customFood: { name: "Soup" },
         quantityGrams: 100,
@@ -213,15 +213,15 @@ describeApi("meal plan date range integrity", () => {
 
   it("keeps the invariant when a plan shrink races with moving an item", async () => {
     const user = await makeUser("race");
-    const plan = await createPlan(user.id, "Week", "2026-11-01", "2026-11-29");
-    const item = await addItem(user.id, plan.id, "2026-11-25");
+    const plan = await createPlan(user.id, "Week", "01-11-2026", "29-11-2026");
+    const item = await addItem(user.id, plan.id, "25-11-2026");
 
     const releaseLock = await holdPlanLock(plan.id);
     let responses: Promise<Response>[];
     try {
       responses = [
-        patchPlan(user.id, plan.id, { endDate: "2026-11-25" }),
-        patchItem(user.id, plan.id, item.id, { plannedDate: "2026-11-29" }),
+        patchPlan(user.id, plan.id, { endDate: "25-11-2026" }),
+        patchItem(user.id, plan.id, item.id, { plannedDate: "29-11-2026" }),
       ];
       await new Promise((resolve) => setTimeout(resolve, 25));
     } finally {

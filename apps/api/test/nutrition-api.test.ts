@@ -175,14 +175,15 @@ describeApi("nutrition API", () => {
       method: "POST",
       body: { loggedAt: "2026-11-21T18:30:00Z", mealType: "dinner" },
     });
-    const fromPreviousDay = await json(await callAs(user.id, "/nutrition/daily?date=2026-11-21"));
-    const onLocalDay = await json(await callAs(user.id, "/nutrition/daily?date=2026-11-22"));
+    const fromPreviousDay = await json(await callAs(user.id, "/nutrition/daily?date=21-11-2026"));
+    const onLocalDay = await json(await callAs(user.id, "/nutrition/daily?date=22-11-2026"));
     expect(fromPreviousDay.meals).toHaveLength(0);
     expect(onLocalDay.meals).toHaveLength(1);
     expect(onLocalDay.timezone).toBe("Asia/Kolkata");
+    expect(onLocalDay.date).toBe("22-11-2026");
 
-    const weekly = await json(await callAs(user.id, "/nutrition/weekly?weekStart=2026-11-16"));
-    expect(weekly.days.find((day: { date: string }) => day.date === "2026-11-22").mealCount).toBe(1);
+    const weekly = await json(await callAs(user.id, "/nutrition/weekly?weekStart=16-11-2026"));
+    expect(weekly.days.find((day: { date: string }) => day.date === "22-11-2026").mealCount).toBe(1);
     const monthly = await json(await callAs(user.id, "/nutrition/monthly?month=2026-11"));
     expect(monthly.totals.calories).toBeNull();
   });
@@ -196,17 +197,19 @@ describeApi("nutrition API", () => {
         proteinGrams: 120,
         carbohydratesGrams: null,
         fatGrams: null,
-        effectiveFrom: "2026-11-21",
+        effectiveFrom: "21-11-2026",
       },
     });
     expect(put.status).toBe(201);
     const target = (await json(put)).target;
     expect(target.dailyCalories).toBeNull();
     expect(target.proteinGrams).toBe("120.00");
+    expect(target.effectiveFrom).toBe("21-11-2026");
+    expect(target.effectiveUntil).toBeNull();
 
     const overlap = await callAs(user.id, "/nutrition/targets", {
       method: "PUT",
-      body: { dailyCalories: 2000, proteinGrams: null, carbohydratesGrams: null, fatGrams: null, effectiveFrom: "2026-11-25" },
+      body: { dailyCalories: 2000, proteinGrams: null, carbohydratesGrams: null, fatGrams: null, effectiveFrom: "25-11-2026" },
     });
     expect(overlap.status).toBe(409);
   });
@@ -220,8 +223,8 @@ describeApi("nutrition API", () => {
         proteinGrams: 120,
         carbohydratesGrams: null,
         fatGrams: null,
-        effectiveFrom: "2026-11-21",
-        effectiveUntil: "2026-11-25",
+        effectiveFrom: "21-11-2026",
+        effectiveUntil: "25-11-2026",
       },
     });
     const second = await callAs(user.id, "/nutrition/targets", {
@@ -231,7 +234,7 @@ describeApi("nutrition API", () => {
         proteinGrams: null,
         carbohydratesGrams: null,
         fatGrams: null,
-        effectiveFrom: "2026-11-25",
+        effectiveFrom: "25-11-2026",
       },
     });
     expect(first.status).toBe(201);
@@ -242,18 +245,20 @@ describeApi("nutrition API", () => {
     const user = await makeUser("plan-user");
     const created = await json(await callAs(user.id, "/meal-plans", {
       method: "POST",
-      body: { name: "Weekly plan", startDate: "2026-11-23", endDate: "2026-11-29", planType: "weekly" },
+      body: { name: "Weekly plan", startDate: "23-11-2026", endDate: "29-11-2026", planType: "weekly" },
     }));
     const planId = created.plan.id;
+    expect(created.plan.startDate).toBe("23-11-2026");
+    expect(created.plan.endDate).toBe("29-11-2026");
     const outside = await callAs(user.id, `/meal-plans/${planId}/items`, {
       method: "POST",
-      body: { plannedDate: "2026-11-30", mealType: "lunch", customFood: { name: "Salad" }, quantityGrams: 100 },
+      body: { plannedDate: "30-11-2026", mealType: "lunch", customFood: { name: "Salad" }, quantityGrams: 100 },
     });
     expect(outside.status).toBe(422);
 
     const planned = await json(await callAs(user.id, `/meal-plans/${planId}/items`, {
       method: "POST",
-      body: { plannedDate: "2026-11-23", mealType: "lunch", customFood: { name: "Salad", caloriesPer100g: 50 }, quantityGrams: 100 },
+      body: { plannedDate: "23-11-2026", mealType: "lunch", customFood: { name: "Salad", caloriesPer100g: 50 }, quantityGrams: 100 },
     }));
     expect(planned.item.caloriesSnapshot).toBe("50.000");
 

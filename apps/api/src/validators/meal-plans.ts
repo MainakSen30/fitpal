@@ -1,16 +1,12 @@
 import { z } from "zod";
+import { dbDateOnlySchema } from "@fitpal/shared";
 import { customFoodForItem } from "./meals";
 import { nutritionInput } from "./foods";
 
-const dateKey = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), { message: "Invalid date" });
-
 const mealPlanBody = z.object({
   name: z.string().trim().min(1).max(200),
-  startDate: dateKey,
-  endDate: dateKey,
+  startDate: dbDateOnlySchema,
+  endDate: dbDateOnlySchema,
   planType: z.enum(["daily", "weekly", "custom"]),
 });
 
@@ -29,7 +25,7 @@ const money = z.number().finite().nonnegative().max(9_999_999_999.99);
 
 export const addMealPlanItemSchema = z
   .object({
-    plannedDate: dateKey,
+    plannedDate: dbDateOnlySchema,
     mealType: z.enum(["breakfast", "lunch", "dinner", "snack", "other"]),
     foodId: z.string().uuid().optional(),
     customFood: customFoodForItem.optional(),
@@ -44,7 +40,7 @@ export const addMealPlanItemSchema = z
 
 export const updateMealPlanItemSchema = z
   .object({
-    plannedDate: dateKey.optional(),
+    plannedDate: dbDateOnlySchema.optional(),
     mealType: z.enum(["breakfast", "lunch", "dinner", "snack", "other"]).optional(),
     foodId: z.string().uuid().optional(),
     customFood: customFoodForItem.optional(),

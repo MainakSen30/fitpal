@@ -1,3 +1,6 @@
+// Date-only fields use the shared canonical DD-MM-YYYY contract; timestamps stay ISO 8601.
+export type { DateOnly } from "@fitpal/shared";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 type RequestOptions = {

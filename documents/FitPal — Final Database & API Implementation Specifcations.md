@@ -370,6 +370,8 @@ Do not implement a suggestions endpoint in this version. Budget preferences can 
 
 # 7. API request contracts
 
+Date-only fields use the strict canonical format `DD-MM-YYYY` with two-digit day and month and a four-digit year. Invalid calendar dates (including `29-02-2026`) are rejected. Timestamps remain ISO 8601; PostgreSQL `DATE` columns stay native dates internally.
+
 ## Create a custom food
 
 ```
@@ -444,7 +446,7 @@ The server calculates the snapshots.
   "proteinGrams": 120,
   "carbohydratesGrams": null,
   "fatGrams": null,
-  "effectiveFrom": "2026-11-21"
+  "effectiveFrom": "21-11-2026"
 }
 ```
 
@@ -455,8 +457,8 @@ Users can configure only the targets they want.
 ```
 {
   "name": "Weekly meal plan",
-  "startDate": "2026-11-23",
-  "endDate": "2026-11-29",
+  "startDate": "23-11-2026",
+  "endDate": "29-11-2026",
   "planType": "weekly"
 }
 ```
@@ -494,6 +496,8 @@ Use appropriate HTTP status codes:
 - 409: conflict.
 - 422: invalid domain operation.
 - 500: unexpected server error.
+
+Serialize date-only fields as `DD-MM-YYYY` and timestamps as ISO 8601. Do not expose the internal ISO date representation in API responses.
 
 Use consistent serialization for PostgreSQL numeric values. Do not inconsistently convert decimals to strings or numbers between endpoints.
 

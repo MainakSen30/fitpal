@@ -1,3 +1,4 @@
+import { isoToDateOnly } from "@fitpal/shared";
 import { db } from "../db";
 import {
   mealPlans,
@@ -19,6 +20,14 @@ import {
 
 type CustomFoodInput = NutritionPer100g & { name: string };
 type QueryClient = Pick<typeof db, "select" | "insert" | "update">;
+
+function serializePlan(plan: MealPlan) {
+  return { ...plan, startDate: isoToDateOnly(plan.startDate), endDate: isoToDateOnly(plan.endDate) };
+}
+
+function serializeItem(item: MealPlanItem) {
+  return { ...item, plannedDate: isoToDateOnly(item.plannedDate) };
+}
 
 type AddItemInput = {
   plannedDate: string;
@@ -83,15 +92,16 @@ export async function createMealPlan(
   input: { name: string; startDate: string; endDate: string; planType: MealPlan["planType"] },
 ) {
   const [plan] = await db.insert(mealPlans).values({ userId, ...input }).returning();
-  return plan;
+  return serializePlan(plan);
 }
 
 export async function listMealPlans(userId: string) {
-  return db
+  const plans = await db
     .select()
     .from(mealPlans)
     .where(eq(mealPlans.userId, userId))
     .orderBy(desc(mealPlans.startDate));
+  return plans.map(serializePlan);
 }
 
 export async function getMealPlan(userId: string, planId: string) {
@@ -100,7 +110,7 @@ export async function getMealPlan(userId: string, planId: string) {
     .select()
     .from(mealPlanItems)
     .where(eq(mealPlanItems.mealPlanId, planId));
-  return { plan, items };
+  return { plan: serializePlan(plan), items: items.map(serializeItem) };
 }
 
 export async function updateMealPlan(userId: string, planId: string, input: Partial<Parameters<typeof createMealPlan>[1]>) {
@@ -129,7 +139,7 @@ export async function updateMealPlan(userId: string, planId: string, input: Part
       .set({ ...input, updatedAt: new Date() })
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))
       .returning();
-    return updated;
+    return serializePlan(updated);
   });
 }
 
@@ -175,7 +185,7 @@ export async function addMealPlanItem(userId: string, planId: string, input: Add
         notes: input.notes ?? null,
       })
       .returning();
-    return item;
+    return serializeItem(item);
   });
 }
 
@@ -242,7 +252,7 @@ export async function updateMealPlanItem(userId: string, planId: string, itemId:
       })
       .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.mealPlanId, planId)))
       .returning();
-    return updated;
+    return serializeItem(updated);
   });
 }
 

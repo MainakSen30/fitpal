@@ -219,7 +219,7 @@ sequenceDiagram
   participant A as Hono API
   participant DB as Postgres
 
-  C->>A: GET /api/v1/progress/weekly?weekStart=YYYY-MM-DD
+  C->>A: GET /api/v1/progress/weekly?weekStart=DD-MM-YYYY
   A->>DB: Compute week boundaries (Mon-Sun) in user's TZ
   A->>DB: SELECT completed workouts WHERE user_id AND completed_at in [start,end)
   A->>DB: Aggregate: count workouts, count distinct training days, sum sets, sum(volume)

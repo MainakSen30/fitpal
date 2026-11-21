@@ -1,20 +1,16 @@
 import { z } from "zod";
-
-const dateKey = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), { message: "Invalid date" });
+import { dbDateOnlySchema } from "@fitpal/shared";
 
 const money = z.number().finite().nonnegative().max(9_999_999_999.99);
 const grams = z.number().finite().nonnegative().max(9_999_999.99);
 
 export const dailyQuery = z.object({
-  date: dateKey.optional(),
+  date: dbDateOnlySchema.optional(),
   timezone: z.string().min(1).optional(),
 });
 
 export const weeklyQuery = z.object({
-  weekStart: dateKey.optional(),
+  weekStart: dbDateOnlySchema.optional(),
   timezone: z.string().min(1).optional(),
 });
 
@@ -47,7 +43,7 @@ export const preferencesSchema = z
     { message: "A budget requires an amount, period and currency" },
   );
 
-export const targetsQuery = z.object({ date: dateKey.optional() });
+export const targetsQuery = z.object({ date: dbDateOnlySchema.optional() });
 
 export const targetsSchema = z
   .object({
@@ -55,8 +51,8 @@ export const targetsSchema = z
     proteinGrams: grams.nullable(),
     carbohydratesGrams: grams.nullable(),
     fatGrams: grams.nullable(),
-    effectiveFrom: dateKey,
-    effectiveUntil: dateKey.nullable().optional(),
+    effectiveFrom: dbDateOnlySchema,
+    effectiveUntil: dbDateOnlySchema.nullable().optional(),
   })
   .refine(
     (body) => body.effectiveUntil == null || body.effectiveUntil > body.effectiveFrom,

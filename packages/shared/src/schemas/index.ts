@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dateOnlySchema } from "../date";
 
 export const loginSchema = z.object({
   email: z.string().email(),
@@ -39,7 +40,7 @@ export const createMealSchema = z.object({
 });
 
 export const bodyLogSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: dateOnlySchema,
   weightKg: z.number().positive(),
   bodyFatPct: z.number().min(0).max(100).optional(),
   chestCm: z.number().positive().optional(),

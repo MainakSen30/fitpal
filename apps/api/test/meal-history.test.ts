@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "bun:test";
+import { dateOnlyToIso } from "@fitpal/shared";
 import { mealLogs, users } from "@fitpal/database";
 import { db } from "../src/db";
 import { app } from "../src/app";
@@ -69,9 +70,10 @@ describeApi("meal history date range", () => {
 
   it("honors an explicit single-day query", async () => {
     const user = await makeUser("single-day");
-    const date = "2026-11-15";
-    const inside = await addMeal(user.id, localNoon(date), "lunch");
-    await addMeal(user.id, localNoon(addDays(date, 1)), "dinner");
+    const date = "15-11-2026";
+    const isoDate = dateOnlyToIso(date);
+    const inside = await addMeal(user.id, localNoon(isoDate), "lunch");
+    await addMeal(user.id, localNoon(addDays(isoDate, 1)), "dinner");
 
     const response = await json(await callAs(user.id, `/meals?date=${date}`));
 
@@ -80,12 +82,14 @@ describeApi("meal history date range", () => {
 
   it("honors an explicit inclusive date range", async () => {
     const user = await makeUser("date-range");
-    const from = "2026-11-10";
-    const to = "2026-11-12";
-    await addMeal(user.id, localNoon(addDays(from, -1)), "breakfast");
-    const first = await addMeal(user.id, localNoon(from), "lunch");
-    const last = await addMeal(user.id, localNoon(to), "dinner");
-    await addMeal(user.id, localNoon(addDays(to, 1)), "snack");
+    const from = "10-11-2026";
+    const to = "12-11-2026";
+    const isoFrom = dateOnlyToIso(from);
+    const isoTo = dateOnlyToIso(to);
+    await addMeal(user.id, localNoon(addDays(isoFrom, -1)), "breakfast");
+    const first = await addMeal(user.id, localNoon(isoFrom), "lunch");
+    const last = await addMeal(user.id, localNoon(isoTo), "dinner");
+    await addMeal(user.id, localNoon(addDays(isoTo, 1)), "snack");
 
     const response = await json(await callAs(user.id, `/meals?from=${from}&to=${to}`));
 
@@ -97,9 +101,9 @@ describeApi("meal history date range", () => {
     const beforeMidnight = await addMeal(user.id, new Date("2026-11-21T18:29:00Z"), "dinner");
     const atMidnight = await addMeal(user.id, new Date("2026-11-21T18:30:00Z"), "snack");
 
-    const previousLocalDay = await json(await callAs(user.id, "/meals?date=2026-11-21"));
-    const nextLocalDay = await json(await callAs(user.id, "/meals?date=2026-11-22"));
-    const utcOverride = await json(await callAs(user.id, "/meals?date=2026-11-21&timezone=UTC"));
+    const previousLocalDay = await json(await callAs(user.id, "/meals?date=21-11-2026"));
+    const nextLocalDay = await json(await callAs(user.id, "/meals?date=22-11-2026"));
+    const utcOverride = await json(await callAs(user.id, "/meals?date=21-11-2026&timezone=UTC"));
 
     expect(ids(previousLocalDay.meals)).toEqual([beforeMidnight.id]);
     expect(ids(nextLocalDay.meals)).toEqual([atMidnight.id]);

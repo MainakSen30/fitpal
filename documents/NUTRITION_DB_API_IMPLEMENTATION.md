@@ -29,6 +29,8 @@ All routes are registered under `/api/v1` and require authentication:
 
 Every payload, query, and path parameter is validated with Zod. Validation and domain errors use the existing `{ error }` response shape. Ownership is checked through the full parent chain, and clients cannot supply user IDs, ownership flags, verified status, or calculated totals.
 
+Date-only request and response fields use the strict shared `DD-MM-YYYY` contract (two-digit day/month, four-digit year, real calendar validation). The API converts validated values to ISO dates for PostgreSQL `DATE` columns and serializes them back to `DD-MM-YYYY`; timestamps remain ISO 8601.
+
 ## Test isolation
 
 The existing OTP unit test previously replaced the shared database module globally. It now patches only `db.select`/`db.update` for its own tests and restores them, so integration tests can use the real database client in the same run.

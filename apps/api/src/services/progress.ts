@@ -1,3 +1,4 @@
+import { isoToDateOnly } from "@fitpal/shared";
 import { db } from "../db";
 import { workouts, workoutExercises, workoutSets, users } from "@fitpal/database";
 import { eq, and, gte, lt } from "drizzle-orm";
@@ -101,8 +102,8 @@ export async function getWeeklyProgress(userId: string, weekStartDate?: string) 
   }));
 
   return {
-    weekStart: start.toISOString().split("T")[0],
-    weekEnd: new Date(end.getTime() - 1).toISOString().split("T")[0],
+    weekStart: isoToDateOnly(start),
+    weekEnd: isoToDateOnly(new Date(end.getTime() - 1)),
     weightUnit,
     timezone: tz,
     current: {

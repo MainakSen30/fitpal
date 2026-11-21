@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { dbDateOnlySchema } from "@fitpal/shared";
 import { nutritionInput } from "./foods";
 
 export const mealType = z.enum(["breakfast", "lunch", "dinner", "snack", "other"]);
@@ -55,14 +56,9 @@ export const updateMealItemSchema = z
 export const mealIdParam = z.object({ id: z.string().uuid() });
 export const mealItemParam = z.object({ id: z.string().uuid(), itemId: z.string().uuid() });
 
-const dateKey = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), { message: "Invalid date" });
-
 export const mealListQuery = z.object({
-  date: dateKey.optional(),
-  from: dateKey.optional(),
-  to: dateKey.optional(),
+  date: dbDateOnlySchema.optional(),
+  from: dbDateOnlySchema.optional(),
+  to: dbDateOnlySchema.optional(),
   timezone: z.string().min(1).optional(),
 });

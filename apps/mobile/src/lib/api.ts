@@ -2,6 +2,9 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
+// Date-only fields use the shared canonical DD-MM-YYYY contract; timestamps stay ISO 8601.
+export type { DateOnly } from '@fitpal/shared';
+
 // Host-published API port from docker/docker-compose.yml (api 3001 -> 3011).
 const DEV_API_PORT = 3011;
 

@@ -1,3 +1,4 @@
+import { isoToDateOnly } from "@fitpal/shared";
 import { db } from "../db";
 import {
   mealLogs,
@@ -22,6 +23,16 @@ import { serializeTotals, sumNutritionSnapshots } from "./nutrition-calculations
 
 type NutritionGoal = "cutting" | "bulking" | "maintaining" | "undecided";
 type BudgetPeriod = "daily" | "weekly" | "monthly";
+type NutritionTarget = typeof nutritionTargets.$inferSelect;
+
+function serializeTarget(target: NutritionTarget | null) {
+  if (!target) return null;
+  return {
+    ...target,
+    effectiveFrom: isoToDateOnly(target.effectiveFrom),
+    effectiveUntil: target.effectiveUntil ? isoToDateOnly(target.effectiveUntil) : null,
+  };
+}
 
 export interface PreferencesInput {
   budgetAmount: number | null;
@@ -110,7 +121,10 @@ export async function getTargets(userId: string, dateKey?: string) {
     .where(eq(nutritionTargets.userId, userId))
     .orderBy(desc(nutritionTargets.effectiveFrom));
   const today = new Date().toISOString().slice(0, 10);
-  return { targets, active: await activeTarget(userId, dateKey ?? today) };
+  return {
+    targets: targets.map(serializeTarget),
+    active: serializeTarget(await activeTarget(userId, dateKey ?? today)),
+  };
 }
 
 export async function configureTarget(userId: string, input: TargetsInput) {
@@ -141,7 +155,7 @@ export async function configureTarget(userId: string, input: TargetsInput) {
         effectiveUntil: input.effectiveUntil,
       })
       .returning();
-    return target;
+    return serializeTarget(target);
   } catch (error) {
     // 23P01 is the exclusion-constraint violation; the pre-check above cannot
     // catch a concurrent insert, but the database constraint can.
@@ -200,7 +214,7 @@ function summarize(meals: MealWithItems[], startKey: string, endExclusiveKey: st
   for (let key = startKey; key < endExclusiveKey; key = addDays(key, 1)) {
     const dayMeals = byDate.get(key) ?? [];
     days.push({
-      date: key,
+      date: isoToDateOnly(key),
       mealCount: dayMeals.length,
       totals: serializeTotals(sumNutritionSnapshots(dayMeals.flatMap((meal) => meal.items))),
     });
@@ -222,7 +236,7 @@ export async function dailySummary(userId: string, query: { date?: string; timez
   const meals = await mealsInRange(userId, date, addDays(date, 1), timezone);
   const summary = summarize(meals, date, addDays(date, 1), timezone);
   return {
-    date,
+    date: isoToDateOnly(date),
     timezone,
     totals: summary.totals,
     meals: meals.map((meal) => ({
@@ -233,7 +247,7 @@ export async function dailySummary(userId: string, query: { date?: string; timez
       totals: serializeTotals(sumNutritionSnapshots(meal.items)),
       items: meal.items,
     })),
-    target: await activeTarget(userId, date),
+    target: serializeTarget(await activeTarget(userId, date)),
   };
 }
 
@@ -243,11 +257,11 @@ export async function weeklySummary(userId: string, query: { weekStart?: string;
   const endExclusive = addDays(start, 7);
   const meals = await mealsInRange(userId, start, endExclusive, timezone);
   return {
-    weekStart: start,
-    weekEnd: addDays(start, 6),
+    weekStart: isoToDateOnly(start),
+    weekEnd: isoToDateOnly(addDays(start, 6)),
     timezone,
     ...summarize(meals, start, endExclusive, timezone),
-    target: await activeTarget(userId, start),
+    target: serializeTarget(await activeTarget(userId, start)),
   };
 }
 
@@ -259,6 +273,6 @@ export async function monthlySummary(userId: string, query: { month?: string; ti
     month: start.slice(0, 7),
     timezone,
     ...summarize(meals, start, endExclusive, timezone),
-    target: await activeTarget(userId, start),
+    target: serializeTarget(await activeTarget(userId, start)),
   };
 }

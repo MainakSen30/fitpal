@@ -1,3 +1,5 @@
+import type { DateOnly } from "../date";
+
 export interface User {
   id: string;
   email: string;
@@ -74,7 +76,7 @@ export interface Food {
 export interface BodyLog {
   id: string;
   userId: string;
-  date: string;
+  date: DateOnly;
   weightKg: number;
   bodyFatPct: number | null;
   chestCm: number | null;
