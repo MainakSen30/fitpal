@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import crypto from "node:crypto";
+import { db } from "../src/db";
+import { verifyOtp } from "../src/services/auth";
 
 type OtpRow = {
   id: string;
@@ -18,11 +20,13 @@ const state: {
   updates: Record<string, unknown>[];
 } = { rows: [], updates: [] };
 
-// verifyOtp only touches select + update; the chain below mirrors the shape
-// used by the service without opening a real Postgres connection.
-mock.module("../src/db", () => ({
-  db: {
-    select: () => ({
+const spies: Array<{ mockRestore: () => void }> = [];
+
+// Patch only the two methods verifyOtp uses, then restore them so integration
+// tests in the same runner keep the real database client.
+function mockDatabaseCalls() {
+  spies.push(
+    spyOn(db, "select").mockImplementation((() => ({
       from: () => ({
         where: () => ({
           orderBy: () => ({
@@ -30,27 +34,16 @@ mock.module("../src/db", () => ({
           }),
         }),
       }),
-    }),
-    update: () => ({
+    })) as never),
+    spyOn(db, "update").mockImplementation((() => ({
       set: (values: Record<string, unknown>) => ({
         where: async () => {
           state.updates.push(values);
         },
       }),
-    }),
-  },
-}));
-
-mock.module("../src/lib/redis", () => ({
-  redis: {
-    get: async () => null,
-    setex: async () => "OK",
-    del: async () => 1,
-  },
-  connectRedis: async () => {},
-}));
-
-const { verifyOtp } = await import("../src/services/auth");
+    })) as never),
+  );
+}
 
 const sha256 = (value: string) => crypto.createHash("sha256").update(value).digest("hex");
 
@@ -72,6 +65,12 @@ function otp(overrides: Partial<OtpRow> = {}): OtpRow {
 beforeEach(() => {
   state.rows = [];
   state.updates = [];
+  mockDatabaseCalls();
+});
+
+afterEach(() => {
+  for (const spy of spies) spy.mockRestore();
+  spies.length = 0;
 });
 
 describe("verifyOtp", () => {
