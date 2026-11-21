@@ -6,7 +6,7 @@ import {
   type MealPlan,
   type MealPlanItem,
 } from "@fitpal/database";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, lt, or } from "drizzle-orm";
 import { ApiError } from "../lib/errors";
 import { getFoodForUser } from "./foods";
 import { getOwnedMeal } from "./meals";
@@ -18,6 +18,7 @@ import {
 } from "./nutrition-calculations";
 
 type CustomFoodInput = NutritionPer100g & { name: string };
+type QueryClient = Pick<typeof db, "select" | "insert" | "update">;
 
 type AddItemInput = {
   plannedDate: string;
@@ -42,8 +43,27 @@ async function getOwnedPlan(userId: string, planId: string): Promise<MealPlan> {
   return plan;
 }
 
-async function getPlanItem(planId: string, itemId: string): Promise<MealPlanItem> {
-  const [item] = await db
+async function getOwnedPlanForUpdate(
+  userId: string,
+  planId: string,
+  client: QueryClient,
+): Promise<MealPlan> {
+  const [plan] = await client
+    .select()
+    .from(mealPlans)
+    .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))
+    .limit(1)
+    .for("update");
+  if (!plan) throw new ApiError("Meal plan not found", 404);
+  return plan;
+}
+
+async function getPlanItem(
+  planId: string,
+  itemId: string,
+  client: Pick<typeof db, "select"> = db,
+): Promise<MealPlanItem> {
+  const [item] = await client
     .select()
     .from(mealPlanItems)
     .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.mealPlanId, planId)))
@@ -84,17 +104,33 @@ export async function getMealPlan(userId: string, planId: string) {
 }
 
 export async function updateMealPlan(userId: string, planId: string, input: Partial<Parameters<typeof createMealPlan>[1]>) {
-  const current = await getOwnedPlan(userId, planId);
-  const startDate = input.startDate ?? current.startDate;
-  const endDate = input.endDate ?? current.endDate;
-  if (endDate < startDate) throw new ApiError("endDate precedes startDate", 422);
+  return db.transaction(async (tx) => {
+    const current = await getOwnedPlanForUpdate(userId, planId, tx);
+    const startDate = input.startDate ?? current.startDate;
+    const endDate = input.endDate ?? current.endDate;
+    if (endDate < startDate) throw new ApiError("endDate precedes startDate", 422);
 
-  const [updated] = await db
-    .update(mealPlans)
-    .set({ ...input, updatedAt: new Date() })
-    .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))
-    .returning();
-  return updated;
+    if (startDate !== current.startDate || endDate !== current.endDate) {
+      const [outside] = await tx
+        .select({ id: mealPlanItems.id })
+        .from(mealPlanItems)
+        .where(
+          and(
+            eq(mealPlanItems.mealPlanId, planId),
+            or(lt(mealPlanItems.plannedDate, startDate), gt(mealPlanItems.plannedDate, endDate)),
+          ),
+        )
+        .limit(1);
+      if (outside) throw new ApiError("Meal plan date range cannot exclude existing planned items", 409);
+    }
+
+    const [updated] = await tx
+      .update(mealPlans)
+      .set({ ...input, updatedAt: new Date() })
+      .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))
+      .returning();
+    return updated;
+  });
 }
 
 export async function deleteMealPlan(userId: string, planId: string) {
@@ -104,106 +140,110 @@ export async function deleteMealPlan(userId: string, planId: string) {
 }
 
 export async function addMealPlanItem(userId: string, planId: string, input: AddItemInput) {
-  const plan = await getOwnedPlan(userId, planId);
-  assertPlannedDate(plan, input.plannedDate);
+  return db.transaction(async (tx) => {
+    const plan = await getOwnedPlanForUpdate(userId, planId, tx);
+    assertPlannedDate(plan, input.plannedDate);
 
-  const quantity = input.quantityGrams == null ? null : String(input.quantityGrams);
-  let foodId: string | null = null;
-  let source: NutritionPer100g | undefined;
-  let name: string | undefined;
+    const quantity = input.quantityGrams == null ? null : String(input.quantityGrams);
+    let foodId: string | null = null;
+    let source: NutritionPer100g | undefined;
+    let name: string | undefined;
 
-  if (input.foodId) {
-    const food = await getFoodForUser(userId, input.foodId);
-    foodId = food.id;
-    source = food;
-    name = food.name;
-  } else if (input.customFood) {
-    source = input.customFood;
-    name = input.customFood.name.trim();
-  }
-  if (!source || !name) throw new ApiError("A food source is required", 400);
+    if (input.foodId) {
+      const food = await getFoodForUser(userId, input.foodId);
+      foodId = food.id;
+      source = food;
+      name = food.name;
+    } else if (input.customFood) {
+      source = input.customFood;
+      name = input.customFood.name.trim();
+    }
+    if (!source || !name) throw new ApiError("A food source is required", 400);
 
-  const [item] = await db
-    .insert(mealPlanItems)
-    .values({
-      mealPlanId: planId,
-      plannedDate: input.plannedDate,
-      mealType: input.mealType,
-      foodId,
-      foodNameSnapshot: name,
-      quantityGrams: quantity,
-      ...(quantity ? buildNutritionSnapshot(source, quantity) : {}),
-      estimatedCost: input.estimatedCost == null ? null : input.estimatedCost.toFixed(2),
-      currencyCode: input.currencyCode?.toUpperCase() ?? null,
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return item;
+    const [item] = await tx
+      .insert(mealPlanItems)
+      .values({
+        mealPlanId: planId,
+        plannedDate: input.plannedDate,
+        mealType: input.mealType,
+        foodId,
+        foodNameSnapshot: name,
+        quantityGrams: quantity,
+        ...(quantity ? buildNutritionSnapshot(source, quantity) : {}),
+        estimatedCost: input.estimatedCost == null ? null : input.estimatedCost.toFixed(2),
+        currencyCode: input.currencyCode?.toUpperCase() ?? null,
+        notes: input.notes ?? null,
+      })
+      .returning();
+    return item;
+  });
 }
 
 export async function updateMealPlanItem(userId: string, planId: string, itemId: string, input: UpdateItemInput) {
-  const plan = await getOwnedPlan(userId, planId);
-  const item = await getPlanItem(planId, itemId);
-  const plannedDate = input.plannedDate ?? item.plannedDate;
-  assertPlannedDate(plan, plannedDate);
+  return db.transaction(async (tx) => {
+    const plan = await getOwnedPlanForUpdate(userId, planId, tx);
+    const item = await getPlanItem(planId, itemId, tx);
+    const plannedDate = input.plannedDate ?? item.plannedDate;
+    assertPlannedDate(plan, plannedDate);
 
-  const quantity = input.quantityGrams !== undefined
-    ? (input.quantityGrams == null ? null : String(input.quantityGrams))
-    : item.quantityGrams;
+    const quantity = input.quantityGrams !== undefined
+      ? (input.quantityGrams == null ? null : String(input.quantityGrams))
+      : item.quantityGrams;
 
-  let snapshot: ReturnType<typeof buildNutritionSnapshot> | undefined;
-  let foodId = item.foodId;
-  let name = item.foodNameSnapshot;
+    let snapshot: ReturnType<typeof buildNutritionSnapshot> | undefined;
+    let foodId = item.foodId;
+    let name = item.foodNameSnapshot;
 
-  if (input.customFood) {
-    snapshot = quantity ? buildNutritionSnapshot(input.customFood, quantity) : undefined;
-    foodId = null;
-    name = input.customFood.name.trim();
-  } else if (input.foodId) {
-    const food = await getFoodForUser(userId, input.foodId);
-    snapshot = quantity ? buildNutritionSnapshot(food, quantity) : undefined;
-    foodId = food.id;
-    name = food.name;
-  } else if (input.quantityGrams !== undefined && quantity && item.quantityGrams) {
-    snapshot = {
-      caloriesSnapshot: calculateConsumedNutrition(per100gFromSnapshot(item.caloriesSnapshot, item.quantityGrams), quantity),
-      proteinSnapshot: calculateConsumedNutrition(per100gFromSnapshot(item.proteinSnapshot, item.quantityGrams), quantity),
-      carbohydratesSnapshot: calculateConsumedNutrition(
-        per100gFromSnapshot(item.carbohydratesSnapshot, item.quantityGrams),
-        quantity,
-      ),
-      fatSnapshot: calculateConsumedNutrition(per100gFromSnapshot(item.fatSnapshot, item.quantityGrams), quantity),
-    };
-  }
+    if (input.customFood) {
+      snapshot = quantity ? buildNutritionSnapshot(input.customFood, quantity) : undefined;
+      foodId = null;
+      name = input.customFood.name.trim();
+    } else if (input.foodId) {
+      const food = await getFoodForUser(userId, input.foodId);
+      snapshot = quantity ? buildNutritionSnapshot(food, quantity) : undefined;
+      foodId = food.id;
+      name = food.name;
+    } else if (input.quantityGrams !== undefined && quantity && item.quantityGrams) {
+      snapshot = {
+        caloriesSnapshot: calculateConsumedNutrition(per100gFromSnapshot(item.caloriesSnapshot, item.quantityGrams), quantity),
+        proteinSnapshot: calculateConsumedNutrition(per100gFromSnapshot(item.proteinSnapshot, item.quantityGrams), quantity),
+        carbohydratesSnapshot: calculateConsumedNutrition(
+          per100gFromSnapshot(item.carbohydratesSnapshot, item.quantityGrams),
+          quantity,
+        ),
+        fatSnapshot: calculateConsumedNutrition(per100gFromSnapshot(item.fatSnapshot, item.quantityGrams), quantity),
+      };
+    }
 
-  const clearedSnapshots = input.quantityGrams === null
-    ? {
-        caloriesSnapshot: null,
-        proteinSnapshot: null,
-        carbohydratesSnapshot: null,
-        fatSnapshot: null,
-      }
-    : {};
+    const clearedSnapshots = input.quantityGrams === null
+      ? {
+          caloriesSnapshot: null,
+          proteinSnapshot: null,
+          carbohydratesSnapshot: null,
+          fatSnapshot: null,
+        }
+      : {};
 
-  const [updated] = await db
-    .update(mealPlanItems)
-    .set({
-      plannedDate,
-      ...(input.mealType !== undefined && { mealType: input.mealType }),
-      foodId,
-      foodNameSnapshot: name,
-      quantityGrams: quantity,
-      ...(snapshot ?? clearedSnapshots),
-      ...(input.estimatedCost !== undefined && {
-        estimatedCost: input.estimatedCost == null ? null : input.estimatedCost.toFixed(2),
-      }),
-      ...(input.currencyCode !== undefined && { currencyCode: input.currencyCode?.toUpperCase() ?? null }),
-      ...(input.notes !== undefined && { notes: input.notes }),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.mealPlanId, planId)))
-    .returning();
-  return updated;
+    const [updated] = await tx
+      .update(mealPlanItems)
+      .set({
+        plannedDate,
+        ...(input.mealType !== undefined && { mealType: input.mealType }),
+        foodId,
+        foodNameSnapshot: name,
+        quantityGrams: quantity,
+        ...(snapshot ?? clearedSnapshots),
+        ...(input.estimatedCost !== undefined && {
+          estimatedCost: input.estimatedCost == null ? null : input.estimatedCost.toFixed(2),
+        }),
+        ...(input.currencyCode !== undefined && { currencyCode: input.currencyCode?.toUpperCase() ?? null }),
+        ...(input.notes !== undefined && { notes: input.notes }),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(mealPlanItems.id, itemId), eq(mealPlanItems.mealPlanId, planId)))
+      .returning();
+    return updated;
+  });
 }
 
 /** Explicit copy only: the planned item is untouched. */
