@@ -128,19 +128,28 @@ export async function configureTarget(userId: string, input: TargetsInput) {
     .limit(1);
   if (overlap) throw new ApiError("Target period overlaps an existing target", 409);
 
-  const [target] = await db
-    .insert(nutritionTargets)
-    .values({
-      userId,
-      dailyCalories: gramsOrNull(input.dailyCalories),
-      proteinGrams: gramsOrNull(input.proteinGrams),
-      carbohydratesGrams: gramsOrNull(input.carbohydratesGrams),
-      fatGrams: gramsOrNull(input.fatGrams),
-      effectiveFrom: input.effectiveFrom,
-      effectiveUntil: input.effectiveUntil,
-    })
-    .returning();
-  return target;
+  try {
+    const [target] = await db
+      .insert(nutritionTargets)
+      .values({
+        userId,
+        dailyCalories: gramsOrNull(input.dailyCalories),
+        proteinGrams: gramsOrNull(input.proteinGrams),
+        carbohydratesGrams: gramsOrNull(input.carbohydratesGrams),
+        fatGrams: gramsOrNull(input.fatGrams),
+        effectiveFrom: input.effectiveFrom,
+        effectiveUntil: input.effectiveUntil,
+      })
+      .returning();
+    return target;
+  } catch (error) {
+    // 23P01 is the exclusion-constraint violation; the pre-check above cannot
+    // catch a concurrent insert, but the database constraint can.
+    if ((error as { code?: string } | null)?.code === "23P01") {
+      throw new ApiError("Target period overlaps an existing target", 409);
+    }
+    throw error;
+  }
 }
 
 type MealWithItems = MealLog & { items: MealLogItem[] };

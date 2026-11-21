@@ -29,8 +29,9 @@ export const nutritionPreferences = pgTable(
   }),
 );
 
-/** Historical target periods are retained; overlaps are rejected in the
- * service so a new target never silently rewrites an older one. */
+/** Historical target periods are retained. Overlaps are rejected by the
+ * `nutrition_targets_no_overlap` exclusion constraint in migration 0007,
+ * which Drizzle's schema DSL cannot express; [from, until) is half-open. */
 export const nutritionTargets = pgTable(
   "nutrition_targets",
   {
