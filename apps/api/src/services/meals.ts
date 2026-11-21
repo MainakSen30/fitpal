@@ -98,9 +98,12 @@ export async function listMeals(
   query: { date?: string; from?: string; to?: string; timezone?: string },
 ) {
   const timezone = assertTimezone(query.timezone ?? (await userTimezone(userId)));
-  const start = query.date ?? query.from ?? addDays(new Date().toISOString().slice(0, 10), -30);
-  const endExclusive = addDays(query.date ?? query.to ?? start, 1);
-  if (endExclusive < start) throw new ApiError("Invalid date range", 400);
+  const today = localDateKey(new Date(), timezone);
+  // 30 calendar days means today and the 29 days before it, not today - 30.
+  const start = query.date ?? query.from ?? addDays(today, -29);
+  const endKey = query.date ?? query.to ?? (query.from ? start : today);
+  const endExclusive = addDays(endKey, 1);
+  if (endKey < start) throw new ApiError("Invalid date range", 400);
 
   const window = wideUtcWindow(start, endExclusive);
   const meals = await db
