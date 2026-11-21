@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { workouts, workoutExercises, workoutSets, profiles } from "@fitpal/database";
+import { workouts, workoutExercises, workoutSets, users } from "@fitpal/database";
 import { eq, and, gte, lt } from "drizzle-orm";
 
 export function getWeekBounds(date: Date, tz = "UTC") {
@@ -21,9 +21,10 @@ function kgToLb(kg: number) {
 }
 
 export async function getWeeklyProgress(userId: string, weekStartDate?: string) {
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
-  const weightUnit = profile?.weightUnit || "kg";
-  const tz = profile?.timezone || "UTC";
+  // users holds the canonical preferences; profiles keeps legacy columns.
+  const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const weightUnit = user?.unitSystem === "imperial" ? "lb" : "kg";
+  const tz = user?.timezone || "UTC";
 
   const baseDate = weekStartDate ? new Date(weekStartDate) : new Date();
   const { start, end } = getWeekBounds(baseDate, tz);
