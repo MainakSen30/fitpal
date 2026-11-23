@@ -15,20 +15,22 @@ FitPal sends authentication emails through a provider-independent email service 
 | Later email verification | `POST /api/v1/auth/verification/send` | `templates/otp.ts` |
 | Legacy email verification OTP | `POST /api/v1/auth/otp/send` with `purpose: "email_verification"` | `templates/otp.ts` |
 | OTP login | `POST /api/v1/auth/otp/send` with `identifier` (or legacy `email`) and `purpose: "login"` | `templates/otp.ts` |
-| Password reset | `POST /api/v1/auth/forgot-password` | `templates/password-reset.ts` |
+| Password recovery code | `POST /api/v1/auth/recovery/send` | `templates/password-recovery-code.ts` |
+| Legacy password-reset link (deprecated) | `POST /api/v1/auth/forgot-password` | `templates/password-reset.ts` |
 
-Email delivery is awaited in the request path so a provider rejection is returned to
-the caller instead of being reported as success. Email OTPs are issued and verified by
-the centralized engine in `apps/api/src/services/otp/`. The legacy `email` and
-`purpose` fields still work; `identifier` additionally accepts an E.164 phone, and the
-server derives the OTP channel from the normalized identifier. See
-[`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md) for the full login contract.
-Password-reset links still use their own token flow.
+Email delivery is awaited in the request path. Authentication endpoints still answer
+generically on delivery failure to avoid account enumeration; internal service callers
+receive typed delivery errors. Email OTPs are issued and verified by the centralized
+engine in `apps/api/src/services/otp/`. The legacy `email` and `purpose` fields still
+work; `identifier` additionally accepts an E.164 phone, and the server derives the OTP
+channel from the normalized identifier. See
+[`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md) for the full login contract and
+[`AUTH_RECOVERY.md`](./AUTH_RECOVERY.md) for recovery, session revocation, and the
+deprecated link flow.
 
 The code-based email templates cover signup verification, email login, later email
-verification and password recovery. Signup, later email verification and login are
-wired into routes; the code-based password-recovery template remains a delivery
-primitive.
+verification and password recovery. All four are wired into routes; recovery uses the
+`password_recovery` purpose and never returns a code or session from an endpoint.
 
 ## 1. Enable Google 2-Step Verification
 
@@ -223,9 +225,9 @@ ever returned by an endpoint.
 ## Known limitations
 
 - Email OTP challenges are created as `pending` and only become verifiable after
-  delivery succeeds; failed deliveries leave no usable OTP. Password-reset tokens are
-  still created before the email is sent, and a rejected reset email is reported to
-  the caller.
+  delivery succeeds; failed deliveries leave no usable OTP. Deprecated password-reset
+  tokens are still inserted before the email is sent, but the route now answers
+  generically and the token is one-time and expiring.
 - Neither the web app nor the mobile app currently has a screen that consumes the
   password-reset link at `/reset-password?token=...`. The reset API and email exist;
   the landing screen still needs to be implemented.

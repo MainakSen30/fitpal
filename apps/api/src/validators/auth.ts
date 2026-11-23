@@ -49,3 +49,14 @@ export const otpVerifySchema = z.object({
   .refine((value) => value.purpose !== "email_verification" || Boolean(value.email), {
     message: "email_verification requires email",
   });
+
+/** Recovery never accepts a channel, purpose, token or session in the request. */
+export const recoverySendSchema = z.object({
+  identifier: z.string().trim().min(1),
+});
+
+export const recoveryResetSchema = z.object({
+  identifier: z.string().trim().min(1),
+  code: z.string().regex(/^\d{6}$/),
+  newPassword: z.string().min(8),
+});

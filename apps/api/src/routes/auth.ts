@@ -15,10 +15,13 @@ import {
 } from "../services/auth";
 import { signupService, SignupDeliveryError, type SignupService } from "../services/signup";
 import { loginService, type LoginService } from "../services/login";
+import { recoveryService, type RecoveryService } from "../services/recovery";
 import {
   otpSendSchema,
   otpVerifySchema,
   passwordLoginSchema,
+  recoveryResetSchema,
+  recoverySendSchema,
   signupRegistrationSchema,
 } from "../validators/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
@@ -30,6 +33,7 @@ import { ApiError, errorResponse } from "../lib/errors";
 export function createAuthRoutes(
   signup: SignupService = signupService,
   login: LoginService = loginService,
+  recovery: RecoveryService = recoveryService,
 ) {
   const auth = new Hono<AuthEnv>();
 
@@ -220,21 +224,40 @@ export function createAuthRoutes(
     }
   });
 
-  // Password reset - request
+  // Code-based recovery. Both endpoints are intentionally generic: send never
+  // creates a session and reset never logs the user in.
+  auth.post("/recovery/send", zValidator("json", recoverySendSchema), async (c) => {
+    try {
+      await recovery.sendCode(c.req.valid("json").identifier, clientIpFromRequest(c));
+    } catch {
+      // Even delivery/storage failures get the same external answer.
+    }
+    return c.json({ success: true });
+  });
+
+  auth.post("/recovery/reset", zValidator("json", recoveryResetSchema), async (c) => {
+    try {
+      const { identifier, code, newPassword } = c.req.valid("json");
+      await recovery.resetPassword(identifier, code, newPassword, clientIpFromRequest(c));
+      return c.json({ success: true });
+    } catch (e) {
+      return errorResponse(c, e);
+    }
+  });
+
+  // Deprecated legacy link flow, kept temporarily for existing mobile clients.
   auth.post("/forgot-password", zValidator("json", z.object({
     email: z.string().email(),
   })), async (c) => {
     try {
       const { email } = c.req.valid("json");
       await sendPasswordResetEmail(email);
-      return c.json({ success: true });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to send reset email";
-      return c.json({ error: message }, 400);
+    } catch {
+      // Same generic answer as recovery/send; never reveal account state.
     }
+    return c.json({ success: true });
   });
 
-  // Password reset - confirm
   auth.post("/reset-password", zValidator("json", z.object({
     token: z.string().min(1),
     password: z.string().min(8),
@@ -244,8 +267,7 @@ export function createAuthRoutes(
       await resetPassword(token, password);
       return c.json({ success: true });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to reset password";
-      return c.json({ error: message }, 400);
+      return errorResponse(c, e);
     }
   });
 

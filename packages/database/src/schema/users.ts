@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   passwordHash: text("password_hash"),
   googleId: text("google_id").unique(),
+  sessionVersion: integer("session_version").default(0).notNull(),
   timezone: text("timezone").default("UTC").notNull(),
   unitSystem: text("unit_system", { enum: ["metric", "imperial"] }).default("metric").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

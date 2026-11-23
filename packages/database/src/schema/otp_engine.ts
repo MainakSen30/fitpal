@@ -19,6 +19,7 @@ export const otpPurposes = [
   "email_login",
   "phone_login",
   "password_recovery",
+  "phone_password_recovery",
 ] as const;
 export type OtpPurposeValue = (typeof otpPurposes)[number];
 

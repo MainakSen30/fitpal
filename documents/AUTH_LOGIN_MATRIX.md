@@ -17,6 +17,10 @@ The following behavior was present before Phase 5 (commit `322b93a`):
 No frontend or mobile caller sends a phone number to login today. To avoid forcing client
 changes, the existing `email` field remains valid and a new `identifier` field is added.
 
+Password/account recovery builds on these contracts; see
+[`AUTH_RECOVERY.md`](./AUTH_RECOVERY.md) for its API, OTP purposes, atomicity, and
+session-revocation design.
+
 ## Implemented API contract
 
 ### Password login

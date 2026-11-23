@@ -469,6 +469,25 @@ describeDb("OTP concurrency", () => {
     expect((await latestChallenge(target))?.status).toBe("consumed");
   });
 
+  it("rolls back OTP consumption when a caller transaction fails", async () => {
+    const user = await createUser("tx-rollback");
+    const target = scope(user);
+    const { engine, codes } = makeEngine({ value: baseTime });
+    await engine.send(target);
+
+    await expect(
+      db.transaction(async (tx) => {
+        const result = await engine.verify({ ...target, code: codes[0] }, tx);
+        if (result.status !== "success") throw new Error("unexpected OTP result");
+        throw new Error("force rollback");
+      }),
+    ).rejects.toThrow("force rollback");
+
+    expect((await latestChallenge(target))?.status).toBe("active");
+    expect((await verificationState(target))?.failedAttempts).toBe(0);
+    expect(await engine.verify({ ...target, code: codes[0] })).toEqual({ status: "success" });
+  });
+
   it("cannot exceed the hourly quota under simultaneous sends", async () => {
     const user = await createUser("concurrent-quota");
     const target = scope(user);

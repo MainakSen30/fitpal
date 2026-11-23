@@ -35,10 +35,11 @@ const user = {
   email: "athlete@example.com",
   name: "Athlete",
   emailVerified: true,
+  passwordHash: "$2b$10$IKP68tG2EbvtB.eanW1NAeAToNafhqyZhIZhDrsPEQuLXvSfrMw0.",
 };
 
 const state: {
-  users: Array<{ id: string; email: string; name: string; emailVerified: boolean }>;
+  users: Array<{ id: string; email: string; name: string; emailVerified: boolean; passwordHash: string | null }>;
   inserted: InsertedRow[];
   sendInputs: Array<{ destination: string; purpose: string; code: string }>;
 } = { users: [], inserted: [], sendInputs: [] };
@@ -191,6 +192,18 @@ describe("password reset email flow", () => {
 
     await auth.sendPasswordResetEmail("missing@example.com");
 
+    expect(sent).toHaveLength(0);
+    expect(state.inserted).toHaveLength(0);
+  });
+
+  it("does not issue links for unverified emails or passwordless accounts", async () => {
+    state.users = [{ ...user, emailVerified: false }];
+    await auth.sendPasswordResetEmail(user.email);
+    expect(sent).toHaveLength(0);
+    expect(state.inserted).toHaveLength(0);
+
+    state.users = [{ ...user, passwordHash: null }];
+    await auth.sendPasswordResetEmail(user.email);
     expect(sent).toHaveLength(0);
     expect(state.inserted).toHaveLength(0);
   });

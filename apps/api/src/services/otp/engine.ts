@@ -59,6 +59,8 @@ type DeliveryOutcome =
   | { outcome: "mock" }
   | { outcome: "failed"; reason: DeliveryFailureReason };
 
+type OtpTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 const challengeScope = (scope: OtpScope) =>
   and(
     eq(otpChallenges.userId, scope.userId),
@@ -122,7 +124,8 @@ export class OtpEngine {
       : { status: "superseded" };
   }
 
-  async verify(input: VerifyOtpInput): Promise<VerifyOtpResult> {
+  /** `tx` lets recovery join OTP consumption with the password update. */
+  async verify(input: VerifyOtpInput, tx?: OtpTransaction): Promise<VerifyOtpResult> {
     const validated = this.validatedScope(input);
     if (!validated.ok) return { status: validated.status };
     const scope = validated.scope;
@@ -131,90 +134,98 @@ export class OtpEngine {
     }
 
     const now = this.now();
-    return db.transaction(async (tx) => {
-      await tx
-        .insert(otpVerificationStates)
-        .values({ ...scope, failedAttempts: 0 })
-        .onConflictDoNothing();
+    if (tx) return this.consumeVerified(tx, scope, input.code, now);
+    return db.transaction((client) => this.consumeVerified(client, scope, input.code, now));
+  }
 
-      const [state] = await tx
-        .select()
-        .from(otpVerificationStates)
-        .where(stateScope(scope))
-        .limit(1)
-        .for("update");
-      if (!state) return { status: "invalid" } as VerifyOtpResult;
+  private async consumeVerified(
+    tx: OtpTransaction,
+    scope: OtpScope,
+    code: string,
+    now: Date,
+  ): Promise<VerifyOtpResult> {
+    await tx
+      .insert(otpVerificationStates)
+      .values({ ...scope, failedAttempts: 0 })
+      .onConflictDoNothing();
 
-      if (state.lockedUntil && state.lockedUntil > now) {
-        return {
-          status: "locked",
-          retryAfterSeconds: Math.ceil((state.lockedUntil.getTime() - now.getTime()) / 1000),
-        } as VerifyOtpResult;
-      }
-      if (state.lockedUntil) {
-        await tx
-          .update(otpVerificationStates)
-          .set({ lockedUntil: null, failedAttempts: 0, updatedAt: now })
-          .where(eq(otpVerificationStates.id, state.id));
-      }
+    const [state] = await tx
+      .select()
+      .from(otpVerificationStates)
+      .where(stateScope(scope))
+      .limit(1)
+      .for("update");
+    if (!state) return { status: "invalid" };
 
-      const [challenge] = await tx
-        .select()
-        .from(otpChallenges)
-        .where(and(challengeScope(scope), eq(otpChallenges.status, "active")))
-        .limit(1);
-      if (!challenge) {
-        const [latest] = await tx
-          .select({ status: otpChallenges.status })
-          .from(otpChallenges)
-          .where(challengeScope(scope))
-          .orderBy(desc(otpChallenges.sequence))
-          .limit(1);
-        if (latest?.status === "consumed" || latest?.status === "superseded") {
-          return { status: "consumed_or_superseded" } as VerifyOtpResult;
-        }
-        return { status: latest?.status === "expired" ? "expired" : "invalid" } as VerifyOtpResult;
-      }
-
-      if (challenge.expiresAt <= now) {
-        await tx
-          .update(otpChallenges)
-          .set({ status: "expired" })
-          .where(and(eq(otpChallenges.id, challenge.id), eq(otpChallenges.status, "active")));
-        return { status: "expired" } as VerifyOtpResult;
-      }
-
-      const expected = hashOtpCode(
-        this.config.pepper,
-        { ...scope, challengeId: challenge.id },
-        input.code,
-      );
-      if (!constantTimeHexEqual(expected, challenge.codeHash)) {
-        const failedAttempts = state.failedAttempts + 1;
-        const lockedUntil =
-          failedAttempts >= this.config.maxAttempts
-            ? new Date(now.getTime() + this.config.lockMs)
-            : null;
-        await tx
-          .update(otpVerificationStates)
-          .set({ failedAttempts, lockedUntil, updatedAt: now })
-          .where(eq(otpVerificationStates.id, state.id));
-        return { status: "invalid" } as VerifyOtpResult;
-      }
-
-      const consumed = await tx
-        .update(otpChallenges)
-        .set({ status: "consumed", consumedAt: now })
-        .where(and(eq(otpChallenges.id, challenge.id), eq(otpChallenges.status, "active")))
-        .returning({ id: otpChallenges.id });
-      if (consumed.length === 0) return { status: "consumed_or_superseded" } as VerifyOtpResult;
-
+    if (state.lockedUntil && state.lockedUntil > now) {
+      return {
+        status: "locked",
+        retryAfterSeconds: Math.ceil((state.lockedUntil.getTime() - now.getTime()) / 1000),
+      };
+    }
+    if (state.lockedUntil) {
       await tx
         .update(otpVerificationStates)
-        .set({ failedAttempts: 0, lockedUntil: null, updatedAt: now })
+        .set({ lockedUntil: null, failedAttempts: 0, updatedAt: now })
         .where(eq(otpVerificationStates.id, state.id));
-      return { status: "success" } as VerifyOtpResult;
-    });
+    }
+
+    const [challenge] = await tx
+      .select()
+      .from(otpChallenges)
+      .where(and(challengeScope(scope), eq(otpChallenges.status, "active")))
+      .limit(1);
+    if (!challenge) {
+      const [latest] = await tx
+        .select({ status: otpChallenges.status })
+        .from(otpChallenges)
+        .where(challengeScope(scope))
+        .orderBy(desc(otpChallenges.sequence))
+        .limit(1);
+      if (latest?.status === "consumed" || latest?.status === "superseded") {
+        return { status: "consumed_or_superseded" };
+      }
+      return { status: latest?.status === "expired" ? "expired" : "invalid" };
+    }
+
+    if (challenge.expiresAt <= now) {
+      await tx
+        .update(otpChallenges)
+        .set({ status: "expired" })
+        .where(and(eq(otpChallenges.id, challenge.id), eq(otpChallenges.status, "active")));
+      return { status: "expired" };
+    }
+
+    const expected = hashOtpCode(
+      this.config.pepper,
+      { ...scope, challengeId: challenge.id },
+      code,
+    );
+    if (!constantTimeHexEqual(expected, challenge.codeHash)) {
+      const failedAttempts = state.failedAttempts + 1;
+      const lockedUntil =
+        failedAttempts >= this.config.maxAttempts
+          ? new Date(now.getTime() + this.config.lockMs)
+          : null;
+      await tx
+        .update(otpVerificationStates)
+        .set({ failedAttempts, lockedUntil, updatedAt: now })
+        .where(eq(otpVerificationStates.id, state.id));
+      return { status: "invalid" };
+    }
+
+    const consumed = await tx
+      .update(otpChallenges)
+      .set({ status: "consumed", consumedAt: now })
+      .where(and(eq(otpChallenges.id, challenge.id), eq(otpChallenges.status, "active")))
+      .returning({ id: otpChallenges.id });
+    if (consumed.length === 0) return { status: "consumed_or_superseded" };
+
+    await tx
+      .update(otpVerificationStates)
+      .set({ failedAttempts: 0, lockedUntil: null, updatedAt: now })
+      .where(eq(otpVerificationStates.id, state.id));
+    return { status: "success" };
   }
 
   private validatedScope(

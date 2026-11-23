@@ -13,6 +13,7 @@ export const PURPOSE_CHANNEL: Record<OtpPurpose, OtpChannel> = {
   email_login: "email",
   phone_login: "sms",
   password_recovery: "email",
+  phone_password_recovery: "sms",
 };
 
 /** Maps the engine's purposes onto the Phase 2 delivery templates. */
@@ -24,6 +25,7 @@ export const DELIVERY_PURPOSE: Record<OtpPurpose, DeliveryPurpose> = {
   email_login: "login",
   phone_login: "login",
   password_recovery: "password_recovery",
+  phone_password_recovery: "password_recovery",
 };
 
 export function channelForPurpose(purpose: OtpPurpose): OtpChannel {
