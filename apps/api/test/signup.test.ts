@@ -19,6 +19,9 @@ const hasDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasDb ? describe : describe.skip;
 
 const routeCodes: string[] = [];
+const smsCodes: string[] = [];
+const smsDestinations: string[] = [];
+const routeClock = { value: Date.now() };
 let routeEmailFailure = false;
 
 process.env.EMAIL_PROVIDER = "gmail";
@@ -39,17 +42,35 @@ const run = crypto.randomUUID().slice(0, 8);
 const createdEmails: string[] = [];
 const createdSessions: string[] = [];
 
+const otpConfig = loadOtpConfig({ OTP_PEPPER: pepper });
 const routeEngine = new OtpEngine({
-  config: loadOtpConfig({ OTP_PEPPER: pepper }),
+  config: otpConfig,
+  now: () => new Date(routeClock.value),
   ipLimiter: noIpLimiter,
   emailSender: async ({ code }) => {
     if (routeEmailFailure) throw new EmailDeliveryError("rejected");
     routeCodes.push(code);
   },
 });
+const routeSmsEngine = new OtpEngine({
+  config: otpConfig,
+  now: () => new Date(routeClock.value),
+  ipLimiter: noIpLimiter,
+  emailSender: async ({ code }) => {
+    routeCodes.push(code);
+  },
+  smsSender: async ({ to, code }) => {
+    smsCodes.push(code);
+    smsDestinations.push(to);
+    return { status: "delivered", provider: "test-sms" };
+  },
+});
 const signupApp = new Hono()
   .basePath("/api/v1")
   .route("/auth", createAuthRoutes(createSignupService(routeEngine)));
+const smsRecoveryApp = new Hono()
+  .basePath("/api/v1")
+  .route("/auth", createAuthRoutes(createSignupService(routeSmsEngine)));
 
 function email(label: string) {
   const value = `phase4-${run}-${label}@signup.test`;
@@ -89,6 +110,14 @@ async function signupApi(method: string, path: string, payload?: unknown, header
       ...(payload === undefined ? {} : { "Content-Type": "application/json" }),
       ...headers,
     },
+    ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+  });
+}
+
+async function smsRecoveryApi(method: string, path: string, payload?: unknown) {
+  return smsRecoveryApp.request(`/api/v1${path}`, {
+    method,
+    headers: payload === undefined ? {} : { "Content-Type": "application/json" },
     ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
   });
 }
@@ -155,7 +184,10 @@ function track(token: unknown) {
 
 afterEach(() => {
   routeCodes.length = 0;
+  smsCodes.length = 0;
+  smsDestinations.length = 0;
   routeEmailFailure = false;
+  routeClock.value = Date.now();
 });
 
 afterAll(async () => {
@@ -330,11 +362,14 @@ describeDb("initial phone verification", () => {
       const input = body("mock-sms", "sms");
       const response = await signupApi("POST", "/auth/register", input);
       expect(response.status).toBe(503);
-      expect(await json(response)).toEqual({ error: "Verification delivery is unavailable" });
+      const result = await json(response);
+      expect(result.error).toBe("Verification delivery is unavailable");
+      expect(typeof result.continuationToken).toBe("string");
       expect(response.headers.get("set-cookie")).toBeNull();
       expect(routeCodes).toHaveLength(0);
 
       const [stored] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      expect(result.continuationToken).not.toBe(stored.id);
       expect(stored.emailVerified).toBe(false);
       expect(stored.phoneVerified).toBe(false);
       expect(await activeChallenge(stored.id, "signup_phone_verification")).toBeUndefined();
@@ -586,18 +621,126 @@ describeDb("resend, locks and delivery failures", () => {
     );
   });
 
-  it("never leaves an active challenge after email delivery failure", async () => {
+  it("returns a one-time continuation that resumes email signup after delivery failure", async () => {
     const input = body("email-failure");
     routeEmailFailure = true;
     const response = await signupApi("POST", "/auth/register", input);
     expect(response.status).toBe(503);
+    const result = await json(response);
+    const continuationToken = result.continuationToken as string;
+    expect(typeof continuationToken).toBe("string");
+    expect(response.headers.get("set-cookie")).toBeNull();
+
     const [stored] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    expect(continuationToken).not.toBe(stored.id);
     expect(await activeChallenge(stored.id, "signup_email_verification")).toBeUndefined();
     expect((await signupApi("POST", "/auth/signup/verify", {
       userId: stored.id,
       channel: "email",
       code: "123456",
     })).status).toBe(401);
+
+    routeEmailFailure = false;
+    routeClock.value += 61_000;
+    const resumed = await signupApi("POST", "/auth/signup/resend", { continuationToken });
+    expect(resumed.status).toBe(200);
+    expect(await json(resumed)).toEqual({
+      verificationRequired: true,
+      channel: "email",
+      userId: stored.id,
+    });
+    expect(await activeChallenge(stored.id, "signup_email_verification")).toBeTruthy();
+
+    const replay = await signupApi("POST", "/auth/signup/resend", { continuationToken });
+    expect(replay.status).toBe(401);
+
+    const verified = await signupApi("POST", "/auth/signup/verify", {
+      userId: stored.id,
+      channel: "email",
+      code: routeCodes[0],
+    });
+    expect(verified.status).toBe(200);
+    track((await json(verified)).token);
+  });
+
+  it("rotates the continuation token on repeated delivery failure", async () => {
+    routeEmailFailure = true;
+    const input = body("email-failure-rotate");
+    const first = await json(await signupApi("POST", "/auth/register", input));
+    const firstToken = first.continuationToken as string;
+
+    routeClock.value += 61_000;
+    const second = await signupApi("POST", "/auth/signup/resend", {
+      continuationToken: firstToken,
+    });
+    expect(second.status).toBe(503);
+    const secondToken = (await json(second)).continuationToken as string;
+    expect(secondToken).not.toBe(firstToken);
+
+    expect((await signupApi("POST", "/auth/signup/resend", {
+      continuationToken: firstToken,
+    })).status).toBe(401);
+  });
+
+  it("rejects invalid and expired continuation tokens", async () => {
+    expect((await signupApi("POST", "/auth/signup/resend", {
+      continuationToken: "not-a-real-token",
+    })).status).toBe(401);
+
+    routeEmailFailure = true;
+    const input = body("expired-continuation");
+    const failed = await json(await signupApi("POST", "/auth/register", input));
+    const token = failed.continuationToken as string;
+    const [stored] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    await db.update(otpChallenges)
+      .set({ expiresAt: new Date(0) })
+      .where(and(
+        eq(otpChallenges.userId, stored.id),
+        eq(otpChallenges.status, "failed"),
+      ));
+
+    expect((await signupApi("POST", "/auth/signup/resend", { continuationToken: token })).status).toBe(401);
+  });
+
+  it("does not accept a continuation token as an account or login identifier", async () => {
+    routeEmailFailure = true;
+    const failed = await json(await signupApi("POST", "/auth/register", body("token-not-id")));
+    const token = failed.continuationToken as string;
+
+    expect((await signupApi("POST", "/auth/signup/verify", {
+      userId: token,
+      channel: "email",
+      code: "123456",
+    })).status).toBe(400);
+    expect((await api("POST", "/auth/login", {
+      email: token,
+      password: "password123",
+    })).status).toBe(400);
+  });
+
+  it("resumes phone-first signup with an injected SMS provider after mock failure", async () => {
+    const input = body("mock-sms-resume", "sms");
+    const failed = await signupApi("POST", "/auth/register", input);
+    expect(failed.status).toBe(503);
+    const { continuationToken } = await json(failed);
+
+    const [stored] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+    routeClock.value += 61_000;
+    const resumed = await smsRecoveryApi("POST", "/auth/signup/resend", {
+      continuationToken,
+    });
+    expect(resumed.status).toBe(200);
+    expect(await json(resumed)).toMatchObject({ channel: "sms", userId: stored.id });
+    expect(smsDestinations).toEqual([input.phone]);
+    expect(await activeChallenge(stored.id, "signup_phone_verification")).toBeTruthy();
+
+    const verified = await smsRecoveryApi("POST", "/auth/signup/verify", {
+      userId: stored.id,
+      channel: "sms",
+      code: smsCodes[0],
+    });
+    expect(verified.status).toBe(200);
+    track((await json(verified)).token);
   });
 });
 

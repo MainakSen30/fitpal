@@ -1,7 +1,7 @@
 import { hash } from "@node-rs/bcrypt";
 import { otpChallenges, users, type User } from "@fitpal/database";
 import crypto from "node:crypto";
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 import { db } from "../db";
 import { ApiError } from "../lib/errors";
 import { createSession } from "./auth";
@@ -31,6 +31,62 @@ type LaterPurpose = (typeof LATER_PURPOSES)[number];
 
 const invalidOtp = () => new ApiError("Invalid or expired OTP", 401);
 const unavailable = () => new ApiError("Verification delivery is unavailable", 503);
+
+const CONTINUATION_PREFIX = "continuation:";
+const CONTINUATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+/** Delivery failure keeps the pending account, but exposes only an opaque resend handle. */
+export class SignupDeliveryError extends ApiError {
+  constructor(readonly continuationToken: string) {
+    super("Verification delivery is unavailable", 503);
+  }
+}
+
+function newContinuationToken() {
+  return crypto.randomBytes(32).toString("base64url");
+}
+
+function markerHash() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function continuationHash(token: string) {
+  return `${CONTINUATION_PREFIX}${crypto.createHash("sha256").update(token).digest("hex")}`;
+}
+
+function isDeliveryUnavailable(result: SendOtpResult) {
+  return result.status === "mock_not_delivered" || result.status === "delivery_failed";
+}
+
+async function issueContinuation(markerId: string, expectedHash?: string) {
+  const token = newContinuationToken();
+  const conditions = [eq(otpChallenges.id, markerId), eq(otpChallenges.status, "failed")];
+  if (expectedHash) conditions.push(eq(otpChallenges.codeHash, expectedHash));
+
+  const [updated] = await db
+    .update(otpChallenges)
+    .set({
+      codeHash: continuationHash(token),
+      expiresAt: new Date(Date.now() + CONTINUATION_TTL_MS),
+    })
+    .where(and(...conditions))
+    .returning({ id: otpChallenges.id });
+  if (!updated) throw invalidOtp();
+  return new SignupDeliveryError(token);
+}
+
+async function invalidateContinuation(markerId: string, expectedHash: string) {
+  await db
+    .update(otpChallenges)
+    .set({ codeHash: markerHash(), expiresAt: new Date(0) })
+    .where(
+      and(
+        eq(otpChallenges.id, markerId),
+        eq(otpChallenges.codeHash, expectedHash),
+        eq(otpChallenges.status, "failed"),
+      ),
+    );
+}
 
 function publicUser(user: User) {
   return {
@@ -125,28 +181,31 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
       const passwordHash = await hash(input.password, 10);
       const now = new Date();
       let user: User;
+      let markerId: string;
       try {
-        user = await db.transaction(async (tx) => {
-          const [created] = await tx
+        const created = await db.transaction(async (tx) => {
+          const [createdUser] = await tx
             .insert(users)
             .values({ email, name: input.name, phone: input.phone, passwordHash })
             .returning();
 
           // Non-active marker: pending state exists atomically with the row,
           // but this row can never be used as an OTP.
-          await tx.insert(otpChallenges).values({
+          const [marker] = await tx.insert(otpChallenges).values({
             id: crypto.randomUUID(),
-            userId: created.id,
+            userId: createdUser.id,
             destination,
             channel,
             purpose,
-            codeHash: crypto.randomBytes(32).toString("hex"),
+            codeHash: markerHash(),
             status: "failed",
             createdAt: now,
             expiresAt: now,
-          });
-          return created;
+          }).returning({ id: otpChallenges.id });
+          return { user: createdUser, markerId: marker.id };
         });
+        user = created.user;
+        markerId = created.markerId;
       } catch (error) {
         if ((error as { code?: string } | null)?.code === "23505") {
           throw new ApiError("Registration could not be completed", 409);
@@ -155,6 +214,7 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
       }
 
       const result = await otp.send({ userId: user.id, destination, channel, purpose, clientIp });
+      if (isDeliveryUnavailable(result)) throw await issueContinuation(markerId);
       assertDelivery(result);
 
       return { verificationRequired: true as const, channel, userId: user.id };
@@ -182,20 +242,60 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
       return { user: publicUser(updated), token };
     },
 
-    async resendInitial(userId: string, clientIp?: string) {
-      const user = await loadUser(userId);
+    async resendInitial(
+      ref: string | { userId?: string; continuationToken?: string },
+      clientIp?: string,
+    ) {
+      const input = typeof ref === "string" ? { userId: ref } : ref;
+      const expectedHash = input.continuationToken
+        ? continuationHash(input.continuationToken)
+        : undefined;
+      let markerId: string;
+      let user: User | undefined;
+
+      if (expectedHash) {
+        const [marker] = await db
+          .select({ id: otpChallenges.id, userId: otpChallenges.userId })
+          .from(otpChallenges)
+          .where(
+            and(
+              eq(otpChallenges.codeHash, expectedHash),
+              eq(otpChallenges.status, "failed"),
+              inArray(otpChallenges.purpose, [...SIGNUP_PURPOSES]),
+              gt(otpChallenges.expiresAt, new Date()),
+            ),
+          )
+          .orderBy(desc(otpChallenges.sequence))
+          .limit(1);
+        if (!marker) throw invalidOtp();
+        markerId = marker.id;
+        user = await loadUser(marker.userId);
+      } else if (input.userId) {
+        user = await loadUser(input.userId);
+        if (!user || !(await isPendingSignupUser(user.id))) throw invalidOtp();
+        const [marker] = await db
+          .select({ id: otpChallenges.id })
+          .from(otpChallenges)
+          .where(
+            and(
+              eq(otpChallenges.userId, user.id),
+              inArray(otpChallenges.purpose, [...SIGNUP_PURPOSES]),
+            ),
+          )
+          .orderBy(desc(otpChallenges.sequence))
+          .limit(1);
+        if (!marker) throw invalidOtp();
+        markerId = marker.id;
+      } else {
+        throw invalidOtp();
+      }
+
       if (!user || !(await isPendingSignupUser(user.id))) throw invalidOtp();
 
       const [marker] = await db
         .select({ purpose: otpChallenges.purpose })
         .from(otpChallenges)
-        .where(
-          and(
-            eq(otpChallenges.userId, user.id),
-            inArray(otpChallenges.purpose, [...SIGNUP_PURPOSES]),
-          ),
-        )
-        .orderBy(desc(otpChallenges.sequence))
+        .where(eq(otpChallenges.id, markerId))
         .limit(1);
       if (!marker) throw invalidOtp();
 
@@ -204,7 +304,11 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
       const destination = destinationFor(user, channel);
 
       const result = await otp.send({ userId: user.id, destination, channel, purpose, clientIp });
+      if (isDeliveryUnavailable(result)) {
+        throw await issueContinuation(markerId, expectedHash);
+      }
       assertDelivery(result);
+      if (expectedHash) await invalidateContinuation(markerId, expectedHash);
 
       return { verificationRequired: true as const, channel, userId: user.id };
     },

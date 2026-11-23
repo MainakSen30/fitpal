@@ -181,7 +181,7 @@ API contract:
 | --- | --- | --- |
 | `POST /api/v1/auth/register` | `{ name, email, phone, password, verificationChannel }` | `202 { verificationRequired: true, channel, userId }` |
 | `POST /api/v1/auth/signup/verify` | `{ userId, channel, code }` | `200 { user, token }` plus the existing session cookie |
-| `POST /api/v1/auth/signup/resend` | `{ userId }` | `200 { verificationRequired: true, channel, userId }` |
+| `POST /api/v1/auth/signup/resend` | `{ userId }` or `{ continuationToken }` | `200 { verificationRequired: true, channel, userId }` |
 | `POST /api/v1/auth/verification/send` (authenticated) | `{ channel }` | `200 { success: true, alreadyVerified }` |
 | `POST /api/v1/auth/verification/verify` (authenticated) | `{ channel, code }` | `200 { user, alreadyVerified }` |
 
@@ -202,9 +202,15 @@ callback.
 
 Pending accounts are not deleted or auto-cleaned in this phase. They remain unusable
 until a contact is verified, and a real SMS provider must be configured before a
-phone-first account can receive a code. Phone-first registration with the mock
-provider returns `503 { error: "Verification delivery is unavailable" }` and creates
-no active challenge. No OTP is returned by any endpoint.
+phone-first account can receive a code. A failed initial delivery returns
+`503 { error: "Verification delivery is unavailable", continuationToken }`. The token
+is an opaque, one-time resend handle: only its SHA-256 hash is stored on the pending
+marker, it expires after 24 hours, and it cannot verify an account, create a session,
+or be used as a login identifier. Clients resume with
+`POST /auth/signup/resend { continuationToken }`; a successful resend returns the
+`userId` and invalidates the token. Repeated delivery failures rotate the token.
+All resends still go through the Phase 3 cooldown, quota and lock checks. No OTP is
+ever returned by an endpoint.
 
 ## Known limitations
 

@@ -15,7 +15,7 @@ import {
   verifyOtp,
   loginWithOtp,
 } from "../services/auth";
-import { signupService, type SignupService } from "../services/signup";
+import { signupService, SignupDeliveryError, type SignupService } from "../services/signup";
 import { signupRegistrationSchema } from "../validators/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
 import { serializeSessionCookie } from "../lib/cookies";
@@ -27,6 +27,13 @@ export function createAuthRoutes(signup: SignupService = signupService) {
 
   function clientIp(c: { req: { header: (name: string) => string | undefined } }): string | undefined {
     return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+  }
+
+  function signupErrorResponse(c: Parameters<typeof errorResponse>[0], error: unknown) {
+    if (error instanceof SignupDeliveryError) {
+      return c.json({ error: error.message, continuationToken: error.continuationToken }, error.status);
+    }
+    return errorResponse(c, error);
   }
 
   // Double-submit CSRF token for browser clients. Safe to call without a
@@ -42,7 +49,7 @@ export function createAuthRoutes(signup: SignupService = signupService) {
       const result = await signup.register(c.req.valid("json"), clientIp(c));
       return c.json(result, 202);
     } catch (e) {
-      return errorResponse(c, e);
+      return signupErrorResponse(c, e);
     }
   });
 
@@ -63,13 +70,15 @@ export function createAuthRoutes(signup: SignupService = signupService) {
   });
 
   auth.post("/signup/resend", zValidator("json", z.object({
-    userId: z.string().uuid(),
+    userId: z.string().uuid().optional(),
+    continuationToken: z.string().min(1).optional(),
+  }).refine((value) => Boolean(value.userId) !== Boolean(value.continuationToken), {
+    message: "Provide userId or continuationToken",
   })), async (c) => {
     try {
-      const { userId } = c.req.valid("json");
-      return c.json(await signup.resendInitial(userId, clientIp(c)));
+      return c.json(await signup.resendInitial(c.req.valid("json"), clientIp(c)));
     } catch (e) {
-      return errorResponse(c, e);
+      return signupErrorResponse(c, e);
     }
   });
 
