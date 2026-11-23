@@ -155,6 +155,12 @@ The API also applies best-effort Redis IP limits with keys
 window). PostgreSQL remains authoritative for account-level cooldowns, quotas,
 attempts and locks; if Redis is unavailable those edge limits fail open.
 
+The IP is the socket peer address by default. `X-Forwarded-For` is ignored unless
+`TRUSTED_PROXY_IP` is set to the exact immediate proxy peer; when trusted, the
+right-most valid forwarded address is used. Requests with no trustworthy IP skip the
+edge limiter rather than creating an identifier-only bucket. See
+[`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md#client-ip-trust).
+
 ## 8. SMS delivery (mock only)
 
 SMS lives in `apps/api/src/services/sms/`. No SMS provider or credentials are

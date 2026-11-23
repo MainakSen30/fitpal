@@ -23,6 +23,7 @@ import {
 } from "../validators/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
 import { serializeSessionCookie } from "../lib/cookies";
+import { clientIpFromRequest } from "../lib/client-ip";
 import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
 import { ApiError, errorResponse } from "../lib/errors";
 
@@ -31,10 +32,6 @@ export function createAuthRoutes(
   login: LoginService = loginService,
 ) {
   const auth = new Hono<AuthEnv>();
-
-  function clientIp(c: { req: { header: (name: string) => string | undefined } }): string | undefined {
-    return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
-  }
 
   function signupErrorResponse(c: Parameters<typeof errorResponse>[0], error: unknown) {
     if (error instanceof SignupDeliveryError) {
@@ -53,7 +50,7 @@ export function createAuthRoutes(
   // No session is created until a contact has been verified.
   auth.post("/register", zValidator("json", signupRegistrationSchema), async (c) => {
     try {
-      const result = await signup.register(c.req.valid("json"), clientIp(c));
+      const result = await signup.register(c.req.valid("json"), clientIpFromRequest(c));
       return c.json(result, 202);
     } catch (e) {
       return signupErrorResponse(c, e);
@@ -67,7 +64,7 @@ export function createAuthRoutes(
   })), async (c) => {
     try {
       const { userId, channel, code } = c.req.valid("json");
-      const result = await signup.verifyInitial({ userId, channel, code }, clientIp(c));
+      const result = await signup.verifyInitial({ userId, channel, code }, clientIpFromRequest(c));
       c.header("Set-Cookie", serializeSessionCookie(result.token));
       getOrCreateCsrfToken(c);
       return c.json(result);
@@ -83,7 +80,7 @@ export function createAuthRoutes(
     message: "Provide userId or continuationToken",
   })), async (c) => {
     try {
-      return c.json(await signup.resendInitial(c.req.valid("json"), clientIp(c)));
+      return c.json(await signup.resendInitial(c.req.valid("json"), clientIpFromRequest(c)));
     } catch (e) {
       return signupErrorResponse(c, e);
     }
@@ -97,7 +94,7 @@ export function createAuthRoutes(
       return c.json(await signup.requestLaterVerification(
         c.get("userId"),
         c.req.valid("json").channel,
-        clientIp(c),
+        clientIpFromRequest(c),
       ));
     } catch (e) {
       return errorResponse(c, e);
@@ -113,7 +110,7 @@ export function createAuthRoutes(
       return c.json(await signup.verifyLaterVerification(
         c.get("userId"),
         { channel, code },
-        clientIp(c),
+        clientIpFromRequest(c),
       ));
     } catch (e) {
       return errorResponse(c, e);
@@ -129,10 +126,10 @@ export function createAuthRoutes(
       if (!destination) throw new ApiError("Invalid login identifier", 400);
 
       if (purpose === "email_verification") {
-        await sendOtp(destination, "email_verification", clientIp(c));
+        await sendOtp(destination, "email_verification", clientIpFromRequest(c));
         return c.json({ success: true });
       }
-      return c.json(await login.sendLoginOtp(destination, clientIp(c)));
+      return c.json(await login.sendLoginOtp(destination, clientIpFromRequest(c)));
     } catch (e) {
       if (e instanceof ApiError) return errorResponse(c, e);
       const message = e instanceof Error ? e.message : "Failed to send OTP";
@@ -148,11 +145,11 @@ export function createAuthRoutes(
       if (!destination) throw new ApiError("Invalid or expired OTP", 401);
 
       if (purpose === "email_verification") {
-        await verifyOtp(destination, code, "email_verification", clientIp(c));
+        await verifyOtp(destination, code, "email_verification", clientIpFromRequest(c));
         return c.json({ success: true });
       }
 
-      const user = await login.verifyLoginOtp(destination, code, clientIp(c));
+      const user = await login.verifyLoginOtp(destination, code, clientIpFromRequest(c));
       const sessionId = await createSession(user.id);
       c.header("Set-Cookie", serializeSessionCookie(sessionId));
       getOrCreateCsrfToken(c);
@@ -170,7 +167,7 @@ export function createAuthRoutes(
       const user = await login.loginWithIdentifier(
         identifier ?? email as string,
         password,
-        clientIp(c),
+        clientIpFromRequest(c),
       );
       const sessionId = await createSession(user.id);
 

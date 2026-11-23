@@ -32,18 +32,20 @@ export function createPasswordLoginLimiter(
     async allow({ identifier, ip }) {
       try {
         const window = Math.floor(now().getTime() / 1000 / WINDOW_SECONDS);
-        const entries = [
-          {
-            key: `login:password:composite:${hash(`${ip ?? "unknown"}\u0000${identifier}`)}:${window}`,
-            limit: COMPOSITE_LIMIT,
-          },
-        ];
-        if (ip) {
-          entries.push({
-            key: `login:password:ip:${hash(ip)}:${window}`,
-            limit: IP_LIMIT,
-          });
-        }
+        // Without a trusted IP, a global bucket protects login without creating
+        // an identifier-only bucket that anyone could use to lock an account.
+        const entries = ip
+          ? [
+              {
+                key: `login:password:composite:${hash(`${ip}\u0000${identifier}`)}:${window}`,
+                limit: COMPOSITE_LIMIT,
+              },
+              {
+                key: `login:password:ip:${hash(ip)}:${window}`,
+                limit: IP_LIMIT,
+              },
+            ]
+          : [{ key: `login:password:global:${window}`, limit: IP_LIMIT }];
 
         const counts = await Promise.all(entries.map((entry) => client.incr(entry.key)));
         await Promise.all(

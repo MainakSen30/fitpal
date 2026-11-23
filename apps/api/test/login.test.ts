@@ -272,6 +272,28 @@ describeDb("password login rate limiting", () => {
       .toBe(true);
   });
 
+  it("uses a global fallback with no trusted IP instead of an identifier-only bucket", async () => {
+    const counts = new Map<string, number>();
+    const keys: string[] = [];
+    const recordingRedis = {
+      incr: async (key: string) => {
+        keys.push(key);
+        const count = (counts.get(key) ?? 0) + 1;
+        counts.set(key, count);
+        return count;
+      },
+      expire: async () => 1,
+    } as never;
+    const limiter = createPasswordLoginLimiter(recordingRedis);
+
+    for (let i = 0; i < 20; i++) {
+      expect(await limiter.allow({ identifier: `phase5-no-ip-a-${run}@login.test` })).toBe(true);
+    }
+    expect(await limiter.allow({ identifier: `phase5-no-ip-b-${run}@login.test` })).toBe(false);
+    expect(keys.every((key) => key.includes("login:password:global:"))).toBe(true);
+    expect(keys.join(" ")).not.toContain("login.test");
+  });
+
   it("hashes identifiers and IPs in Redis keys and fails open when Redis is down", async () => {
     const keys: string[] = [];
     const recordingRedis = {

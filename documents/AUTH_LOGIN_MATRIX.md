@@ -98,10 +98,11 @@ endpoint.
 
 ### Password login rate limit
 
-The limiter uses two bounded 15-minute Redis counters:
+The limiter uses bounded 15-minute Redis counters:
 
-- a composite IP + hashed normalized-identifier counter, limit 5 attempts per window;
-- an IP-only counter, limit 20 attempts per window.
+- with a trustworthy client IP: a composite IP + hashed normalized-identifier counter,
+  limit 5 attempts per window, plus an IP-only counter, limit 20 attempts per window;
+- without a trustworthy client IP: one global counter, limit 20 attempts per window.
 
 Only SHA-256 hashes appear in Redis keys. There is deliberately no identifier/account-
 only counter, so an attacker targeting one identifier cannot keep another account
@@ -109,6 +110,16 @@ locked. Keys expire after 15 minutes. Redis failures fail open in the limiter, m
 the Phase 3 edge limiter; successful logins still require Redis to create a session and
 return a generic error if session storage is unavailable. OTP limits remain in the
 PostgreSQL engine and are independent.
+
+### Client IP trust
+
+The API uses the socket peer address as the client IP by default. `X-Forwarded-For`
+is ignored unless `TRUSTED_PROXY_IP` names the exact immediate proxy peer; when it
+does, the right-most valid forwarded address is used. No reverse proxy is configured
+in the committed deployment files, so the safe default is direct socket IP. If a
+platform injects a forwarding header, set `TRUSTED_PROXY_IP` to that proxy's address
+or per-client limits degrade to the proxy IP. No-IP requests use the global counter,
+never an identifier-only bucket.
 
 ## Verified-contact matrix
 
