@@ -1,13 +1,18 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { allowedOrigins } from "./lib/origins";
 import { csrfProtection } from "./middleware/csrf";
 
 export const app = new Hono();
 
-app.use("*", logger());
+// Pathname only: query strings can carry OAuth codes and one-time state values.
+app.use("*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  console.log(`<-- ${c.req.method} ${path}`);
+  await next();
+  console.log(`--> ${c.req.method} ${path} ${c.res.status}`);
+});
 app.use("*", secureHeaders());
 app.use("*", cors({
   // Comma-separated allowlist; must include every web origin in use.

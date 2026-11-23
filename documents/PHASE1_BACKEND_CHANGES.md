@@ -53,8 +53,8 @@ Core auth logic implemented:
 | `loginWithPassword(email, password)` | Looks up user by email, verifies password hash, returns user on success. |
 | `createSession(userId)` | Creates a session ID, stores `session:{id} -> userId` in Redis with 7-day expiry, returns session ID. |
 | `destroySession(sessionId)` | Removes session from Redis. |
-| `generateGoogleOAuthUrl()` | Builds Google OAuth authorization URL. |
-| `handleGoogleCallback(code)` | Exchanges code for tokens, fetches user info, finds/creates user, returns user. |
+| `generateGoogleOAuthUrl()` | Historical Phase 1 helper; replaced in Phase 7 by server-owned state/nonce in `services/google-oauth.ts`. |
+| `handleGoogleCallback(code)` | Historical Phase 1 helper; replaced by validated OIDC callback and safe linking in Phase 7. |
 | `sendOtp(email, purpose)` | Generates 6-digit OTP, hashes/stores in Redis with expiry, sends via email service. |
 | `verifyOtp(email, code, purpose)` | Validates OTP against stored hash. |
 | `loginWithOtp(email)` | Issues session for OTP-verified login. |
@@ -65,7 +65,7 @@ Core auth logic implemented:
 **Configuration:**
 - `SESSION_DURATION`: 7 days (604800 seconds)
 - `SESSION_PREFIX`: `session:`
-- `JWT_SECRET`: From env with dev fallback
+- `JWT_SECRET`: historical Phase 1 fallback removed in Phase 7; no OAuth state signing secret is used
 
 ### 3. Database Schema (`packages/database/src/schema/users.ts`)
 

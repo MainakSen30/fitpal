@@ -2,9 +2,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import {
-  generateGoogleOAuthUrl,
-  handleGoogleCallback,
-  deepLinkSchemeFromState,
   createSession,
   destroySession,
   sendPasswordResetEmail,
@@ -13,6 +10,7 @@ import {
   sendOtp,
   verifyOtp,
 } from "../services/auth";
+import { googleOAuthService, type GoogleOAuthService } from "../services/google-oauth";
 import { signupService, SignupDeliveryError, type SignupService } from "../services/signup";
 import { loginService, type LoginService } from "../services/login";
 import { recoveryService, type RecoveryService } from "../services/recovery";
@@ -34,6 +32,7 @@ export function createAuthRoutes(
   signup: SignupService = signupService,
   login: LoginService = loginService,
   recovery: RecoveryService = recoveryService,
+  googleOAuth: GoogleOAuthService = googleOAuthService,
 ) {
   const auth = new Hono<AuthEnv>();
 
@@ -188,39 +187,44 @@ export function createAuthRoutes(
     }
   });
 
-  // Google OAuth — redirect to Google; `?scheme=fitpal` routes the final
-  // redirect to a mobile app deep link instead of the web CLIENT_URL.
-  auth.get("/google", (c) => {
-    const { url } = generateGoogleOAuthUrl(c.req.query("scheme"));
-    return c.redirect(url);
+  // Google OAuth — server-owned state/nonce decide the validated return target.
+  auth.get("/google", async (c) => {
+    try {
+      return c.redirect(await googleOAuth.authorizationUrl(c.req.query("scheme")));
+    } catch (e) {
+      return errorResponse(c, e);
+    }
   });
 
-  // Google OAuth — callback
+  // Google OAuth callback — state is consumed before any code exchange.
   auth.get("/google/callback", async (c) => {
-    const code = c.req.query("code");
-    const error = c.req.query("error");
-    const deepLinkScheme = deepLinkSchemeFromState(c.req.query("state"));
-
-    if (error || !code) {
-      if (deepLinkScheme) {
-        return c.redirect(`${deepLinkScheme}://auth/callback?error=google_auth_failed`);
-      }
-      return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
-    }
-
     try {
-      const user = await handleGoogleCallback(code);
-      const sessionId = await createSession(user.id);
-      if (deepLinkScheme) {
-        // Mobile app round-trip: the scheme URL must be registered by the app,
-        // otherwise the auth browser just closes without a result.
-        return c.redirect(`${deepLinkScheme}://auth/callback?token=${sessionId}`);
+      const result = await googleOAuth.handleCallback({
+        state: c.req.query("state"),
+        code: c.req.query("code"),
+        error: c.req.query("error"),
+      });
+      if (result.sessionId) {
+        c.header("Set-Cookie", serializeSessionCookie(result.sessionId));
+        getOrCreateCsrfToken(c);
       }
-      c.header("Set-Cookie", serializeSessionCookie(sessionId));
-      getOrCreateCsrfToken(c);
-      return c.redirect(`${process.env.CLIENT_URL}/dashboard`);
+      return c.redirect(result.destination);
     } catch {
-      return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+      return c.redirect("/login?error=google_auth_failed");
+    }
+  });
+
+  // Mobile-only one-time exchange. Returns the existing Bearer session token;
+  // no token is ever placed in a deep-link URL.
+  auth.post("/google/exchange", zValidator("json", z.object({
+    code: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+    scheme: z.string().trim().min(1),
+  })), async (c) => {
+    try {
+      const { code, scheme } = c.req.valid("json");
+      return c.json(await googleOAuth.exchangeMobileCode(code, scheme));
+    } catch (e) {
+      return errorResponse(c, e);
     }
   });
 

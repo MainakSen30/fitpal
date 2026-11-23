@@ -1,9 +1,8 @@
-import { eq, or, and, gt, isNull, sql } from "drizzle-orm";
+import { eq, and, gt, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, passwordResetTokens } from "@fitpal/database";
 import { redis } from "../lib/redis";
 import { ApiError } from "../lib/errors";
-import { SignJWT, jwtVerify } from "jose";
 import { hash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import {
@@ -19,10 +18,6 @@ const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
 const SESSION_PREFIX = "session:";
 const SESSION_VERSION_PREFIX = "session:version:";
 const SESSION_VERSION_TTL = 60; // Short enough to self-heal a lost cache write.
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-dev-secret-min-32-chars!!"
-);
-
 function requireEnv(key: string): string {
   const value = process.env[key];
   if (!value) {
@@ -99,94 +94,6 @@ export async function registerUser(email: string, password: string, name: string
 
 export async function loginWithPassword(email: string, password: string, clientIp?: string) {
   return loginService.loginWithIdentifier(email, password, clientIp);
-}
-
-// Deep-link schemes our API may redirect OAuth results to (e.g. "fitpal").
-// Only scheme names, never full URLs — the final URL is built by the callback.
-const DEEP_LINK_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]{1,63}$/;
-
-export function generateGoogleOAuthUrl(deepLinkScheme?: string) {
-  const clientId = requireEnv("GOOGLE_CLIENT_ID");
-  const redirectUri = requireEnv("GOOGLE_REDIRECT_URI");
-  const scheme =
-    deepLinkScheme && DEEP_LINK_SCHEME_RE.test(deepLinkScheme) ? deepLinkScheme : "";
-
-  // OAuth state is the one parameter Google round-trips to the callback, so it
-  // carries both CSRF nonce and the return target: "<nonce>~<scheme>".
-  // Empty scheme → the callback falls back to the web CLIENT_URL redirect.
-  const state = `${crypto.randomUUID()}~${scheme}`;
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-    scope: "openid email profile",
-    state,
-    access_type: "offline",
-  });
-
-  return { url: `https://accounts.google.com/o/oauth2/v2/auth?${params}`, state };
-}
-
-/** Extracts the app deep-link scheme encoded into the OAuth state. */
-export function deepLinkSchemeFromState(state: string | undefined): string {
-  const scheme = state?.includes("~") ? state.split("~")[1] : "";
-  return scheme && DEEP_LINK_SCHEME_RE.test(scheme) ? scheme : "";
-}
-
-export async function handleGoogleCallback(code: string) {
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: requireEnv("GOOGLE_CLIENT_ID"),
-      client_secret: requireEnv("GOOGLE_CLIENT_SECRET"),
-      redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
-      grant_type: "authorization_code",
-    }),
-  });
-
-  const tokens = await tokenResponse.json();
-  if (!tokenResponse.ok) {
-    throw new Error(tokens.error_description || "Google OAuth failed");
-  }
-
-  const userResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
-  });
-  const googleUser = await userResponse.json();
-
-  // Find existing user by google_id or email, or create new
-  let [user] = await db
-    .select()
-    .from(users)
-    .where(or(eq(users.googleId, googleUser.sub), eq(users.email, googleUser.email)))
-    .limit(1);
-
-  if (user) {
-    // A pending password account must not become authenticated via linking.
-    if (await isPendingSignupUser(user.id)) {
-      throw new Error("Google sign-in is unavailable for this account");
-    }
-    // Link google_id if not already linked
-    if (!user.googleId) {
-      [user] = await db.update(users).set({ googleId: googleUser.sub, emailVerified: true }).where(eq(users.id, user.id)).returning();
-    }
-  } else {
-    [user] = await db
-      .insert(users)
-      .values({
-        email: googleUser.email,
-        name: googleUser.name,
-        googleId: googleUser.sub,
-        avatarUrl: googleUser.picture,
-        emailVerified: true,
-      })
-      .returning();
-  }
-
-  return user;
 }
 
 export async function createSession(userId: string) {
@@ -419,21 +326,4 @@ export async function loginWithOtp(email: string) {
     throw new Error("Contact verification required");
   }
   return user;
-}
-
-// Also sign a JWT for the OAuth state to prevent CSRF
-export async function signState(state: string) {
-  return new SignJWT({ state })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("10m")
-    .sign(JWT_SECRET);
-}
-
-export async function verifyState(token: string): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload.state as string;
-  } catch {
-    return null;
-  }
 }

@@ -10,7 +10,7 @@ The following behavior was present before Phase 5 (commit `322b93a`):
 | OTP login | `POST /api/v1/auth/otp/send` accepted `{ email, purpose: "login" }`; `/otp/verify` accepted `{ email, code, purpose }`. The server mapped legacy `login` to engine purpose `email_login`. Unknown accounts returned generic success on send. There was no phone OTP login. | Older email OTP login clients, `apps/api/test/otp.test.ts` |
 | OTP verification | All OTP state, cooldowns, quotas, locks, expiry, and atomic consumption live in `apps/api/src/services/otp/engine.ts`. Purposes are fixed by `PURPOSE_CHANNEL`; clients cannot supply arbitrary engine purposes today. | Phase 3/4 tests and all OTP routes |
 | Sessions | Opaque UUID tokens with seven-day Redis lifetime; web HttpOnly cookie and mobile Bearer token; CSRF token created on login; `createSession()` rejects pending accounts. | Web/mobile apps, `requireAuth`, `/auth/me` |
-| Google OAuth | `/auth/google` and `/auth/google/callback` preserve the existing redirect/deep-link flow. Pending password accounts cannot be linked. | Web/mobile Google sign-in |
+| Google OAuth | `/auth/google` and `/auth/google/callback` had a client-round-tripped state and userinfo-only identity check; mobile received a live session token in the deep link. Pending password accounts could not be linked. | Web/mobile Google sign-in |
 | Password rate limiting | None dedicated. Only the OTP engine's PostgreSQL limits and best-effort Redis IP limiter existed. | — |
 | Login contacts | An account can hold email and phone independently; `emailVerified` and `phoneVerified` are independent. The UI does not yet consume verification screens. | Phase 4 signup/verification APIs |
 
@@ -19,7 +19,8 @@ changes, the existing `email` field remains valid and a new `identifier` field i
 
 Password/account recovery builds on these contracts; see
 [`AUTH_RECOVERY.md`](./AUTH_RECOVERY.md) for its API, OTP purposes, atomicity, and
-session-revocation design.
+session-revocation design. Phase 7 OAuth state, OIDC validation, linking, and mobile
+exchange are documented in [`AUTH_GOOGLE_OAUTH.md`](./AUTH_GOOGLE_OAUTH.md).
 
 ## Implemented API contract
 
@@ -135,4 +136,6 @@ never an identifier-only bucket.
 | Neither verified (pending) | No | No | No | No | No |
 | Google-created (`emailVerified = true`) | Only if a password is set and email verified | Only if phone is set and verified | Only if email verified | Only if phone verified | Yes |
 
-Google OAuth itself is unchanged in Phase 5; security hardening belongs to Phase 7.
+Google OAuth was hardened in Phase 7; see
+[`AUTH_GOOGLE_OAUTH.md`](./AUTH_GOOGLE_OAUTH.md). The account-state rules above still
+apply: pending accounts never get a session, and Google-only accounts stay passwordless.

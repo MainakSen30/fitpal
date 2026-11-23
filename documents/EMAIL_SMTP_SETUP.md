@@ -143,7 +143,7 @@ No authentication flow, token rule or template needs to change.
 The OTP engine hashes every six-digit code with HMAC-SHA256 and a dedicated
 `OTP_PEPPER`. Generate a unique value for each environment (for example,
 `openssl rand -hex 32`) and set it in the API environment. It must be at least
-32 characters and must never reuse `JWT_SECRET` or another application secret.
+32 characters and must never reuse another application secret.
 There is no default: the API fails at startup if it is missing or too short.
 
 The HMAC input is bound to the challenge ID, account ID, normalized destination,
