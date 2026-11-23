@@ -71,9 +71,46 @@ class FakeRedis {
     return entry.value;
   }
 
+  async eval(
+    _script: string,
+    _numKeys: number,
+    key: string,
+    clientType: string,
+    scheme: string,
+  ) {
+    if (this.fail) throw new Error("redis unavailable");
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) {
+      this.store.delete(key);
+      return null;
+    }
+    let record: unknown;
+    try {
+      record = JSON.parse(entry.value);
+    } catch {
+      return null;
+    }
+    if (
+      typeof record !== "object" ||
+      record === null ||
+      (record as { clientType?: unknown }).clientType !== clientType ||
+      (record as { scheme?: unknown }).scheme !== scheme
+    ) {
+      return null;
+    }
+    this.store.delete(key);
+    return entry.value;
+  }
+
   async del(key: string) {
     this.store.delete(key);
     return 1;
+  }
+
+  setValue(key: string, value: string) {
+    const entry = this.store.get(key);
+    if (entry) this.store.set(key, { ...entry, value });
   }
 
   expireAll() {
@@ -753,6 +790,7 @@ describe("mobile one-time exchange", () => {
 
     const exchange = await api(app, "POST", "/auth/google/exchange", { code, scheme: "fitpal" });
     expect(exchange.status).toBe(200);
+    expect(store.keys()).toEqual([]);
     const token = (await exchange.json()).token as string;
     expect(token).toMatch(/^[0-9a-f-]{36}$/);
     const session = await validateSession(token);
@@ -775,7 +813,48 @@ describe("mobile one-time exchange", () => {
     expect(await replay.json()).toEqual({ error: "Invalid or expired Google exchange code" });
   });
 
-  it("allows one concurrent winner and rejects expired or wrong-client codes", async () => {
+  it("does not consume a code on wrong scheme and succeeds afterward", async () => {
+    const { service, store, google } = makeService();
+    const { app, code } = await mobileCallback(service, google, store);
+    const key = hashKey(code, "oauth:exchange:");
+    const stored = store.rawValue(key);
+
+    const wrongScheme = await api(app, "POST", "/auth/google/exchange", {
+      code,
+      scheme: "exp",
+    });
+    expect(wrongScheme.status).toBe(400);
+    expect(await wrongScheme.json()).toEqual({
+      error: "Invalid or expired Google exchange code",
+    });
+    expect(store.rawValue(key)).toBe(stored);
+
+    const correct = await api(app, "POST", "/auth/google/exchange", { code, scheme: "fitpal" });
+    expect(correct.status).toBe(200);
+    expect(store.keys()).toEqual([]);
+  });
+
+  it("does not let a wrong client type consume a code", async () => {
+    const { service, store, google } = makeService();
+    const { app, code } = await mobileCallback(service, google, store);
+    const key = hashKey(code, "oauth:exchange:");
+    const stored = store.rawValue(key) as string;
+    const tampered = JSON.stringify({ ...JSON.parse(stored), clientType: "web" });
+    store.setValue(key, tampered);
+
+    const wrongClient = await api(app, "POST", "/auth/google/exchange", {
+      code,
+      scheme: "fitpal",
+    });
+    expect(wrongClient.status).toBe(400);
+    expect(store.rawValue(key)).toBe(tampered);
+
+    store.setValue(key, stored);
+    const correct = await api(app, "POST", "/auth/google/exchange", { code, scheme: "fitpal" });
+    expect(correct.status).toBe(200);
+  });
+
+  it("allows one concurrent winner", async () => {
     const { service, store, google } = makeService();
     const { app, code } = await mobileCallback(service, google, store);
     const results = await Promise.all([
@@ -784,23 +863,30 @@ describe("mobile one-time exchange", () => {
     ]);
     expect(results.filter((result) => result.status === 200)).toHaveLength(1);
     expect(results.filter((result) => result.status === 400)).toHaveLength(1);
+    expect(store.keys()).toEqual([]);
+  });
 
-    const expired = await mobileCallback(service, google, store);
-    expired.store?.expireAll?.();
-    const expiredExchange = await api(expired.app, "POST", "/auth/google/exchange", {
-      code: expired.code,
+  it("rejects expired and invalid codes", async () => {
+    const { service, store, google } = makeService();
+    const { app, code } = await mobileCallback(service, google, store);
+    store.expireAll();
+
+    const expired = await api(app, "POST", "/auth/google/exchange", {
+      code,
       scheme: "fitpal",
     });
-    expect(expiredExchange.status).toBe(400);
+    expect(expired.status).toBe(400);
+    expect(await expired.json()).toEqual({ error: "Invalid or expired Google exchange code" });
 
-    const wrongClient = await mobileCallback(service, google, store);
-    const mismatch = await api(wrongClient.app, "POST", "/auth/google/exchange", {
-      code: wrongClient.code,
-      scheme: "exp",
+    const invalid = await api(app, "POST", "/auth/google/exchange", {
+      code: "not-a-valid-code",
+      scheme: "fitpal",
     });
-    expect(mismatch.status).toBe(400);
-    const unlisted = await api(wrongClient.app, "POST", "/auth/google/exchange", {
-      code: wrongClient.code,
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toEqual({ error: "Invalid or expired Google exchange code" });
+
+    const unlisted = await api(app, "POST", "/auth/google/exchange", {
+      code,
       scheme: "evil",
     });
     expect(unlisted.status).toBe(400);

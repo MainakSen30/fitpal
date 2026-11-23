@@ -171,10 +171,11 @@ Success:
 ```
 
 The token is the same Bearer token used by mobile password/OTP login. The endpoint does
-not set a web cookie and does not create a second session. On success the code is
-atomically deleted; a wrong `scheme`, replay, expired code, malformed code, or revoked
-session returns a generic 400. Redis failure returns 500. Only the first valid exchange
-can obtain the token.
+not set a web cookie and does not create a second session. Client type and scheme are
+validated atomically with deletion in a Redis Lua script, so a wrong-scheme or
+wrong-client attempt leaves the code usable. On success the code is atomically deleted;
+a replay, expired code, malformed code, or revoked session returns a generic 400. Redis
+failure returns 500. Only the first valid exchange can obtain the token.
 
 Web callbacks keep creating the session, setting the existing HttpOnly cookie, creating
 the CSRF token, and redirecting to `${CLIENT_URL}/dashboard`. Failures redirect to

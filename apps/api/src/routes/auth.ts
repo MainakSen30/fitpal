@@ -219,7 +219,11 @@ export function createAuthRoutes(
   auth.post("/google/exchange", zValidator("json", z.object({
     code: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
     scheme: z.string().trim().min(1),
-  })), async (c) => {
+  }), (result, c) => {
+    if (!result.success) {
+      return c.json({ error: "Invalid or expired Google exchange code" }, 400);
+    }
+  }), async (c) => {
     try {
       const { code, scheme } = c.req.valid("json");
       return c.json(await googleOAuth.exchangeMobileCode(code, scheme));

@@ -20,11 +20,22 @@ const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 const OPAQUE_RE = /^[A-Za-z0-9_-]{43}$/;
 const SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]{1,63}$/;
 const MOBILE_TARGET_RE = /^([a-zA-Z][a-zA-Z0-9+.-]{1,63}):\/\/auth\/callback$/;
+const MOBILE_CLIENT_TYPE = "mobile";
+const CONSUME_EXCHANGE_SCRIPT = `
+local raw = redis.call("GET", KEYS[1])
+if not raw then return nil end
+local ok, record = pcall(cjson.decode, raw)
+if not ok or type(record) ~= "table" then return nil end
+if record.clientType ~= ARGV[1] or record.scheme ~= ARGV[2] then return nil end
+redis.call("DEL", KEYS[1])
+return raw
+`;
 
 type RedisLike = {
   set(key: string, value: string, mode: string, ttl: number): Promise<unknown>;
   getdel(key: string): Promise<string | null>;
   del(key: string): Promise<unknown>;
+  eval(script: string, numKeys: number, ...args: Array<string | number>): Promise<unknown>;
 };
 
 export type GoogleOAuthDeps = {
@@ -390,9 +401,15 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
         throw new ApiError("Invalid OAuth client", 400);
       }
 
-      const raw = await store.getdel(`${EXCHANGE_PREFIX}${hash(code)}`);
+      const raw = (await store.eval(
+        CONSUME_EXCHANGE_SCRIPT,
+        1,
+        `${EXCHANGE_PREFIX}${hash(code)}`,
+        MOBILE_CLIENT_TYPE,
+        scheme,
+      )) as string | null;
       const record = parseExchangeRecord(raw);
-      if (!record || record.scheme !== scheme) {
+      if (!record || record.scheme !== scheme || record.clientType !== MOBILE_CLIENT_TYPE) {
         throw new ApiError("Invalid or expired Google exchange code", 400);
       }
 
