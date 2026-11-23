@@ -9,7 +9,7 @@ const userId = "11111111-1111-4111-8111-111111111111";
 const email = "athlete@example.com";
 
 const state: {
-  users: Array<{ id: string }>;
+  users: Array<{ id: string; emailVerified: boolean }>;
   sendInputs: SendOtpInput[];
   verifyInputs: VerifyOtpInput[];
 } = { users: [], sendInputs: [], verifyInputs: [] };
@@ -29,7 +29,7 @@ function mockUserLookup() {
 }
 
 beforeEach(() => {
-  state.users = [{ id: userId }];
+  state.users = [{ id: userId, emailVerified: true }];
   state.sendInputs = [];
   state.verifyInputs = [];
   mockUserLookup();

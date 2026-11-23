@@ -14,14 +14,16 @@ FitPal sends authentication emails through a provider-independent email service 
 | Signup email verification | `POST /api/v1/auth/register` with `verificationChannel: "email"` | `templates/signup-verification.ts` |
 | Later email verification | `POST /api/v1/auth/verification/send` | `templates/otp.ts` |
 | Legacy email verification OTP | `POST /api/v1/auth/otp/send` with `purpose: "email_verification"` | `templates/otp.ts` |
-| OTP login | `POST /api/v1/auth/otp/send` with `purpose: "login"` | `templates/otp.ts` |
+| OTP login | `POST /api/v1/auth/otp/send` with `identifier` (or legacy `email`) and `purpose: "login"` | `templates/otp.ts` |
 | Password reset | `POST /api/v1/auth/forgot-password` | `templates/password-reset.ts` |
 
 Email delivery is awaited in the request path so a provider rejection is returned to
-the caller instead of being reported as success. Email OTPs are now issued and verified
-by the centralized engine in `apps/api/src/services/otp/`; the existing `otp/send` and
-`otp/verify` route contracts are unchanged. Password-reset links still use their own
-token flow.
+the caller instead of being reported as success. Email OTPs are issued and verified by
+the centralized engine in `apps/api/src/services/otp/`. The legacy `email` and
+`purpose` fields still work; `identifier` additionally accepts an E.164 phone, and the
+server derives the OTP channel from the normalized identifier. See
+[`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md) for the full login contract.
+Password-reset links still use their own token flow.
 
 The code-based email templates cover signup verification, email login, later email
 verification and password recovery. Signup, later email verification and login are

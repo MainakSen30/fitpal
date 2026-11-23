@@ -3,7 +3,7 @@ import { db } from "../db";
 import { users, passwordResetTokens } from "@fitpal/database";
 import { redis } from "../lib/redis";
 import { SignJWT, jwtVerify } from "jose";
-import { hash, verify } from "@node-rs/bcrypt";
+import { hash } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import {
   EmailDeliveryError,
@@ -11,6 +11,7 @@ import {
 } from "./email/email.service";
 import { otpEngine } from "./otp/engine";
 import { isPendingSignupUser } from "./pending-account";
+import { loginService } from "./login";
 import type { EmailFailureReason } from "./email/email.provider";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -52,21 +53,8 @@ export async function registerUser(email: string, password: string, name: string
   }
 }
 
-export async function loginWithPassword(email: string, password: string) {
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (!user || !user.passwordHash) {
-    throw new Error("Invalid email or password");
-  }
-
-  const valid = await verify(password, user.passwordHash);
-  if (!valid) {
-    throw new Error("Invalid email or password");
-  }
-  if (await isPendingSignupUser(user.id)) {
-    throw new Error("Invalid email or password");
-  }
-
-  return user;
+export async function loginWithPassword(email: string, password: string, clientIp?: string) {
+  return loginService.loginWithIdentifier(email, password, clientIp);
 }
 
 // Deep-link schemes our API may redirect OAuth results to (e.g. "fitpal").
@@ -237,7 +225,7 @@ const LEGACY_OTP_PURPOSE: Record<LegacyOtpPurpose, "email_verification" | "email
 
 async function findUserByEmail(email: string) {
   const [user] = await db
-    .select({ id: users.id })
+    .select({ id: users.id, emailVerified: users.emailVerified })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
@@ -254,8 +242,10 @@ export async function sendOtp(email: string, purpose: LegacyOtpPurpose, clientIp
   const user = await findUserByEmail(normalized);
   // Unknown accounts stay silent: no email is sent and no challenge is stored.
   if (!user) return { success: true };
-  // Pending accounts cannot use login OTPs as a verification bypass.
-  if (purpose === "login" && (await isPendingSignupUser(user.id))) return { success: true };
+  // Pending and unverified-email accounts cannot use login OTPs as a verification bypass.
+  if (purpose === "login" && (!user.emailVerified || (await isPendingSignupUser(user.id)))) {
+    return { success: true };
+  }
 
   const result = await otpEngine.send({
     userId: user.id,
@@ -293,7 +283,7 @@ export async function verifyOtp(
 ) {
   const user = await findUserByEmail(email.trim().toLowerCase());
   if (!user) throw new Error("Invalid or expired OTP");
-  if (purpose === "login" && (await isPendingSignupUser(user.id))) {
+  if (purpose === "login" && (!user.emailVerified || (await isPendingSignupUser(user.id)))) {
     throw new Error("Invalid or expired OTP");
   }
 
@@ -319,12 +309,9 @@ export async function verifyOtp(
 }
 
 export async function loginWithOtp(email: string) {
-  // For users who want OTP-based login (email/password signup flow)
-  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (!user) {
-    throw new Error("User not found");
-  }
-  if (await isPendingSignupUser(user.id)) {
+  // Legacy helper kept for callers that resolve a user after OTP verification.
+  const [user] = await db.select().from(users).where(eq(users.email, email.trim().toLowerCase())).limit(1);
+  if (!user || !user.emailVerified || (await isPendingSignupUser(user.id))) {
     throw new Error("Contact verification required");
   }
   return user;

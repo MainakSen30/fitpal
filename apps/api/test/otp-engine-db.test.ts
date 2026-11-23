@@ -35,7 +35,7 @@ async function createUser(
   const phone = withPhone ? `+91${crypto.randomInt(1_000_000_000, 9_999_999_999)}` : null;
   const [user] = await db
     .insert(users)
-    .values({ email, name: `OTP ${label}`, passwordHash, phone })
+    .values({ email, name: `OTP ${label}`, passwordHash, phone, emailVerified: true })
     .returning({ id: users.id, email: users.email, phone: users.phone });
   return user;
 }

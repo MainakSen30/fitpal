@@ -17,3 +17,35 @@ export const normalRegistrationSchema = z.object({
 export const signupRegistrationSchema = normalRegistrationSchema.extend({
   verificationChannel: z.enum(["email", "sms"]),
 });
+
+const oneIdentifier = (value: { identifier?: string; email?: string }) =>
+  Boolean(value.identifier) !== Boolean(value.email);
+
+/** `email` is the legacy shape; `identifier` accepts email or E.164 phone. */
+export const passwordLoginSchema = z.object({
+  identifier: z.string().trim().min(1).optional(),
+  email: z.string().trim().email().optional(),
+  password: z.string().min(1),
+}).refine(oneIdentifier, { message: "Provide identifier or email" });
+
+const otpIdentifierFields = {
+  identifier: z.string().trim().min(1).optional(),
+  email: z.string().trim().email().optional(),
+  purpose: z.enum(["email_verification", "login"]).optional(),
+};
+
+/** Legacy `purpose` is a mode selector; channel and engine purpose are server-derived. */
+export const otpSendSchema = z.object(otpIdentifierFields)
+  .refine(oneIdentifier, { message: "Provide identifier or email" })
+  .refine((value) => value.purpose !== "email_verification" || Boolean(value.email), {
+    message: "email_verification requires email",
+  });
+
+export const otpVerifySchema = z.object({
+  ...otpIdentifierFields,
+  code: z.string().length(6),
+})
+  .refine(oneIdentifier, { message: "Provide identifier or email" })
+  .refine((value) => value.purpose !== "email_verification" || Boolean(value.email), {
+    message: "email_verification requires email",
+  });

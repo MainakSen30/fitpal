@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import {
-  loginWithPassword,
   generateGoogleOAuthUrl,
   handleGoogleCallback,
   deepLinkSchemeFromState,
@@ -13,16 +12,24 @@ import {
   deleteAccount,
   sendOtp,
   verifyOtp,
-  loginWithOtp,
 } from "../services/auth";
 import { signupService, SignupDeliveryError, type SignupService } from "../services/signup";
-import { signupRegistrationSchema } from "../validators/auth";
+import { loginService, type LoginService } from "../services/login";
+import {
+  otpSendSchema,
+  otpVerifySchema,
+  passwordLoginSchema,
+  signupRegistrationSchema,
+} from "../validators/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
 import { serializeSessionCookie } from "../lib/cookies";
 import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
-import { errorResponse } from "../lib/errors";
+import { ApiError, errorResponse } from "../lib/errors";
 
-export function createAuthRoutes(signup: SignupService = signupService) {
+export function createAuthRoutes(
+  signup: SignupService = signupService,
+  login: LoginService = loginService,
+) {
   const auth = new Hono<AuthEnv>();
 
   function clientIp(c: { req: { header: (name: string) => string | undefined } }): string | undefined {
@@ -113,66 +120,70 @@ export function createAuthRoutes(signup: SignupService = signupService) {
     }
   });
 
-  // OTP: send OTP for email verification or login (email/password signup users)
-  auth.post("/otp/send", zValidator("json", z.object({
-    email: z.string().email(),
-    purpose: z.enum(["email_verification", "login"]),
-  })), async (c) => {
+  // OTP send: legacy email verification stays on its old contract; login
+  // channel and purpose are derived from the normalized identifier.
+  auth.post("/otp/send", zValidator("json", otpSendSchema), async (c) => {
     try {
-      const { email, purpose } = c.req.valid("json");
-      await sendOtp(email, purpose, clientIp(c));
-      return c.json({ success: true });
+      const { identifier, email, purpose } = c.req.valid("json");
+      const destination = identifier ?? email;
+      if (!destination) throw new ApiError("Invalid login identifier", 400);
+
+      if (purpose === "email_verification") {
+        await sendOtp(destination, "email_verification", clientIp(c));
+        return c.json({ success: true });
+      }
+      return c.json(await login.sendLoginOtp(destination, clientIp(c)));
     } catch (e) {
+      if (e instanceof ApiError) return errorResponse(c, e);
       const message = e instanceof Error ? e.message : "Failed to send OTP";
       return c.json({ error: message }, 400);
     }
   });
 
-  // OTP: verify OTP
-  auth.post("/otp/verify", zValidator("json", z.object({
-    email: z.string().email(),
-    code: z.string().length(6),
-    purpose: z.enum(["email_verification", "login"]),
-  })), async (c) => {
+  // OTP verify: login codes create a session; verification codes stay silent.
+  auth.post("/otp/verify", zValidator("json", otpVerifySchema), async (c) => {
     try {
-      const { email, code, purpose } = c.req.valid("json");
-      await verifyOtp(email, code, purpose, clientIp(c));
+      const { identifier, email, code, purpose } = c.req.valid("json");
+      const destination = identifier ?? email;
+      if (!destination) throw new ApiError("Invalid or expired OTP", 401);
 
-      if (purpose === "login") {
-        const user = await loginWithOtp(email);
-        const sessionId = await createSession(user.id);
-        c.header("Set-Cookie", serializeSessionCookie(sessionId));
-        getOrCreateCsrfToken(c);
-        return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, token: sessionId });
+      if (purpose === "email_verification") {
+        await verifyOtp(destination, code, "email_verification", clientIp(c));
+        return c.json({ success: true });
       }
-    
-      return c.json({ success: true });
+
+      const user = await login.verifyLoginOtp(destination, code, clientIp(c));
+      const sessionId = await createSession(user.id);
+      c.header("Set-Cookie", serializeSessionCookie(sessionId));
+      getOrCreateCsrfToken(c);
+      return c.json({ user, token: sessionId });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Invalid OTP";
-      return c.json({ error: message }, 401);
+      if (e instanceof ApiError) return errorResponse(c, e);
+      return c.json({ error: "Invalid or expired OTP" }, 401);
     }
   });
 
-  // Email/password login
-  auth.post("/login", zValidator("json", z.object({
-    email: z.string().email(),
-    password: z.string(),
-  })), async (c) => {
+  // Password login: identifier accepts email or E.164 phone; email is legacy.
+  auth.post("/login", zValidator("json", passwordLoginSchema), async (c) => {
     try {
-      const { email, password } = c.req.valid("json");
-      const user = await loginWithPassword(email, password);
+      const { identifier, email, password } = c.req.valid("json");
+      const user = await login.loginWithIdentifier(
+        identifier ?? email as string,
+        password,
+        clientIp(c),
+      );
       const sessionId = await createSession(user.id);
 
       c.header("Set-Cookie", serializeSessionCookie(sessionId));
       getOrCreateCsrfToken(c);
       return c.json({
-        user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+        user,
         // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
         token: sessionId,
       });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Login failed";
-      return c.json({ error: message }, 401);
+      if (e instanceof ApiError) return errorResponse(c, e);
+      return c.json({ error: "Invalid login credentials" }, 401);
     }
   });
 

@@ -34,10 +34,11 @@ const user = {
   id: "11111111-1111-4111-8111-111111111111",
   email: "athlete@example.com",
   name: "Athlete",
+  emailVerified: true,
 };
 
 const state: {
-  users: Array<{ id: string; email: string; name: string }>;
+  users: Array<{ id: string; email: string; name: string; emailVerified: boolean }>;
   inserted: InsertedRow[];
   sendInputs: Array<{ destination: string; purpose: string; code: string }>;
 } = { users: [], inserted: [], sendInputs: [] };
