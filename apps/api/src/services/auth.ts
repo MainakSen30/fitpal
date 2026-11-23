@@ -10,6 +10,7 @@ import {
   sendPasswordResetEmail as deliverPasswordResetEmail,
 } from "./email/email.service";
 import { otpEngine } from "./otp/engine";
+import { isPendingSignupUser } from "./pending-account";
 import type { EmailFailureReason } from "./email/email.provider";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -59,6 +60,9 @@ export async function loginWithPassword(email: string, password: string) {
 
   const valid = await verify(password, user.passwordHash);
   if (!valid) {
+    throw new Error("Invalid email or password");
+  }
+  if (await isPendingSignupUser(user.id)) {
     throw new Error("Invalid email or password");
   }
 
@@ -129,6 +133,10 @@ export async function handleGoogleCallback(code: string) {
     .limit(1);
 
   if (user) {
+    // A pending password account must not become authenticated via linking.
+    if (await isPendingSignupUser(user.id)) {
+      throw new Error("Google sign-in is unavailable for this account");
+    }
     // Link google_id if not already linked
     if (!user.googleId) {
       [user] = await db.update(users).set({ googleId: googleUser.sub, emailVerified: true }).where(eq(users.id, user.id)).returning();
@@ -150,6 +158,9 @@ export async function handleGoogleCallback(code: string) {
 }
 
 export async function createSession(userId: string) {
+  if (await isPendingSignupUser(userId)) {
+    throw new Error("Contact verification required");
+  }
   const sessionId = crypto.randomUUID();
   const session = { userId, createdAt: Date.now() };
 
@@ -243,6 +254,8 @@ export async function sendOtp(email: string, purpose: LegacyOtpPurpose, clientIp
   const user = await findUserByEmail(normalized);
   // Unknown accounts stay silent: no email is sent and no challenge is stored.
   if (!user) return { success: true };
+  // Pending accounts cannot use login OTPs as a verification bypass.
+  if (purpose === "login" && (await isPendingSignupUser(user.id))) return { success: true };
 
   const result = await otpEngine.send({
     userId: user.id,
@@ -280,6 +293,9 @@ export async function verifyOtp(
 ) {
   const user = await findUserByEmail(email.trim().toLowerCase());
   if (!user) throw new Error("Invalid or expired OTP");
+  if (purpose === "login" && (await isPendingSignupUser(user.id))) {
+    throw new Error("Invalid or expired OTP");
+  }
 
   const result = await otpEngine.verify({
     userId: user.id,
@@ -307,6 +323,9 @@ export async function loginWithOtp(email: string) {
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (!user) {
     throw new Error("User not found");
+  }
+  if (await isPendingSignupUser(user.id)) {
+    throw new Error("Contact verification required");
   }
   return user;
 }

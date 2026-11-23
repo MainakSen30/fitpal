@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import crypto from "node:crypto";
+import { users } from "@fitpal/database";
 import { db } from "../src/db";
 
 type SentMessage = {
@@ -46,9 +47,9 @@ const spies: Array<{ mockRestore: () => void }> = [];
 function mockDatabaseCalls() {
   spies.push(
     spyOn(db, "select").mockImplementation((() => ({
-      from: () => ({
+      from: (table: unknown) => ({
         where: () => ({
-          limit: async () => state.users.slice(0, 1),
+          limit: async () => table === users ? state.users.slice(0, 1) : [],
         }),
       }),
     })) as never),

@@ -2,6 +2,7 @@ import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
 import type { Context } from "hono";
 import { validateSession } from "../services/auth";
+import { isPendingSignupUser } from "../services/pending-account";
 
 const SESSION_COOKIE = "session";
 
@@ -30,7 +31,7 @@ export const requireAuth = createMiddleware<{ Variables: { userId: string; sessi
     }
 
     const session = await validateSession(sessionId);
-    if (!session) {
+    if (!session || (await isPendingSignupUser(session.userId))) {
       return c.json({ error: "Unauthorized" }, 401);
     }
 

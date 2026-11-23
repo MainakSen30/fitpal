@@ -12,3 +12,8 @@ export const normalRegistrationSchema = z.object({
   phone: phoneNumberSchema(),
   password: z.string().min(8),
 });
+
+/** Normal registration plus the contact the user wants to verify first. */
+export const signupRegistrationSchema = normalRegistrationSchema.extend({
+  verificationChannel: z.enum(["email", "sms"]),
+});

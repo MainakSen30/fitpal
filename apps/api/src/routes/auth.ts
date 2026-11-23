@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import {
-  registerUser,
   loginWithPassword,
   generateGoogleOAuthUrl,
   handleGoogleCallback,
@@ -16,228 +15,285 @@ import {
   verifyOtp,
   loginWithOtp,
 } from "../services/auth";
+import { signupService, type SignupService } from "../services/signup";
+import { signupRegistrationSchema } from "../validators/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
 import { serializeSessionCookie } from "../lib/cookies";
 import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
+import { errorResponse } from "../lib/errors";
 
-const auth = new Hono<AuthEnv>();
+export function createAuthRoutes(signup: SignupService = signupService) {
+  const auth = new Hono<AuthEnv>();
 
-function clientIp(c: { req: { header: (name: string) => string | undefined } }): string | undefined {
-  return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
-}
-
-// Double-submit CSRF token for browser clients. Safe to call without a
-// session; the client reads the cookie and echoes it in X-CSRF-Token.
-auth.get("/csrf", (c) => {
-  return c.json({ csrfToken: getOrCreateCsrfToken(c) });
-});
-
-// Email/password registration
-auth.post("/register", zValidator("json", z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1).max(100),
-})), async (c) => {
-  try {
-    const { email, password, name } = c.req.valid("json");
-    const user = await registerUser(email, password, name);
-    const sessionId = await createSession(user.id);
-
-    c.header("Set-Cookie", serializeSessionCookie(sessionId));
-    getOrCreateCsrfToken(c);
-    // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
-    return c.json({ user, token: sessionId }, 201);
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Registration failed";
-    return c.json({ error: message }, 409);
+  function clientIp(c: { req: { header: (name: string) => string | undefined } }): string | undefined {
+    return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
   }
-});
 
-// OTP: send OTP for email verification or login (email/password signup users)
-auth.post("/otp/send", zValidator("json", z.object({
-  email: z.string().email(),
-  purpose: z.enum(["email_verification", "login"]),
-})), async (c) => {
-  try {
-    const { email, purpose } = c.req.valid("json");
-    await sendOtp(email, purpose, clientIp(c));
-    return c.json({ success: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to send OTP";
-    return c.json({ error: message }, 400);
-  }
-});
+  // Double-submit CSRF token for browser clients. Safe to call without a
+  // session; the client reads the cookie and echoes it in X-CSRF-Token.
+  auth.get("/csrf", (c) => {
+    return c.json({ csrfToken: getOrCreateCsrfToken(c) });
+  });
 
-// OTP: verify OTP
-auth.post("/otp/verify", zValidator("json", z.object({
-  email: z.string().email(),
-  code: z.string().length(6),
-  purpose: z.enum(["email_verification", "login"]),
-})), async (c) => {
-  try {
-    const { email, code, purpose } = c.req.valid("json");
-    await verifyOtp(email, code, purpose, clientIp(c));
+  // Normal registration creates a pending account and starts signup verification.
+  // No session is created until a contact has been verified.
+  auth.post("/register", zValidator("json", signupRegistrationSchema), async (c) => {
+    try {
+      const result = await signup.register(c.req.valid("json"), clientIp(c));
+      return c.json(result, 202);
+    } catch (e) {
+      return errorResponse(c, e);
+    }
+  });
+
+  auth.post("/signup/verify", zValidator("json", z.object({
+    userId: z.string().uuid(),
+    channel: z.enum(["email", "sms"]),
+    code: z.string().length(6),
+  })), async (c) => {
+    try {
+      const { userId, channel, code } = c.req.valid("json");
+      const result = await signup.verifyInitial({ userId, channel, code }, clientIp(c));
+      c.header("Set-Cookie", serializeSessionCookie(result.token));
+      getOrCreateCsrfToken(c);
+      return c.json(result);
+    } catch (e) {
+      return errorResponse(c, e);
+    }
+  });
+
+  auth.post("/signup/resend", zValidator("json", z.object({
+    userId: z.string().uuid(),
+  })), async (c) => {
+    try {
+      const { userId } = c.req.valid("json");
+      return c.json(await signup.resendInitial(userId, clientIp(c)));
+    } catch (e) {
+      return errorResponse(c, e);
+    }
+  });
+
+  // Progressive verification for accounts that already completed signup.
+  auth.post("/verification/send", requireAuth, zValidator("json", z.object({
+    channel: z.enum(["email", "sms"]),
+  })), async (c) => {
+    try {
+      return c.json(await signup.requestLaterVerification(
+        c.get("userId"),
+        c.req.valid("json").channel,
+        clientIp(c),
+      ));
+    } catch (e) {
+      return errorResponse(c, e);
+    }
+  });
+
+  auth.post("/verification/verify", requireAuth, zValidator("json", z.object({
+    channel: z.enum(["email", "sms"]),
+    code: z.string().length(6),
+  })), async (c) => {
+    try {
+      const { channel, code } = c.req.valid("json");
+      return c.json(await signup.verifyLaterVerification(
+        c.get("userId"),
+        { channel, code },
+        clientIp(c),
+      ));
+    } catch (e) {
+      return errorResponse(c, e);
+    }
+  });
+
+  // OTP: send OTP for email verification or login (email/password signup users)
+  auth.post("/otp/send", zValidator("json", z.object({
+    email: z.string().email(),
+    purpose: z.enum(["email_verification", "login"]),
+  })), async (c) => {
+    try {
+      const { email, purpose } = c.req.valid("json");
+      await sendOtp(email, purpose, clientIp(c));
+      return c.json({ success: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to send OTP";
+      return c.json({ error: message }, 400);
+    }
+  });
+
+  // OTP: verify OTP
+  auth.post("/otp/verify", zValidator("json", z.object({
+    email: z.string().email(),
+    code: z.string().length(6),
+    purpose: z.enum(["email_verification", "login"]),
+  })), async (c) => {
+    try {
+      const { email, code, purpose } = c.req.valid("json");
+      await verifyOtp(email, code, purpose, clientIp(c));
+
+      if (purpose === "login") {
+        const user = await loginWithOtp(email);
+        const sessionId = await createSession(user.id);
+        c.header("Set-Cookie", serializeSessionCookie(sessionId));
+        getOrCreateCsrfToken(c);
+        return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, token: sessionId });
+      }
     
-    if (purpose === "login") {
-      const user = await loginWithOtp(email);
+      return c.json({ success: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Invalid OTP";
+      return c.json({ error: message }, 401);
+    }
+  });
+
+  // Email/password login
+  auth.post("/login", zValidator("json", z.object({
+    email: z.string().email(),
+    password: z.string(),
+  })), async (c) => {
+    try {
+      const { email, password } = c.req.valid("json");
+      const user = await loginWithPassword(email, password);
       const sessionId = await createSession(user.id);
+
       c.header("Set-Cookie", serializeSessionCookie(sessionId));
       getOrCreateCsrfToken(c);
-      return c.json({ user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl }, token: sessionId });
+      return c.json({
+        user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+        // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
+        token: sessionId,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Login failed";
+      return c.json({ error: message }, 401);
     }
-    
-    return c.json({ success: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Invalid OTP";
-    return c.json({ error: message }, 401);
-  }
-});
+  });
 
-// Email/password login
-auth.post("/login", zValidator("json", z.object({
-  email: z.string().email(),
-  password: z.string(),
-})), async (c) => {
-  try {
-    const { email, password } = c.req.valid("json");
-    const user = await loginWithPassword(email, password);
-    const sessionId = await createSession(user.id);
+  // Google OAuth — redirect to Google; `?scheme=fitpal` routes the final
+  // redirect to a mobile app deep link instead of the web CLIENT_URL.
+  auth.get("/google", (c) => {
+    const { url } = generateGoogleOAuthUrl(c.req.query("scheme"));
+    return c.redirect(url);
+  });
 
-    c.header("Set-Cookie", serializeSessionCookie(sessionId));
-    getOrCreateCsrfToken(c);
-    return c.json({
-      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
-      // sessionId returned for mobile: SecureStore keeps it, sent as Bearer.
-      token: sessionId,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Login failed";
-    return c.json({ error: message }, 401);
-  }
-});
+  // Google OAuth — callback
+  auth.get("/google/callback", async (c) => {
+    const code = c.req.query("code");
+    const error = c.req.query("error");
+    const deepLinkScheme = deepLinkSchemeFromState(c.req.query("state"));
 
-// Google OAuth — redirect to Google; `?scheme=fitpal` routes the final
-// redirect to a mobile app deep link instead of the web CLIENT_URL.
-auth.get("/google", (c) => {
-  const { url } = generateGoogleOAuthUrl(c.req.query("scheme"));
-  return c.redirect(url);
-});
-
-// Google OAuth — callback
-auth.get("/google/callback", async (c) => {
-  const code = c.req.query("code");
-  const error = c.req.query("error");
-  const deepLinkScheme = deepLinkSchemeFromState(c.req.query("state"));
-
-  if (error || !code) {
-    if (deepLinkScheme) {
-      return c.redirect(`${deepLinkScheme}://auth/callback?error=google_auth_failed`);
+    if (error || !code) {
+      if (deepLinkScheme) {
+        return c.redirect(`${deepLinkScheme}://auth/callback?error=google_auth_failed`);
+      }
+      return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
     }
-    return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
-  }
 
-  try {
-    const user = await handleGoogleCallback(code);
-    const sessionId = await createSession(user.id);
-    if (deepLinkScheme) {
-      // Mobile app round-trip: the scheme URL must be registered by the app,
-      // otherwise the auth browser just closes without a result.
-      return c.redirect(`${deepLinkScheme}://auth/callback?token=${sessionId}`);
+    try {
+      const user = await handleGoogleCallback(code);
+      const sessionId = await createSession(user.id);
+      if (deepLinkScheme) {
+        // Mobile app round-trip: the scheme URL must be registered by the app,
+        // otherwise the auth browser just closes without a result.
+        return c.redirect(`${deepLinkScheme}://auth/callback?token=${sessionId}`);
+      }
+      c.header("Set-Cookie", serializeSessionCookie(sessionId));
+      getOrCreateCsrfToken(c);
+      return c.redirect(`${process.env.CLIENT_URL}/dashboard`);
+    } catch {
+      return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
     }
-    c.header("Set-Cookie", serializeSessionCookie(sessionId));
-    getOrCreateCsrfToken(c);
-    return c.redirect(`${process.env.CLIENT_URL}/dashboard`);
-  } catch {
-    return c.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
-  }
-});
+  });
 
-// Password reset - request
-auth.post("/forgot-password", zValidator("json", z.object({
-  email: z.string().email(),
-})), async (c) => {
-  try {
-    const { email } = c.req.valid("json");
-    await sendPasswordResetEmail(email);
-    return c.json({ success: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to send reset email";
-    return c.json({ error: message }, 400);
-  }
-});
+  // Password reset - request
+  auth.post("/forgot-password", zValidator("json", z.object({
+    email: z.string().email(),
+  })), async (c) => {
+    try {
+      const { email } = c.req.valid("json");
+      await sendPasswordResetEmail(email);
+      return c.json({ success: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to send reset email";
+      return c.json({ error: message }, 400);
+    }
+  });
 
-// Password reset - confirm
-auth.post("/reset-password", zValidator("json", z.object({
-  token: z.string().min(1),
-  password: z.string().min(8),
-})), async (c) => {
-  try {
-    const { token, password } = c.req.valid("json");
-    await resetPassword(token, password);
-    return c.json({ success: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to reset password";
-    return c.json({ error: message }, 400);
-  }
-});
+  // Password reset - confirm
+  auth.post("/reset-password", zValidator("json", z.object({
+    token: z.string().min(1),
+    password: z.string().min(8),
+  })), async (c) => {
+    try {
+      const { token, password } = c.req.valid("json");
+      await resetPassword(token, password);
+      return c.json({ success: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to reset password";
+      return c.json({ error: message }, 400);
+    }
+  });
 
-// Logout
-auth.post("/logout", async (c) => {
-  // Mobile sends the session as Bearer; web relies on the cookie.
-  const sessionId = sessionTokenFromRequest(c);
-  if (sessionId) {
-    await destroySession(sessionId);
-  }
-  c.header("Set-Cookie", serializeSessionCookie("", 0));
-  clearCsrfToken(c);
-  return c.json({ success: true });
-});
-
-// Delete account (requires auth)
-auth.delete("/account", requireAuth, async (c) => {
-  try {
-    const userId = c.get("userId") as string;
-    const sessionId = c.get("sessionId") as string;
-    await destroySession(sessionId);
-    await deleteAccount(userId);
+  // Logout
+  auth.post("/logout", async (c) => {
+    // Mobile sends the session as Bearer; web relies on the cookie.
+    const sessionId = sessionTokenFromRequest(c);
+    if (sessionId) {
+      await destroySession(sessionId);
+    }
     c.header("Set-Cookie", serializeSessionCookie("", 0));
     clearCsrfToken(c);
     return c.json({ success: true });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Failed to delete account";
-    return c.json({ error: message }, 400);
-  }
-});
-
-// Get current session
-auth.get("/me", async (c) => {
-  const sessionId = sessionTokenFromRequest(c);
-  if (!sessionId) {
-    return c.json({ user: null });
-  }
-  const { validateSession } = await import("../services/auth");
-  const session = await validateSession(sessionId);
-  if (!session) {
-    return c.json({ user: null });
-  }
-
-  const { db } = await import("../db");
-  const { users } = await import("@fitpal/database");
-  const { eq } = await import("drizzle-orm");
-
-  const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
-  if (!user) return c.json({ user: null });
-
-  return c.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatarUrl: user.avatarUrl,
-      phone: user.phone,
-      phoneVerified: user.phoneVerified,
-    },
   });
-});
 
-export { auth as authRoutes };
+  // Delete account (requires auth)
+  auth.delete("/account", requireAuth, async (c) => {
+    try {
+      const userId = c.get("userId") as string;
+      const sessionId = c.get("sessionId") as string;
+      await destroySession(sessionId);
+      await deleteAccount(userId);
+      c.header("Set-Cookie", serializeSessionCookie("", 0));
+      clearCsrfToken(c);
+      return c.json({ success: true });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to delete account";
+      return c.json({ error: message }, 400);
+    }
+  });
+
+  // Get current session
+  auth.get("/me", async (c) => {
+    const sessionId = sessionTokenFromRequest(c);
+    if (!sessionId) {
+      return c.json({ user: null });
+    }
+    const { validateSession } = await import("../services/auth");
+    const { isPendingSignupUser } = await import("../services/pending-account");
+    const session = await validateSession(sessionId);
+    if (!session || (await isPendingSignupUser(session.userId))) {
+      return c.json({ user: null });
+    }
+
+    const { db } = await import("../db");
+    const { users } = await import("@fitpal/database");
+    const { eq } = await import("drizzle-orm");
+
+    const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+    if (!user) return c.json({ user: null });
+
+    return c.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        phone: user.phone,
+        emailVerified: user.emailVerified,
+        phoneVerified: user.phoneVerified,
+      },
+    });
+  });
+
+  return auth;
+}
+
+export const authRoutes = createAuthRoutes();

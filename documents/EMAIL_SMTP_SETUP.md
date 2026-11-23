@@ -11,7 +11,9 @@ FitPal sends authentication emails through a provider-independent email service 
 
 | Flow | Endpoint | Template |
 | --- | --- | --- |
-| Email verification OTP | `POST /api/v1/auth/otp/send` with `purpose: "email_verification"` | `templates/otp.ts` |
+| Signup email verification | `POST /api/v1/auth/register` with `verificationChannel: "email"` | `templates/signup-verification.ts` |
+| Later email verification | `POST /api/v1/auth/verification/send` | `templates/otp.ts` |
+| Legacy email verification OTP | `POST /api/v1/auth/otp/send` with `purpose: "email_verification"` | `templates/otp.ts` |
 | OTP login | `POST /api/v1/auth/otp/send` with `purpose: "login"` | `templates/otp.ts` |
 | Password reset | `POST /api/v1/auth/forgot-password` | `templates/password-reset.ts` |
 
@@ -22,8 +24,9 @@ by the centralized engine in `apps/api/src/services/otp/`; the existing `otp/sen
 token flow.
 
 The code-based email templates cover signup verification, email login, later email
-verification and password recovery. Only the existing email-verification and login
-purposes are wired into routes today; the others remain delivery primitives.
+verification and password recovery. Signup, later email verification and login are
+wired into routes; the code-based password-recovery template remains a delivery
+primitive.
 
 ## 1. Enable Google 2-Step Verification
 
@@ -164,6 +167,44 @@ messages; that sink does not exist at runtime.
 
 When a real provider is chosen, implement `SmsProvider` and add a mode to
 `createSmsProvider()`. OTP callers use `sendOtpSms()` and do not need to change.
+
+## 9. Signup and progressive verification
+
+Normal registration now requires `name`, `email`, `phone`, `password` and a
+`verificationChannel` of `email` or `sms`. It creates an unverified account and
+starts a signup-purpose OTP through the Phase 3 engine. No session, cookie or token
+is created until one contact has been verified. See `apps/api/src/services/signup.ts`.
+
+API contract:
+
+| Endpoint | Request | Success response |
+| --- | --- | --- |
+| `POST /api/v1/auth/register` | `{ name, email, phone, password, verificationChannel }` | `202 { verificationRequired: true, channel, userId }` |
+| `POST /api/v1/auth/signup/verify` | `{ userId, channel, code }` | `200 { user, token }` plus the existing session cookie |
+| `POST /api/v1/auth/signup/resend` | `{ userId }` | `200 { verificationRequired: true, channel, userId }` |
+| `POST /api/v1/auth/verification/send` (authenticated) | `{ channel }` | `200 { success: true, alreadyVerified }` |
+| `POST /api/v1/auth/verification/verify` (authenticated) | `{ channel, code }` | `200 { user, alreadyVerified }` |
+
+Purposes are isolated: signup uses `signup_email_verification` /
+`signup_phone_verification`, and later verification uses `email_verification` /
+`phone_verification`. Login OTPs cannot verify signup, and the resend endpoint derives
+the original channel from stored OTP state; the client cannot switch channels by
+calling registration or resend again.
+
+A pending account is an account with `emailVerified === false` and
+`phoneVerified === false` that still owns a signup challenge. Registration inserts a
+non-active marker challenge in the same transaction as the user row, so there is no
+window where the account exists without pending state. The marker can never be used as
+an OTP. `createSession()`, `requireAuth` and password/password-OTP login all reject
+pending accounts. Google-created accounts have `emailVerified = true` and are not
+pending; a pending password account is not linked or authenticated by the Google
+callback.
+
+Pending accounts are not deleted or auto-cleaned in this phase. They remain unusable
+until a contact is verified, and a real SMS provider must be configured before a
+phone-first account can receive a code. Phone-first registration with the mock
+provider returns `503 { error: "Verification delivery is unavailable" }` and creates
+no active challenge. No OTP is returned by any endpoint.
 
 ## Known limitations
 

@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 
-export type ApiErrorStatus = 400 | 401 | 403 | 404 | 409 | 422 | 500;
+export type ApiErrorStatus = 400 | 401 | 403 | 404 | 409 | 422 | 500 | 503;
 
 /** Domain errors carry the HTTP status the existing `{ error }` contract needs. */
 export class ApiError extends Error {

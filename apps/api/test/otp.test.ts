@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { users } from "@fitpal/database";
 import { db } from "../src/db";
 import { sendOtp, verifyOtp } from "../src/services/auth";
 import { otpEngine } from "../src/services/otp/engine";
@@ -18,9 +19,9 @@ const spies: Array<{ mockRestore: () => void }> = [];
 function mockUserLookup() {
   spies.push(
     spyOn(db, "select").mockImplementation((() => ({
-      from: () => ({
+      from: (table: unknown) => ({
         where: () => ({
-          limit: async () => state.users.slice(0, 1),
+          limit: async () => table === users ? state.users.slice(0, 1) : [],
         }),
       }),
     })) as never),
