@@ -19,6 +19,7 @@ async function makeUser(tag: string, timezone?: string) {
     .values({
       email: `${tag}@target-timezone.test`,
       name: tag,
+      emailVerified: true,
       ...(timezone === undefined ? {} : { timezone }),
     })
     .returning();

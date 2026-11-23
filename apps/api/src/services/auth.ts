@@ -36,19 +36,42 @@ function sessionVersionKey(userId: string) {
   return `${SESSION_VERSION_PREFIX}${hashToken(userId)}`;
 }
 
-/** The cache is derived state; the users row remains authoritative. */
+type SessionUser = {
+  sessionVersion: number;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+};
+
+/** Sessions require a live user with at least one verified contact. */
+async function loadSessionUser(userId: string): Promise<SessionUser | null> {
+  const [user] = await db
+    .select({
+      sessionVersion: users.sessionVersion,
+      emailVerified: users.emailVerified,
+      phoneVerified: users.phoneVerified,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (!user || (!user.emailVerified && !user.phoneVerified)) return null;
+  return user;
+}
+
+/** Advisory cache only; validation always reads the authoritative users row. */
 export async function setCachedSessionVersion(userId: string, version: number) {
   const key = sessionVersionKey(userId);
   try {
     await redis.set(key, String(version), "EX", SESSION_VERSION_TTL);
   } catch {
-    // A miss makes validation fall back to the database; never leave a stale hit.
     await redis.del(key).catch(() => {});
+    console.warn("[session] session version cache update failed");
   }
 }
 
 export async function clearCachedSessionVersion(userId: string) {
-  await redis.del(sessionVersionKey(userId)).catch(() => {});
+  await redis.del(sessionVersionKey(userId)).catch(() => {
+    console.warn("[session] session version cache clear failed");
+  });
 }
 
 /** Shared by OTP recovery and the legacy token flow. */
@@ -97,14 +120,8 @@ export async function loginWithPassword(email: string, password: string, clientI
 }
 
 export async function createSession(userId: string) {
-  const [user] = await db
-    .select({ sessionVersion: users.sessionVersion })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  if (!user || (await isPendingSignupUser(userId))) {
-    throw new Error("Contact verification required");
-  }
+  const user = await loadSessionUser(userId);
+  if (!user) throw new Error("Contact verification required");
   const sessionId = crypto.randomUUID();
   const session = { userId, createdAt: Date.now(), version: user.sessionVersion };
 
@@ -116,7 +133,7 @@ export async function createSession(userId: string) {
 
 export async function validateSession(sessionId: string) {
   const key = `${SESSION_PREFIX}${sessionId}`;
-  const raw = await redis.get(key);
+  const raw = await redis.get(key).catch(() => null);
   if (!raw) return null;
 
   type SessionRecord = { userId: string; createdAt: number; version?: number };
@@ -126,27 +143,25 @@ export async function validateSession(sessionId: string) {
   } catch {
     return null;
   }
-  if (!session?.userId) return null;
+  if (!session?.userId || typeof session.createdAt !== "number") return null;
 
-  const versionKey = sessionVersionKey(session.userId);
-  const cached = await redis.get(versionKey);
-  let currentVersion = cached !== null && /^\d+$/.test(cached) ? Number(cached) : null;
-  if (currentVersion === null) {
-    const [user] = await db
-      .select({ sessionVersion: users.sessionVersion })
-      .from(users)
-      .where(eq(users.id, session.userId))
-      .limit(1);
-    if (!user) {
-      await redis.del(versionKey).catch(() => {});
-      await redis.del(key).catch(() => {});
-      return null;
-    }
-    currentVersion = user.sessionVersion;
-    await redis.set(versionKey, String(currentVersion), "EX", SESSION_VERSION_TTL).catch(() => {});
+  let user: SessionUser | null;
+  try {
+    user = await loadSessionUser(session.userId);
+  } catch {
+    // A database failure is fail-closed, but must not destroy a valid session.
+    console.warn("[session] session user lookup failed");
+    return null;
+  }
+  if (!user) {
+    await redis.del(key).catch(() => {});
+    return null;
   }
 
-  if ((session.version ?? 0) !== currentVersion) {
+  // Legacy sessions without a version remain usable only while the database version is 0.
+  const recordedVersion = session.version ?? 0;
+  if (!Number.isSafeInteger(recordedVersion) || recordedVersion < 0) return null;
+  if (recordedVersion !== user.sessionVersion) {
     await redis.del(key).catch(() => {});
     return null;
   }

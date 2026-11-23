@@ -17,7 +17,7 @@ async function reset() {
 async function makeUser(tag: string) {
   const [user] = await db
     .insert(users)
-    .values({ email: `${tag}@meal-history.test`, name: tag, timezone: TIMEZONE })
+    .values({ email: `${tag}@meal-history.test`, name: tag, timezone: TIMEZONE, emailVerified: true })
     .returning();
   return user;
 }

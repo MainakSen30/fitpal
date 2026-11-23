@@ -9,6 +9,7 @@ import {
   deleteAccount,
   sendOtp,
   verifyOtp,
+  validateSession,
 } from "../services/auth";
 import { googleOAuthService, type GoogleOAuthService } from "../services/google-oauth";
 import { signupService, SignupDeliveryError, type SignupService } from "../services/signup";
@@ -27,6 +28,9 @@ import { serializeSessionCookie } from "../lib/cookies";
 import { clientIpFromRequest } from "../lib/client-ip";
 import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
 import { ApiError, errorResponse } from "../lib/errors";
+import { users } from "@fitpal/database";
+import { eq } from "drizzle-orm";
+import { db } from "../db";
 
 export function createAuthRoutes(
   signup: SignupService = signupService,
@@ -313,16 +317,10 @@ export function createAuthRoutes(
     if (!sessionId) {
       return c.json({ user: null });
     }
-    const { validateSession } = await import("../services/auth");
-    const { isPendingSignupUser } = await import("../services/pending-account");
     const session = await validateSession(sessionId);
-    if (!session || (await isPendingSignupUser(session.userId))) {
+    if (!session) {
       return c.json({ user: null });
     }
-
-    const { db } = await import("../db");
-    const { users } = await import("@fitpal/database");
-    const { eq } = await import("drizzle-orm");
 
     const [user] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
     if (!user) return c.json({ user: null });

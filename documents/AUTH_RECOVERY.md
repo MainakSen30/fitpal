@@ -147,30 +147,42 @@ caller without throwing inside the transaction so their counts and locks persist
 ## Session invalidation
 
 Sessions remain opaque Redis UUIDs with a seven-day TTL, sent as an HttpOnly cookie on
-web and a Bearer token on mobile. Phase 6 adds a durable `users.session_version`
-integer:
+web and a Bearer token on mobile. PostgreSQL is authoritative for account state and
+session revocation; Redis is only session storage plus an advisory version cache.
 
-- `createSession()` reads the current version and stores it in the session record.
-- `validateSession()` compares the session version with a cached current version.
-- On cache miss, the version is read from `users`, cached for 60 seconds, and a missing
-  user causes fail-closed rejection/deletion of the session.
+- `createSession()` loads the user from PostgreSQL, requires a live row with at least one
+  verified contact, and stores the current `users.session_version` in the session record.
+  A pending account (both contacts unverified), a deleted user, or a malformed user row
+  never gets a session. Google accounts with `emailVerified = true` and a null phone are
+  eligible.
+- `validateSession()` reads the Redis session record, then reads the user row and current
+  version from PostgreSQL on every request. It rejects a missing session, a malformed
+  session record, a nonexistent or ineligible user, a version mismatch, and a malformed
+  or negative stored version.
+- Legacy sessions without an explicit version are accepted only while the authoritative
+  version is still `0`. They are rejected after any revocation, so compatibility cannot
+  bypass revocation.
+- Redis session-store failures fail closed. PostgreSQL read failures also fail closed
+  without deleting the Redis session record, so a transient database outage does not
+  destroy otherwise valid sessions.
 - Password changes increment the version in the same transaction as the password hash.
-- The new version is written to Redis after commit; a failed write deletes the cache key
-  so the next request falls back to the database.
-- `deleteAccount()` clears the version cache; deleted users are rejected on the next
-  validation.
-- Sessions without a stored version are treated as version `0`, so existing sessions
-  survive deployment.
+  The new version is still written to the 60-second Redis cache after commit, but a
+  failed write or a stale cached value cannot keep an old session valid because
+  validation reads PostgreSQL.
+- `deleteAccount()` clears the version cache as best effort. A deleted user is rejected
+  by the database-backed validation even if a stale cache entry remains.
+- `requireAuth` and `/auth/me` rely on that single validation path; they no longer repeat
+  the pending-account query.
 
 Only old sessions for the affected user are rejected; other users keep working sessions.
 The Redis cache key is `session:version:<sha256(userId)>`, so no raw identifier appears
-in Redis keys.
+in Redis keys. Version-cache failures emit a generic warning without identifiers,
+tokens, or connection details.
 
-The cache avoids a database query per protected request on the warm path. A cache write
-lost after commit can leave a stale value for at most 60 seconds, after which the
-database becomes authoritative again. `requireAuth` still performs the pre-existing
-pending-account check; consolidating that check and session version validation is
-deferred to Phase 8.
+The trade-off is one PostgreSQL read per authenticated request. This removes the
+Phase 6 race where a lost post-reset cache write could leave sessions valid for up to
+60 seconds. A request that read the pre-reset version before the reset committed may
+still complete; every validation that starts after the commit sees the new version.
 
 ## Deprecated legacy link flow
 

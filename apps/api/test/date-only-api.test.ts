@@ -13,7 +13,7 @@ async function reset() {
 }
 
 async function makeUser(tag: string) {
-  const [user] = await db.insert(users).values({ email: `${tag}@date-contract.test`, name: tag }).returning();
+  const [user] = await db.insert(users).values({ email: `${tag}@date-contract.test`, name: tag, emailVerified: true }).returning();
   return user;
 }
 

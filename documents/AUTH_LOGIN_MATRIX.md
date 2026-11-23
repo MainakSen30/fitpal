@@ -139,3 +139,5 @@ never an identifier-only bucket.
 Google OAuth was hardened in Phase 7; see
 [`AUTH_GOOGLE_OAUTH.md`](./AUTH_GOOGLE_OAUTH.md). The account-state rules above still
 apply: pending accounts never get a session, and Google-only accounts stay passwordless.
+Phase 8.3 enforces session eligibility centrally in `createSession()`/`validateSession()`;
+see [`AUTH_RECOVERY.md`](./AUTH_RECOVERY.md) for the shared validation and revocation rules.

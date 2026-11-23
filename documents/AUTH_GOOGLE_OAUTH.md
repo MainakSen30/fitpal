@@ -34,7 +34,8 @@ across a Redis outage, which is acceptable for a 10-minute login handshake and a
 new table/migration. A PostgreSQL implementation would also work with
 `DELETE ... RETURNING`, but would add durable state for a transient flow.
 
-Session records and the Phase 6 session-version cache remain unchanged.
+Session records and the Phase 6 session-version cache keys/TTL remain unchanged; only
+validation authority changed in Phase 8.3 (PostgreSQL is authoritative, Redis is advisory).
 
 ## OAuth state and OIDC nonce
 
@@ -185,11 +186,14 @@ stored scheme with `?error=google_auth_failed`.
 ## Session compatibility
 
 Phase 7 calls the same `createSession()` used by password and OTP login. Sessions still
-have a seven-day Redis TTL, capture `users.session_version`, work as web cookies or
-mobile Bearer tokens, and are rejected by Phase 6 version checks. The documented 60-second
-cache fallback limitation is unchanged: no database query was added to every protected
-request. Pending accounts still cannot get sessions, and account deletion/logout are
-unchanged.
+have a seven-day Redis TTL, capture `users.session_version`, and work as web cookies or
+mobile Bearer tokens. Phase 8.3 consolidated eligibility and revocation into that shared
+path: `createSession()` requires a live user with at least one verified contact, and
+`validateSession()` reads PostgreSQL on every request so a stale Redis version cache or
+deleted user cannot keep a session alive. Pending accounts still cannot get sessions,
+and account deletion/logout semantics are unchanged. See
+[`AUTH_RECOVERY.md`](./AUTH_RECOVERY.md) for the full session-validation sequence and
+failure behavior.
 
 ## Failure behavior and limitations
 

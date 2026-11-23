@@ -106,7 +106,7 @@ async function reset() {
 async function makeUser(tag: string) {
   const [user] = await db
     .insert(users)
-    .values({ email: `${tag}@precision.test`, name: tag, timezone: "UTC" })
+    .values({ email: `${tag}@precision.test`, name: tag, timezone: "UTC", emailVerified: true })
     .returning();
   return user;
 }
