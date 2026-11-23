@@ -1,71 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import crypto from "node:crypto";
 import { db } from "../src/db";
-import { verifyOtp } from "../src/services/auth";
+import { sendOtp, verifyOtp } from "../src/services/auth";
+import { otpEngine } from "../src/services/otp/engine";
+import type { SendOtpInput, VerifyOtpInput } from "../src/services/otp/types";
 
-type OtpRow = {
-  id: string;
-  email: string;
-  purpose: string;
-  codeHash: string;
-  verified: boolean;
-  usedAt: Date | null;
-  expiresAt: Date;
-  attempts: number;
-  createdAt: Date;
-};
+const userId = "11111111-1111-4111-8111-111111111111";
+const email = "athlete@example.com";
 
 const state: {
-  rows: OtpRow[];
-  updates: Record<string, unknown>[];
-} = { rows: [], updates: [] };
+  users: Array<{ id: string }>;
+  sendInputs: SendOtpInput[];
+  verifyInputs: VerifyOtpInput[];
+} = { users: [], sendInputs: [], verifyInputs: [] };
 
 const spies: Array<{ mockRestore: () => void }> = [];
 
-// Patch only the two methods verifyOtp uses, then restore them so integration
-// tests in the same runner keep the real database client.
-function mockDatabaseCalls() {
+function mockUserLookup() {
   spies.push(
     spyOn(db, "select").mockImplementation((() => ({
       from: () => ({
         where: () => ({
-          orderBy: () => ({
-            limit: async () => state.rows.slice(0, 1),
-          }),
+          limit: async () => state.users.slice(0, 1),
         }),
-      }),
-    })) as never),
-    spyOn(db, "update").mockImplementation((() => ({
-      set: (values: Record<string, unknown>) => ({
-        where: async () => {
-          state.updates.push(values);
-        },
       }),
     })) as never),
   );
 }
 
-const sha256 = (value: string) => crypto.createHash("sha256").update(value).digest("hex");
-
-function otp(overrides: Partial<OtpRow> = {}): OtpRow {
-  return {
-    id: "otp-1",
-    email: "athlete@example.com",
-    purpose: "login",
-    codeHash: sha256("123456"),
-    verified: false,
-    usedAt: null,
-    expiresAt: new Date(Date.now() + 60_000),
-    attempts: 0,
-    createdAt: new Date(),
-    ...overrides,
-  };
-}
-
 beforeEach(() => {
-  state.rows = [];
-  state.updates = [];
-  mockDatabaseCalls();
+  state.users = [{ id: userId }];
+  state.sendInputs = [];
+  state.verifyInputs = [];
+  mockUserLookup();
 });
 
 afterEach(() => {
@@ -73,40 +39,100 @@ afterEach(() => {
   spies.length = 0;
 });
 
-describe("verifyOtp", () => {
-  it("accepts the matching code and marks it used", async () => {
-    state.rows = [otp()];
-    await verifyOtp("athlete@example.com", "123456", "login");
-
-    expect(state.updates).toHaveLength(1);
-    expect(state.updates[0]).toMatchObject({ verified: true });
-    expect(state.updates[0].usedAt).toBeInstanceOf(Date);
-  });
-
-  it("burns an attempt on a wrong code", async () => {
-    state.rows = [otp({ attempts: 0 })];
-
-    await expect(verifyOtp("athlete@example.com", "000000", "login")).rejects.toThrow(
-      "Invalid or expired OTP",
+describe("legacy OTP service wrappers", () => {
+  it("maps login to the centralized email-login purpose", async () => {
+    spies.push(
+      spyOn(otpEngine, "send").mockImplementation(async (input) => {
+        state.sendInputs.push(input);
+        return { status: "sent", challengeId: "challenge-1" };
+      }),
     );
-    expect(state.updates).toHaveLength(1);
-    expect(state.updates[0]).toHaveProperty("attempts");
-    expect(state.updates[0]).not.toHaveProperty("verified");
+
+    await expect(sendOtp(`  ${email.toUpperCase()} `, "login", "203.0.113.1")).resolves.toEqual({
+      success: true,
+    });
+    expect(state.sendInputs).toEqual([
+      {
+        userId,
+        destination: email,
+        channel: "email",
+        purpose: "email_login",
+        clientIp: "203.0.113.1",
+      },
+    ]);
   });
 
-  it("locks out once the attempt limit is reached", async () => {
-    state.rows = [otp({ attempts: 5 })];
+  it("stays silent for an unknown account", async () => {
+    state.users = [];
+    const send = spyOn(otpEngine, "send").mockImplementation(async () => ({
+      status: "sent",
+      challengeId: "challenge-1",
+    }));
+    spies.push(send);
 
-    await expect(verifyOtp("athlete@example.com", "123456", "login")).rejects.toThrow(
+    await expect(sendOtp(email, "login")).resolves.toEqual({ success: true });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("maps verification to the centralized email-verification purpose", async () => {
+    spies.push(
+      spyOn(otpEngine, "send").mockImplementation(async (input) => {
+        state.sendInputs.push(input);
+        return { status: "sent", challengeId: "challenge-2" };
+      }),
+    );
+
+    await sendOtp(email, "email_verification");
+    expect(state.sendInputs[0].purpose).toBe("email_verification");
+  });
+
+  it("reports delivery failure instead of success", async () => {
+    spies.push(
+      spyOn(otpEngine, "send").mockImplementation(async () => ({
+        status: "delivery_failed",
+        reason: "rejected",
+      })),
+    );
+
+    await expect(sendOtp(email, "login")).rejects.toThrow("Email delivery failed (rejected)");
+  });
+
+  it("maps a successful engine verification", async () => {
+    spies.push(
+      spyOn(otpEngine, "verify").mockImplementation(async (input) => {
+        state.verifyInputs.push(input);
+        return { status: "success" };
+      }),
+    );
+
+    await expect(verifyOtp(email, "123456", "login")).resolves.toEqual({ success: true });
+    expect(state.verifyInputs[0]).toMatchObject({
+      userId,
+      destination: email,
+      channel: "email",
+      purpose: "email_login",
+      code: "123456",
+    });
+  });
+
+  it("returns generic errors for invalid codes and specific errors for locks", async () => {
+    const verify = spyOn(otpEngine, "verify")
+      .mockImplementationOnce(async () => ({ status: "invalid" }))
+      .mockImplementationOnce(async () => ({ status: "locked", retryAfterSeconds: 60 }));
+    spies.push(verify);
+
+    await expect(verifyOtp(email, "000000", "login")).rejects.toThrow("Invalid or expired OTP");
+    await expect(verifyOtp(email, "000000", "login")).rejects.toThrow(
       "Too many incorrect attempts",
     );
-    expect(state.updates).toHaveLength(0);
   });
 
-  it("rejects when no active code exists", async () => {
-    await expect(verifyOtp("athlete@example.com", "123456", "login")).rejects.toThrow(
-      "Invalid or expired OTP",
-    );
-    expect(state.updates).toHaveLength(0);
+  it("does not leak account existence on verification", async () => {
+    state.users = [];
+    const verify = spyOn(otpEngine, "verify").mockImplementation(async () => ({ status: "success" }));
+    spies.push(verify);
+
+    await expect(verifyOtp(email, "123456", "login")).rejects.toThrow("Invalid or expired OTP");
+    expect(verify).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,21 @@ export { passwordResetTokens } from "./auth_tokens";
 export type { PasswordResetToken, NewPasswordResetToken } from "./auth_tokens";
 export { otpCodes } from "./otp_codes";
 export type { OtpCode, NewOtpCode } from "./otp_codes";
+export {
+  otpChallenges,
+  otpChannels,
+  otpPurposes,
+  otpSendHistory,
+  otpVerificationStates,
+} from "./otp_engine";
+export type {
+  OtpChallenge,
+  OtpChannelValue,
+  NewOtpChallenge,
+  OtpPurposeValue,
+  OtpSendHistory,
+  OtpVerificationState,
+} from "./otp_engine";
 export { foods } from "./foods";
 export type { Food, NewFood } from "./foods";
 export { mealLogs, mealLogItems } from "./meals";

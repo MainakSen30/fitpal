@@ -29,10 +29,17 @@ mock.module("nodemailer", () => ({
   },
 }));
 
+const user = {
+  id: "11111111-1111-4111-8111-111111111111",
+  email: "athlete@example.com",
+  name: "Athlete",
+};
+
 const state: {
   users: Array<{ id: string; email: string; name: string }>;
   inserted: InsertedRow[];
-} = { users: [], inserted: [] };
+  sendInputs: Array<{ destination: string; purpose: string; code: string }>;
+} = { users: [], inserted: [], sendInputs: [] };
 
 const spies: Array<{ mockRestore: () => void }> = [];
 
@@ -53,9 +60,9 @@ function mockDatabaseCalls() {
   );
 }
 
-const sha256 = (value: string) => crypto.createHash("sha256").update(value).digest("hex");
-
 let auth: typeof import("../src/services/auth");
+let otpEngine: typeof import("../src/services/otp/engine").otpEngine;
+let sendOtpEmail: typeof import("../src/services/email/email.service").sendOtpEmail;
 
 beforeAll(async () => {
   process.env.EMAIL_PROVIDER = "gmail";
@@ -67,15 +74,34 @@ beforeAll(async () => {
   process.env.EMAIL_FROM = "FitPal <support.fitpal@gmail.com>";
   process.env.CLIENT_URL = "http://localhost:3002";
 
+  ({ otpEngine } = await import("../src/services/otp/engine"));
+  ({ sendOtpEmail } = await import("../src/services/email/email.service"));
   auth = await import("../src/services/auth");
 });
 
 beforeEach(() => {
-  state.users = [];
+  state.users = [{ ...user }];
   state.inserted = [];
+  state.sendInputs = [];
   sent.length = 0;
   sendError = null;
   mockDatabaseCalls();
+
+  // The engine's own delivery/lifecycle tests cover hashing and state. Here we
+  // intercept at the engine boundary and keep the original email assertions.
+  spies.push(
+    spyOn(otpEngine, "send").mockImplementation(async (input) => {
+      const code = "123456";
+      state.sendInputs.push({ destination: input.destination, purpose: input.purpose, code });
+      const purpose = input.purpose === "email_login" ? "login" : "email_verification";
+      try {
+        await sendOtpEmail({ to: input.destination, code, purpose });
+        return { status: "sent", challengeId: crypto.randomUUID() };
+      } catch {
+        return { status: "delivery_failed", reason: "rejected" };
+      }
+    }),
+  );
 });
 
 afterEach(() => {
@@ -102,56 +128,42 @@ function resetTokenFrom(message: SentMessage): string {
 }
 
 describe("OTP email flow", () => {
-  it("emails a login code and stores only its hash", async () => {
-    await auth.sendOtp("athlete@example.com", "login");
+  it("emails a login code through the centralized engine", async () => {
+    await auth.sendOtp(user.email, "login");
 
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({
-      to: "athlete@example.com",
+      to: user.email,
       subject: "Your FitPal sign-in code",
       from: "FitPal <support.fitpal@gmail.com>",
     });
+    expect(state.sendInputs).toEqual([
+      { destination: user.email, purpose: "email_login", code: "123456" },
+    ]);
 
     const code = otpFrom(sent[0]);
+    expect(sent[0].subject).not.toContain(code);
     expect(sent[0].html).toContain(code);
-
-    expect(state.inserted).toHaveLength(1);
-    const row = state.inserted[0].values;
-    expect(row).toMatchObject({ email: "athlete@example.com", purpose: "login" });
-    expect(row.codeHash).toBe(sha256(code));
-    expect(row.codeHash).not.toBe(code);
-
-    const expiresAt = row.expiresAt as Date;
-    const minutes = (expiresAt.getTime() - Date.now()) / 60_000;
-    expect(minutes).toBeGreaterThan(9);
-    expect(minutes).toBeLessThanOrEqual(10);
+    expect(state.inserted).toHaveLength(0);
   });
 
   it("emails the email-verification code", async () => {
-    await auth.sendOtp("athlete@example.com", "email_verification");
+    await auth.sendOtp(user.email, "email_verification");
 
     expect(sent).toHaveLength(1);
     expect(sent[0].subject).toBe("Verify your FitPal email");
     expect(sent[0].text).toContain("verify your email address");
-
-    const code = otpFrom(sent[0]);
-    expect(state.inserted[0].values).toMatchObject({
-      email: "athlete@example.com",
-      purpose: "email_verification",
-      codeHash: sha256(code),
-    });
+    expect(state.sendInputs[0].purpose).toBe("email_verification");
   });
 });
 
 describe("password reset email flow", () => {
   it("emails a reset link and stores only the token hash", async () => {
-    state.users = [{ id: "user-1", email: "athlete@example.com", name: "Athlete" }];
-
-    await auth.sendPasswordResetEmail("athlete@example.com");
+    await auth.sendPasswordResetEmail(user.email);
 
     expect(sent).toHaveLength(1);
     expect(sent[0]).toMatchObject({
-      to: "athlete@example.com",
+      to: user.email,
       subject: "Reset your FitPal password",
       from: "FitPal <support.fitpal@gmail.com>",
     });
@@ -162,8 +174,8 @@ describe("password reset email flow", () => {
 
     expect(state.inserted).toHaveLength(1);
     const row = state.inserted[0].values;
-    expect(row.userId).toBe("user-1");
-    expect(row.tokenHash).toBe(sha256(token));
+    expect(row.userId).toBe(user.id);
+    expect(row.tokenHash).toBe(crypto.createHash("sha256").update(token).digest("hex"));
     expect(row.tokenHash).not.toBe(token);
 
     const expiresAt = row.expiresAt as Date;
@@ -173,6 +185,8 @@ describe("password reset email flow", () => {
   });
 
   it("stays silent for an unknown email so accounts cannot be enumerated", async () => {
+    state.users = [];
+
     await auth.sendPasswordResetEmail("missing@example.com");
 
     expect(sent).toHaveLength(0);
@@ -180,20 +194,18 @@ describe("password reset email flow", () => {
   });
 
   it("fails instead of reporting success when SMTP rejects the message", async () => {
-    state.users = [{ id: "user-1", email: "athlete@example.com", name: "Athlete" }];
     sendError = Object.assign(new Error("550 5.1.1 User unknown"), {
       code: "EENVELOPE",
       responseCode: 550,
     });
 
-    await expect(auth.sendPasswordResetEmail("athlete@example.com")).rejects.toThrow(
+    await expect(auth.sendPasswordResetEmail(user.email)).rejects.toThrow(
       "Email delivery failed (rejected)",
     );
     expect(sent).toHaveLength(0);
   });
 
   it("does not log credentials, OTPs or reset tokens", async () => {
-    state.users = [{ id: "user-1", email: "athlete@example.com", name: "Athlete" }];
     const loggers = [
       spyOn(console, "log").mockImplementation(() => {}),
       spyOn(console, "info").mockImplementation(() => {}),
@@ -202,17 +214,17 @@ describe("password reset email flow", () => {
     ];
 
     try {
-      await auth.sendOtp("athlete@example.com", "login");
+      await auth.sendOtp(user.email, "login");
       const otp = otpFrom(sent[0]);
 
-      await auth.sendPasswordResetEmail("athlete@example.com");
+      await auth.sendPasswordResetEmail(user.email);
       const token = resetTokenFrom(sent[1]);
 
       sendError = Object.assign(new Error("550 rejected"), {
         code: "EENVELOPE",
         responseCode: 550,
       });
-      await expect(auth.sendOtp("athlete@example.com", "login")).rejects.toThrow(
+      await expect(auth.sendOtp(user.email, "login")).rejects.toThrow(
         "Email delivery failed (rejected)",
       );
 

@@ -15,13 +15,15 @@ FitPal sends authentication emails through a provider-independent email service 
 | OTP login | `POST /api/v1/auth/otp/send` with `purpose: "login"` | `templates/otp.ts` |
 | Password reset | `POST /api/v1/auth/forgot-password` | `templates/password-reset.ts` |
 
-OTP and reset-token generation, hashing, expiry, attempts and validation are unchanged.
-Emails are sent from the same request handler (awaited) so a provider rejection is
-returned to the caller instead of being reported as success.
+Email delivery is awaited in the request path so a provider rejection is returned to
+the caller instead of being reported as success. Email OTPs are now issued and verified
+by the centralized engine in `apps/api/src/services/otp/`; the existing `otp/send` and
+`otp/verify` route contracts are unchanged. Password-reset links still use their own
+token flow.
 
-Code-based templates also exist for signup verification, email login, later email
-verification and password recovery. They are delivery primitives for upcoming auth
-phases; no current route or flow has been changed to use them.
+The code-based email templates cover signup verification, email login, later email
+verification and password recovery. Only the existing email-verification and login
+purposes are wired into routes today; the others remain delivery primitives.
 
 ## 1. Enable Google 2-Step Verification
 
@@ -129,7 +131,26 @@ Templates and business logic stay the same.
 
 No authentication flow, token rule or template needs to change.
 
-## 7. SMS delivery (mock only)
+## 7. OTP HMAC pepper
+
+The OTP engine hashes every six-digit code with HMAC-SHA256 and a dedicated
+`OTP_PEPPER`. Generate a unique value for each environment (for example,
+`openssl rand -hex 32`) and set it in the API environment. It must be at least
+32 characters and must never reuse `JWT_SECRET` or another application secret.
+There is no default: the API fails at startup if it is missing or too short.
+
+The HMAC input is bound to the challenge ID, account ID, normalized destination,
+channel, purpose and code. Codes and hashes are never logged. If `OTP_PEPPER` is
+rotated, all outstanding OTPs become invalid immediately; users must request new
+codes. Store the pepper in the deployment secret manager, not in source control.
+
+The API also applies best-effort Redis IP limits with keys
+`otp:ip:send:<sha256(ip)>:<10-minute-window>` and
+`otp:ip:verify:<sha256(ip)>:<10-minute-window>` (10 sends / 30 verifications per
+window). PostgreSQL remains authoritative for account-level cooldowns, quotas,
+attempts and locks; if Redis is unavailable those edge limits fail open.
+
+## 8. SMS delivery (mock only)
 
 SMS lives in `apps/api/src/services/sms/`. No SMS provider or credentials are
 configured, so `SMS_MODE=mock` is the only supported value. Set it explicitly in
@@ -146,9 +167,10 @@ When a real provider is chosen, implement `SmsProvider` and add a mode to
 
 ## Known limitations
 
-- The API creates the OTP/reset-token database row before sending the email. If Gmail
-  rejects or is unreachable, the row remains and the API returns an error. A retry or
-  cleanup mechanism is out of scope for this development setup.
+- Email OTP challenges are created as `pending` and only become verifiable after
+  delivery succeeds; failed deliveries leave no usable OTP. Password-reset tokens are
+  still created before the email is sent, and a rejected reset email is reported to
+  the caller.
 - Neither the web app nor the mobile app currently has a screen that consumes the
   password-reset link at `/reset-password?token=...`. The reset API and email exist;
   the landing screen still needs to be implemented.

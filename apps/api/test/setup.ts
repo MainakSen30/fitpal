@@ -6,3 +6,4 @@ process.env.DATABASE_URL = process.env.TEST_DATABASE_URL
   || "postgres://fitpal:fitpal@localhost:5432/fitpal";
 process.env.REDIS_URL ||= "redis://localhost:6379";
 process.env.JWT_SECRET ||= "test-secret-at-least-32-characters-long";
+process.env.OTP_PEPPER ||= "test-only-otp-pepper-at-least-32-characters-long";

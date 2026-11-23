@@ -22,6 +22,10 @@ import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
 
 const auth = new Hono<AuthEnv>();
 
+function clientIp(c: { req: { header: (name: string) => string | undefined } }): string | undefined {
+  return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+}
+
 // Double-submit CSRF token for browser clients. Safe to call without a
 // session; the client reads the cookie and echoes it in X-CSRF-Token.
 auth.get("/csrf", (c) => {
@@ -56,7 +60,7 @@ auth.post("/otp/send", zValidator("json", z.object({
 })), async (c) => {
   try {
     const { email, purpose } = c.req.valid("json");
-    await sendOtp(email, purpose);
+    await sendOtp(email, purpose, clientIp(c));
     return c.json({ success: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to send OTP";
@@ -72,7 +76,7 @@ auth.post("/otp/verify", zValidator("json", z.object({
 })), async (c) => {
   try {
     const { email, code, purpose } = c.req.valid("json");
-    await verifyOtp(email, code, purpose);
+    await verifyOtp(email, code, purpose, clientIp(c));
     
     if (purpose === "login") {
       const user = await loginWithOtp(email);

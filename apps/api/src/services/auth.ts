@@ -1,14 +1,16 @@
-import { eq, or, and, gt, isNull, desc, sql } from "drizzle-orm";
+import { eq, or, and, gt, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { users, passwordResetTokens, otpCodes } from "@fitpal/database";
+import { users, passwordResetTokens } from "@fitpal/database";
 import { redis } from "../lib/redis";
 import { SignJWT, jwtVerify } from "jose";
 import { hash, verify } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
 import {
-  sendOtpEmail,
+  EmailDeliveryError,
   sendPasswordResetEmail as deliverPasswordResetEmail,
 } from "./email/email.service";
+import { otpEngine } from "./otp/engine";
+import type { EmailFailureReason } from "./email/email.provider";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
 const SESSION_PREFIX = "session:";
@@ -22,10 +24,6 @@ function requireEnv(key: string): string {
     throw new Error(`Missing required environment variable: ${key}`);
   }
   return value;
-}
-
-function generateOtpCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function hashToken(token: string) {
@@ -219,53 +217,89 @@ export async function deleteAccount(userId: string) {
   return { success: true };
 }
 
-const OTP_MAX_ATTEMPTS = 5;
+type LegacyOtpPurpose = "email_verification" | "login";
 
-export async function sendOtp(email: string, purpose: "email_verification" | "login") {
-  const code = generateOtpCode();
-  const codeHash = hashToken(code);
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+const LEGACY_OTP_PURPOSE: Record<LegacyOtpPurpose, "email_verification" | "email_login"> = {
+  email_verification: "email_verification",
+  login: "email_login",
+};
 
-  await db.insert(otpCodes).values({
-    email,
-    codeHash,
-    purpose,
-    expiresAt,
-  });
-
-  await sendOtpEmail({ to: email, code, purpose });
-
-  return { success: true };
+async function findUserByEmail(email: string) {
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return user;
 }
 
-export async function verifyOtp(email: string, code: string, purpose: "email_verification" | "login") {
-  const codeHash = hashToken(code);
-
-  // The active code is the most recent unverified, unused, unexpired OTP for
-  // this email+purpose (sendOtp may be called repeatedly; latest wins).
-  const [otp] = await db
-    .select()
-    .from(otpCodes)
-    .where(and(eq(otpCodes.email, email), eq(otpCodes.purpose, purpose), eq(otpCodes.verified, false), gt(otpCodes.expiresAt, new Date()), isNull(otpCodes.usedAt)))
-    .orderBy(desc(otpCodes.createdAt))
-    .limit(1);
-
-  if (!otp) {
-    throw new Error("Invalid or expired OTP");
+/** Legacy route wrappers keep their contract while the engine owns all OTP state. */
+export async function sendOtp(email: string, purpose: LegacyOtpPurpose, clientIp?: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    throw new Error("Invalid email address");
   }
 
-  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
-    throw new Error("Too many incorrect attempts. Request a new code.");
-  }
+  const user = await findUserByEmail(normalized);
+  // Unknown accounts stay silent: no email is sent and no challenge is stored.
+  if (!user) return { success: true };
 
-  if (otp.codeHash !== codeHash) {
-    // Wrong code — burn one attempt, then reject.
-    await db.update(otpCodes).set({ attempts: sql`${otpCodes.attempts} + 1` }).where(eq(otpCodes.id, otp.id));
-    throw new Error("Invalid or expired OTP");
-  }
+  const result = await otpEngine.send({
+    userId: user.id,
+    destination: normalized,
+    channel: "email",
+    purpose: LEGACY_OTP_PURPOSE[purpose],
+    clientIp,
+  });
 
-  await db.update(otpCodes).set({ verified: true, usedAt: new Date() }).where(eq(otpCodes.id, otp.id));
-  return { success: true };
+  switch (result.status) {
+    case "sent":
+    case "superseded":
+    case "mock_not_delivered":
+      return { success: true };
+    case "delivery_failed":
+      throw new EmailDeliveryError(result.reason as EmailFailureReason);
+    case "cooldown":
+      throw new Error("Please wait before requesting another code.");
+    case "quota_exhausted":
+      throw new Error("Too many codes requested. Try again later.");
+    case "locked":
+      throw new Error("Too many incorrect attempts. Request a new code after the lock expires.");
+    case "rate_limited":
+      throw new Error("Too many requests. Please try again later.");
+    default:
+      throw new Error("Invalid OTP request");
+  }
+}
+
+export async function verifyOtp(
+  email: string,
+  code: string,
+  purpose: LegacyOtpPurpose,
+  clientIp?: string,
+) {
+  const user = await findUserByEmail(email.trim().toLowerCase());
+  if (!user) throw new Error("Invalid or expired OTP");
+
+  const result = await otpEngine.verify({
+    userId: user.id,
+    destination: email.trim().toLowerCase(),
+    channel: "email",
+    purpose: LEGACY_OTP_PURPOSE[purpose],
+    code,
+    clientIp,
+  });
+
+  switch (result.status) {
+    case "success":
+      return { success: true };
+    case "locked":
+      throw new Error("Too many incorrect attempts. Request a new code after the lock expires.");
+    case "rate_limited":
+      throw new Error("Too many requests. Please try again later.");
+    default:
+      throw new Error("Invalid or expired OTP");
+  }
 }
 
 export async function loginWithOtp(email: string) {
