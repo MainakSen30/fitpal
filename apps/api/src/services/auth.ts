@@ -39,9 +39,18 @@ export async function registerUser(email: string, password: string, name: string
   }
 
   const passwordHash = await hash(password, 10);
-  const [user] = await db.insert(users).values({ email, name, passwordHash }).returning();
 
-  return { id: user.id, email: user.email, name: user.name };
+  try {
+    const [user] = await db.insert(users).values({ email, name, passwordHash }).returning();
+    return { id: user.id, email: user.email, name: user.name };
+  } catch (e) {
+    // The pre-check is advisory; the unique constraint decides under races.
+    // Map it to the same friendly message instead of leaking SQLSTATE.
+    if ((e as { code?: string } | null)?.code === "23505") {
+      throw new Error("Email already registered");
+    }
+    throw e;
+  }
 }
 
 export async function loginWithPassword(email: string, password: string) {
