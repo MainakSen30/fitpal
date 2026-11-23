@@ -5,6 +5,10 @@ import { redis } from "../lib/redis";
 import { SignJWT, jwtVerify } from "jose";
 import { hash, verify } from "@node-rs/bcrypt";
 import crypto from "node:crypto";
+import {
+  sendOtpEmail,
+  sendPasswordResetEmail as deliverPasswordResetEmail,
+} from "./email/email.service";
 
 const SESSION_DURATION = 7 * 24 * 60 * 60; // 7 days in seconds
 const SESSION_PREFIX = "session:";
@@ -175,10 +179,8 @@ export async function sendPasswordResetEmail(email: string) {
     expiresAt,
   });
 
-  // In production, send email via provider. For now, log in dev
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[DEV] Password reset token for ${email}: ${token}`);
-  }
+  const resetUrl = `${requireEnv("CLIENT_URL").replace(/\/+$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
+  await deliverPasswordResetEmail({ to: email, name: user.name, resetUrl });
 
   return { success: true };
 }
@@ -222,9 +224,7 @@ export async function sendOtp(email: string, purpose: "email_verification" | "lo
     expiresAt,
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`[DEV] OTP for ${email} (${purpose}): ${code}`);
-  }
+  await sendOtpEmail({ to: email, code, purpose });
 
   return { success: true };
 }
