@@ -25,6 +25,14 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+const GOOGLE_EXCHANGE_CODE_RE = /^[A-Za-z0-9_-]{43}$/;
+
+type GoogleCallback =
+  | { kind: 'error' }
+  | { kind: 'missing-code' }
+  | { kind: 'invalid-code' }
+  | { kind: 'code'; code: string };
+
 /** Reads a search param from an arbitrary URL (RN has no WHATWG URLSearchParams). */
 function paramFromUrl(url: string, key: string): string | null {
   const qIndex = url.indexOf('?');
@@ -34,6 +42,22 @@ function paramFromUrl(url: string, key: string): string | null {
     if (k === key) return decodeURIComponent((v ?? '').replace(/\+/g, ' '));
   }
   return null;
+}
+
+/** Only the one-time exchange code is accepted; a token in the URL is ignored. */
+function parseGoogleCallback(url: string): GoogleCallback {
+  if (paramFromUrl(url, 'error')) return { kind: 'error' };
+  const code = paramFromUrl(url, 'code');
+  if (!code) return { kind: 'missing-code' };
+  if (!GOOGLE_EXCHANGE_CODE_RE.test(code)) return { kind: 'invalid-code' };
+  return { kind: 'code', code };
+}
+
+function exchangeErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.status === 400) {
+    return 'That Google Sign-In session has expired or was already used. Please try again.';
+  }
+  return 'Could not complete Google Sign-In. Please try again.';
 }
 
 export default function LoginScreen() {
@@ -64,51 +88,72 @@ export default function LoginScreen() {
 
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
-    // Deep-link back into the app: Expo Go only registers the generic "exp"
-    // scheme (project-specific schemes like exp+fitpal are not claimable by
-    // Expo Go), while dev/standalone builds register "fitpal" from app.json.
+    // Expo Go claims only "exp"; dev/standalone builds register "fitpal"
+    // from app.json. Both are allowlisted by the backend for local development.
     const scheme = Constants.appOwnership === 'expo' ? 'exp' : 'fitpal';
+    let callbackUrl: string | null = null;
 
-    // The API callback redirects to `${scheme}://auth/callback?token=...`.
-    // Capture it on whichever channel gets there first: the auth-session
-    // promise (ASWebAuthenticationSession/Custom Tab) or a deep link that
-    // re-opens the app directly.
-    const capture: { url: string | null } = { url: null };
+    // Capture on whichever channel gets there first: the auth-session promise
+    // or a deep link that re-opens the app directly.
     const subscription = Linking.addEventListener('url', ({ url }) => {
-      if (!capture.url && url.startsWith(`${scheme}://auth/callback`)) {
-        capture.url = url;
+      if (!callbackUrl && url.startsWith(`${scheme}://auth/callback`)) {
+        callbackUrl = url;
       }
     });
 
     try {
-      const result = await WebBrowser.openAuthSessionAsync(
-        `${API_URL}/api/v1/auth/google?scheme=${encodeURIComponent(scheme)}`,
-        scheme,
-      );
-      if (!capture.url && result.type === 'success' && result.url) {
-        capture.url = result.url;
+      try {
+        const result = await WebBrowser.openAuthSessionAsync(
+          `${API_URL}/api/v1/auth/google?scheme=${encodeURIComponent(scheme)}`,
+          scheme,
+        );
+        if (!callbackUrl && result.type === 'success') {
+          callbackUrl = result.url;
+        }
+      } catch {
+        Alert.alert('Error', 'Could not open Google Sign-In');
+        return;
       }
-    } catch {
-      Alert.alert('Error', 'Could not open Google Sign-In');
-    } finally {
-      subscription.remove();
-    }
 
-    try {
-      if (!capture.url) return;
-      const token = paramFromUrl(capture.url, 'token');
-      const error = paramFromUrl(capture.url, 'error');
-      if (error) {
+      // No callback means the user dismissed the browser; never exchange here.
+      if (!callbackUrl) return;
+
+      const outcome = parseGoogleCallback(callbackUrl);
+      if (outcome.kind === 'error') {
         Alert.alert('Google Sign-In failed', 'Google did not authorize the session. Please try again.');
         return;
       }
-      if (token) {
-        await SecureStore.setItemAsync('auth_token', token);
-        router.replace('/(tabs)');
-      } else {
-        Alert.alert('Google Sign-In failed', 'No session was returned. Please try again.');
+      if (outcome.kind !== 'code') {
+        Alert.alert('Google Sign-In failed', 'No valid sign-in link was returned. Please try again.');
+        return;
       }
+
+      let token: string;
+      try {
+        const response = await api.post('/auth/google/exchange', {
+          code: outcome.code,
+          scheme,
+        });
+        const candidate = response.data?.token;
+        if (typeof candidate !== 'string' || !candidate.trim()) {
+          Alert.alert('Google Sign-In failed', 'No session was returned. Please try again.');
+          return;
+        }
+        token = candidate;
+      } catch (error) {
+        Alert.alert('Google Sign-In failed', exchangeErrorMessage(error));
+        return;
+      }
+
+      try {
+        await SecureStore.setItemAsync('auth_token', token);
+      } catch {
+        Alert.alert('Error', 'Sign-in could not be saved. Please try again.');
+        return;
+      }
+      router.replace('/(tabs)');
     } finally {
+      subscription.remove();
       setLoadingGoogle(false);
     }
   };

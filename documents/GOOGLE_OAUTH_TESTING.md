@@ -1,8 +1,7 @@
 # Google Sign-In — setup and testing
 
-**Scope:** backend OAuth contract, local simulator recipe, and the deep-link quirks
-verified during earlier mobile testing. The backend was hardened in Phase 7; the mobile
-screen still needs to adopt the one-time exchange endpoint. See
+**Scope:** backend OAuth contract, the mobile exchange integration, local simulator
+recipe, and the deep-link quirks verified during earlier mobile testing. See
 [`AUTH_GOOGLE_OAUTH.md`](./AUTH_GOOGLE_OAUTH.md) for the security design and exact API
 contracts.
 
@@ -34,6 +33,10 @@ existing opaque Bearer session token. No live session token is put in a URL.
 
 The callback ignores `scheme`, `return_to`, `redirect`, and similar query parameters.
 Only the server-side state record can select the redirect target.
+
+The mobile screen sends the same scheme it used for initiation in the exchange request,
+accepts only a well-formed `code`, ignores any `token` query parameter, and stores only
+the token returned by the exchange endpoint in `SecureStore` under `auth_token`.
 
 ## Scheme selection (current mobile implementation)
 
@@ -68,12 +71,13 @@ needed.
 1. Start the stack: `cd docker && docker compose up -d`.
 2. Reload the Expo app so it picks up the latest bundle.
 3. Login screen → **Continue with Google** → choose a test user → consent.
-4. The backend callback returns a one-time `code` to the app scheme. The current mobile
-   screen still reads `token`, so it will report "No session was returned" until the
-   client is updated to call `/auth/google/exchange`. This is an expected backend/client
-   contract gap for Phase 7.
-5. After the client update, the exchange response token is stored in `SecureStore` and
-   sent as `Authorization: Bearer <token>`.
+4. The backend callback returns a one-time `code` to the app scheme. The mobile screen
+   validates it and POSTs `{ code, scheme }` to `/api/v1/auth/google/exchange`.
+5. The exchange response token is stored in `SecureStore` under `auth_token` and sent as
+   `Authorization: Bearer <token>`. The exchange code is never stored as a token.
+6. If the code is expired, already consumed, or was issued for another scheme, the app
+   shows a generic message and asks the user to start Google Sign-In again. It does not
+   retry the single-use code automatically.
 
 ### Verify persistence
 

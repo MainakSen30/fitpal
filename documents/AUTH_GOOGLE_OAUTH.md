@@ -196,7 +196,8 @@ unchanged.
 - A failed or expired state requires restarting sign-in; the authorization code is not
   exchanged.
 - OAuth state is not durable across Redis loss.
-- The mobile UI has not yet been updated to call the exchange endpoint.
+- The mobile client now calls the exchange endpoint; live device/simulator verification
+  was not part of the automated Phase 8.2 checks.
 - SMS delivery and live Google OAuth were not tested; automated tests use a local JWKS
   server, generated keys, and fake token responses.
 - No database tables were changed. Migration `0011` from Phase 6 remains the latest.
