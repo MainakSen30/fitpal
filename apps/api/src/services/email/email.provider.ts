@@ -1,3 +1,5 @@
+import type { DeliveryFailureReason } from "../delivery/types";
+
 export type EmailMessage = {
   to: string;
   subject: string;
@@ -6,11 +8,7 @@ export type EmailMessage = {
 };
 
 /** Reasons a provider can fail, safe to surface without SMTP details. */
-export type EmailFailureReason =
-  | "authentication"
-  | "connection"
-  | "rejected"
-  | "unknown";
+export type EmailFailureReason = Exclude<DeliveryFailureReason, "configuration">;
 
 export type EmailResult =
   | { success: true; messageId?: string }

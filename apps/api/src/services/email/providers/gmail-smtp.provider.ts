@@ -27,6 +27,7 @@ export function classifySmtpError(error: unknown): EmailFailureReason {
   };
 
   if (code === "EAUTH") return "authentication";
+  if (responseCode && responseCode >= 400 && responseCode < 500) return "temporary";
   if (responseCode || code === "EENVELOPE") return "rejected";
   if (
     code &&

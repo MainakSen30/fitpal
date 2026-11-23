@@ -19,6 +19,10 @@ OTP and reset-token generation, hashing, expiry, attempts and validation are unc
 Emails are sent from the same request handler (awaited) so a provider rejection is
 returned to the caller instead of being reported as success.
 
+Code-based templates also exist for signup verification, email login, later email
+verification and password recovery. They are delivery primitives for upcoming auth
+phases; no current route or flow has been changed to use them.
+
 ## 1. Enable Google 2-Step Verification
 
 App Passwords only exist when 2-Step Verification is on.
@@ -124,6 +128,21 @@ Templates and business logic stay the same.
 5. Remove Gmail SMTP settings from deployment environments.
 
 No authentication flow, token rule or template needs to change.
+
+## 7. SMS delivery (mock only)
+
+SMS lives in `apps/api/src/services/sms/`. No SMS provider or credentials are
+configured, so `SMS_MODE=mock` is the only supported value. Set it explicitly in
+the API environment; a missing value or any other value fails with a configuration
+error instead of silently switching to mock delivery.
+
+The mock provider returns `{ status: "mock" }`, which is explicitly **not** real
+delivery. It does not send anything, log message contents, or expose OTPs in console
+output or errors. Tests inject an in-memory sink at the provider boundary to inspect
+messages; that sink does not exist at runtime.
+
+When a real provider is chosen, implement `SmsProvider` and add a mode to
+`createSmsProvider()`. OTP callers use `sendOtpSms()` and do not need to change.
 
 ## Known limitations
 

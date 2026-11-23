@@ -1,3 +1,4 @@
+import type { DeliveryResult } from "../delivery/types";
 import { loadEmailConfig, type EmailConfig } from "./email.config";
 import type { EmailFailureReason, EmailMessage, EmailProvider } from "./email.provider";
 import { createGmailSmtpProvider } from "./providers/gmail-smtp.provider";
@@ -38,18 +39,40 @@ export function getEmailProvider(): EmailProvider {
   return provider;
 }
 
-async function sendEmail(message: EmailMessage): Promise<void> {
-  const provider = getEmailProvider();
+/** Typed provider result for callers that must react without throwing. */
+export async function deliverEmail(
+  message: EmailMessage,
+  provider: EmailProvider = getEmailProvider(),
+): Promise<DeliveryResult<EmailFailureReason>> {
   const result = await provider.send(message);
   if (!result.success) {
     // Provider name and failure class only: no credentials, recipient or body.
     console.error(`[email] delivery failed provider=${provider.name} reason=${result.reason}`);
-    throw new EmailDeliveryError(result.reason);
+    return {
+      status: "failed",
+      channel: "email",
+      provider: provider.name,
+      reason: result.reason,
+    };
   }
+  return {
+    status: "delivered",
+    channel: "email",
+    provider: provider.name,
+    messageId: result.messageId,
+  };
 }
 
-export async function sendOtpEmail(input: { to: string; code: string; purpose: OtpPurpose }) {
-  await sendEmail({ to: input.to, ...renderOtpEmail(input) });
+async function sendEmail(message: EmailMessage, provider?: EmailProvider): Promise<void> {
+  const result = await deliverEmail(message, provider ?? getEmailProvider());
+  if (result.status === "failed") throw new EmailDeliveryError(result.reason);
+}
+
+export async function sendOtpEmail(
+  input: { to: string; code: string; purpose: OtpPurpose },
+  provider?: EmailProvider,
+) {
+  await sendEmail({ to: input.to, ...renderOtpEmail(input) }, provider);
 }
 
 export async function sendPasswordResetEmail(input: {
