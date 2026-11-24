@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, router } from 'expo-router';
@@ -8,20 +8,46 @@ import { AppBackground } from '../../src/components/ui/AppBackground';
 import { BrandLogo } from '../../src/components/ui/BrandLogo';
 import { GlassCard } from '../../src/components/ui/GlassCard';
 import { ScreenEntrance } from '../../src/components/ui/ScreenEntrance';
+import { api } from '../../src/lib/api';
+import { createLogoutService } from '../../src/lib/logout';
 import { colors, radii, spacing } from '../../src/theme/tokens';
 
+const logoutService = createLogoutService({
+  getToken: () => SecureStore.getItemAsync('auth_token'),
+  deleteToken: () => SecureStore.deleteItemAsync('auth_token'),
+  post: ({ url, headers }) => api.post(url, undefined, { headers }),
+});
+
 export default function ProfileScreen() {
-  const handleLogout = async () => {
-    Alert.alert('Sign Out', 'End this session on your device?', [
+  const loggingOut = useRef(false);
+
+  const performLogout = async () => {
+    if (loggingOut.current) return;
+    loggingOut.current = true;
+    try {
+      const result = await logoutService.revoke();
+      if (result === 'failed') {
+        Alert.alert(
+          'Unable to Sign Out',
+          'The server session may still be active. Check your connection and try again.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Try Again', onPress: performLogout },
+          ],
+        );
+        return;
+      }
+      router.replace('/(auth)/login');
+    } finally {
+      loggingOut.current = false;
+    }
+  };
+
+  const handleLogout = () => {
+    if (loggingOut.current) return;
+    Alert.alert('Sign Out', 'End this session on this device and the server?', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          await SecureStore.deleteItemAsync('auth_token');
-          router.replace('/(auth)/login');
-        },
-      },
+      { text: 'Sign Out', style: 'destructive', onPress: performLogout },
     ]);
   };
 

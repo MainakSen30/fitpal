@@ -10,7 +10,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "biome lint app/ src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@fitpal/shared": "*",
@@ -42,6 +43,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.0",
     "@types/react": "~19.3.0",
+    "bun-types": "1.3.14",
     "typescript": "~6.0.3"
   }
 }
