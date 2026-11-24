@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, count, desc, eq, gt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
 import {
   otpChallenges,
   otpSendHistory,
@@ -320,11 +320,6 @@ export class OtpEngine {
         .values({ ...scope, sentAt: now, outcome: "pending" })
         .returning({ id: otpSendHistory.id });
 
-      await tx
-        .update(otpChallenges)
-        .set({ status: "superseded" })
-        .where(and(challengeScope(scope), eq(otpChallenges.status, "active")));
-
       const [challenge] = await tx
         .insert(otpChallenges)
         .values({
@@ -369,42 +364,55 @@ export class OtpEngine {
     }
   }
 
-  /** Conditional writes make a late or failed delivery harmless to newer challenges. */
+  /** Only a delivered code supersedes an older active challenge. */
   private async finalizeSend(
     scope: OtpScope,
     prepared: PreparedSend,
     delivery: DeliveryOutcome,
   ): Promise<boolean> {
-    await db
-      .update(otpSendHistory)
-      .set({ outcome: delivery.outcome })
-      .where(eq(otpSendHistory.id, prepared.historyId));
+    return db.transaction(async (tx) => {
+      await tx
+        .update(otpSendHistory)
+        .set({ outcome: delivery.outcome })
+        .where(eq(otpSendHistory.id, prepared.historyId));
 
-    if (delivery.outcome !== "delivered") {
-      await db
+      if (delivery.outcome !== "delivered") {
+        await tx
+          .update(otpChallenges)
+          .set({ status: "failed" })
+          .where(
+            and(
+              eq(otpChallenges.id, prepared.challengeId),
+              eq(otpChallenges.status, "pending"),
+            ),
+          );
+        return false;
+      }
+
+      await tx
         .update(otpChallenges)
-        .set({ status: "failed" })
+        .set({ status: "superseded" })
+        .where(
+          and(
+            challengeScope(scope),
+            eq(otpChallenges.status, "active"),
+            lt(otpChallenges.sequence, prepared.sequence),
+          ),
+        );
+
+      const activated = await tx
+        .update(otpChallenges)
+        .set({ status: "active" })
         .where(
           and(
             eq(otpChallenges.id, prepared.challengeId),
             eq(otpChallenges.status, "pending"),
+            sql`not exists (select 1 from otp_challenges c where c.user_id = ${scope.userId} and c.destination = ${scope.destination} and c.channel = ${scope.channel} and c.purpose = ${scope.purpose} and c.sequence > ${prepared.sequence})`,
           ),
-        );
-      return false;
-    }
-
-    const activated = await db
-      .update(otpChallenges)
-      .set({ status: "active" })
-      .where(
-        and(
-          eq(otpChallenges.id, prepared.challengeId),
-          eq(otpChallenges.status, "pending"),
-          sql`not exists (select 1 from otp_challenges c where c.user_id = ${scope.userId} and c.destination = ${scope.destination} and c.channel = ${scope.channel} and c.purpose = ${scope.purpose} and c.sequence > ${prepared.sequence})`,
-        ),
-      )
-      .returning({ id: otpChallenges.id });
-    return activated.length > 0;
+        )
+        .returning({ id: otpChallenges.id });
+      return activated.length > 0;
+    });
   }
 }
 

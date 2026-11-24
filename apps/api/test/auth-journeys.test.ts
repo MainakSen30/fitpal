@@ -24,6 +24,7 @@ import {
   noPasswordLoginLimiter,
 } from "../src/services/login-rate-limit";
 import { createLoginService } from "../src/services/login";
+import { allowAllOAuthRateLimiter } from "../src/services/oauth-rate-limit";
 import { loadOtpConfig } from "../src/services/otp/config";
 import { OtpEngine } from "../src/services/otp/engine";
 import { noIpLimiter } from "../src/services/otp/ip-limit";
@@ -367,6 +368,7 @@ function makeGoogle() {
     fetch: fetchImpl,
     jwksUrl: `http://localhost:${jwksServer.port}`,
     now: () => googleClock.value,
+    rateLimiter: allowAllOAuthRateLimiter,
   });
   const clock = { value: Date.now() };
   return { service, store, google, app: appFor(makeServices(makeEngine(clock).engine), service) };
@@ -1243,10 +1245,11 @@ function serviceApp(service: GoogleOAuthService) {
 describeDb("session lifecycle and revocation journey", () => {
   it("covers login, protected access, logout, reset, relogin and deletion through routes", async () => {
     const user = await createUser("lifecycle", { emailVerified: true });
+    const ip = `198.51.100.${crypto.randomInt(1, 254)}`;
     const login = await api(realApp, "POST", "/auth/login", {
       identifier: user.email,
       password: "password123",
-    });
+    }, {}, { remoteIp: ip });
     expect(login.status).toBe(200);
     const token = track((await json(login)).token) as string;
     expect(await me(realApp, token)).toMatchObject({ user: { id: user.id } });
@@ -1257,7 +1260,7 @@ describeDb("session lifecycle and revocation journey", () => {
     const otherLogin = await api(realApp, "POST", "/auth/login", {
       identifier: user.email,
       password: "password123",
-    });
+    }, {}, { remoteIp: ip });
     const otherToken = track((await json(otherLogin)).token) as string;
 
     const logout = await api(realApp, "POST", "/auth/logout", {}, {
@@ -1290,7 +1293,7 @@ describeDb("session lifecycle and revocation journey", () => {
     const relogin = await api(realApp, "POST", "/auth/login", {
       identifier: user.email,
       password: "lifecycle-password",
-    });
+    }, {}, { remoteIp: ip });
     expect(relogin.status).toBe(200);
     const reloginToken = track((await json(relogin)).token) as string;
     expect(await me(realApp, reloginToken)).toMatchObject({ user: { id: user.id } });
@@ -1306,8 +1309,7 @@ describeDb("session lifecycle and revocation journey", () => {
     })).status).toBe(401);
   });
 
-  // shortcut: null session versions are not asserted; validateSession still coerces null to 0.
-  it("accepts versionless sessions only while the database version is 0", async () => {
+  it("validates session versions strictly through HTTP routes", async () => {
     const clock = { value: Date.now() };
     const app = appFor(makeServices(makeEngine(clock).engine));
     const user = await createUser("session-version-http", { emailVerified: true });
@@ -1317,21 +1319,29 @@ describeDb("session lifecycle and revocation journey", () => {
     });
     const token = track((await json(login)).token) as string;
     const key = `session:${token}`;
-    const legacy = JSON.stringify({ userId: user.id, createdAt: Date.now() });
+    const withVersion = (version: unknown) =>
+      JSON.stringify({ userId: user.id, createdAt: Date.now(), version });
 
-    await redis.set(key, legacy, "EX", 60);
+    await redis.set(key, JSON.stringify({ userId: user.id, createdAt: Date.now() }), "EX", 60);
     expect(await me(app, token)).toMatchObject({ user: { id: user.id } });
-    await redis.set(
-      key,
-      JSON.stringify({ userId: user.id, createdAt: Date.now(), version: 1 }),
-      "EX",
-      60,
-    );
-    expect(await me(app, token)).toEqual({ user: null });
 
-    await redis.set(key, legacy, "EX", 60);
-    await db.update(users).set({ sessionVersion: 1 }).where(eq(users.id, user.id));
-    await redis.set(sessionVersionKey(user.id), "0", "EX", 60);
+    for (const malformed of [
+      withVersion(null),
+      withVersion("0"),
+      withVersion(-1),
+      withVersion(0.5),
+      withVersion(Number.MAX_SAFE_INTEGER + 1),
+    ]) {
+      await redis.set(key, malformed, "EX", 60);
+      expect(await me(app, token)).toEqual({ user: null });
+    }
+    expect((await api(realApp, "GET", "/workouts", undefined, {
+      Authorization: `Bearer ${token}`,
+    })).status).toBe(401);
+
+    await redis.set(key, withVersion(0), "EX", 60);
+    expect(await me(app, token)).toMatchObject({ user: { id: user.id } });
+    await redis.set(key, withVersion(1), "EX", 60);
     expect(await me(app, token)).toEqual({ user: null });
   });
 

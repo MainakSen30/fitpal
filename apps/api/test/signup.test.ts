@@ -92,6 +92,10 @@ function body(label: string, channel: "email" | "sms" = "email") {
   };
 }
 
+function randomIp() {
+  return Array.from(crypto.randomBytes(4), (byte) => byte).join(".");
+}
+
 async function api(method: string, path: string, payload?: unknown, headers: Record<string, string> = {}) {
   return app.request(`/api/v1${path}`, {
     method,
@@ -100,7 +104,7 @@ async function api(method: string, path: string, payload?: unknown, headers: Rec
       ...headers,
     },
     ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-  });
+  }, { remoteIp: randomIp() });
 }
 
 async function signupApi(method: string, path: string, payload?: unknown, headers: Record<string, string> = {}) {
@@ -754,7 +758,11 @@ describeDb("authentication regression", () => {
       emailVerified: true,
       phone: phone(),
     }).returning();
-    await expect(loginWithPassword(verified.email, "password123")).resolves.toMatchObject({ id: verified.id });
+    await expect(loginWithPassword(
+      verified.email,
+      "password123",
+      `198.51.100.${crypto.randomInt(1, 254)}`,
+    )).resolves.toMatchObject({ id: verified.id });
 
     const [google] = await db.insert(users).values({
       email: email("google"),

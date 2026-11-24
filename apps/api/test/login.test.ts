@@ -276,13 +276,12 @@ describeDb("password login rate limiting", () => {
     const counts = new Map<string, number>();
     const keys: string[] = [];
     const recordingRedis = {
-      incr: async (key: string) => {
+      eval: async (_script: string, _numKeys: number, key: string) => {
         keys.push(key);
         const count = (counts.get(key) ?? 0) + 1;
         counts.set(key, count);
-        return count;
+        return [count];
       },
-      expire: async () => 1,
     } as never;
     const limiter = createPasswordLoginLimiter(recordingRedis);
 
@@ -297,11 +296,10 @@ describeDb("password login rate limiting", () => {
   it("hashes identifiers and IPs in Redis keys and fails open when Redis is down", async () => {
     const keys: string[] = [];
     const recordingRedis = {
-      incr: async (key: string) => {
+      eval: async (_script: string, _numKeys: number, key: string) => {
         keys.push(key);
-        return 1;
+        return [1];
       },
-      expire: async () => 1,
     } as never;
     await createPasswordLoginLimiter(recordingRedis).allow({
       identifier: "user@example.com",
@@ -311,10 +309,7 @@ describeDb("password login rate limiting", () => {
     expect(keys.join(" ")).not.toContain("203.0.113.9");
 
     const brokenRedis = {
-      incr: async () => {
-        throw new Error("redis unavailable");
-      },
-      expire: async () => {
+      eval: async () => {
         throw new Error("redis unavailable");
       },
     } as never;
@@ -484,8 +479,8 @@ describeDb("phone OTP login", () => {
     });
 
     const response = await api(app, "POST", "/auth/otp/send", { identifier: user.phone });
-    expect(response.status).toBe(503);
-    expect(await json(response)).toEqual({ error: "Verification delivery is unavailable" });
+    expect(response.status).toBe(200);
+    expect(await json(response)).toEqual({ success: true });
     expect(sent.sms).toHaveLength(1);
     const active = await db.select().from(otpChallenges).where(and(
       eq(otpChallenges.userId, user.id),

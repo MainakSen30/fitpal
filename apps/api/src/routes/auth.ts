@@ -14,6 +14,12 @@ import {
 import { googleOAuthService, type GoogleOAuthService } from "../services/google-oauth";
 import { signupService, SignupDeliveryError, type SignupService } from "../services/signup";
 import { loginService, type LoginService } from "../services/login";
+import {
+  noIpLimiter,
+  redisIpLimiter,
+  type IpRateLimiter,
+  type IpRateLimitAction,
+} from "../services/otp/ip-limit";
 import { recoveryService, type RecoveryService } from "../services/recovery";
 import {
   otpSendSchema,
@@ -22,6 +28,8 @@ import {
   recoveryResetSchema,
   recoverySendSchema,
   signupRegistrationSchema,
+  MAX_PASSWORD,
+  MAX_TOKEN,
 } from "../validators/auth";
 import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middleware/requireAuth";
 import { serializeSessionCookie } from "../lib/cookies";
@@ -37,8 +45,14 @@ export function createAuthRoutes(
   login: LoginService = loginService,
   recovery: RecoveryService = recoveryService,
   googleOAuth: GoogleOAuthService = googleOAuthService,
+  // Factory callers inject a no-op limiter; the production export opts in below.
+  ipLimiter: IpRateLimiter = noIpLimiter,
 ) {
   const auth = new Hono<AuthEnv>();
+
+  async function allowIp(c: Parameters<typeof clientIpFromRequest>[0], action: IpRateLimitAction) {
+    return ipLimiter.allow(action, clientIpFromRequest(c) ?? "unknown", new Date());
+  }
 
   function signupErrorResponse(c: Parameters<typeof errorResponse>[0], error: unknown) {
     if (error instanceof SignupDeliveryError) {
@@ -56,6 +70,9 @@ export function createAuthRoutes(
   // Normal registration creates a pending account and starts signup verification.
   // No session is created until a contact has been verified.
   auth.post("/register", zValidator("json", signupRegistrationSchema), async (c) => {
+    if (!(await allowIp(c, "register"))) {
+      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
+    }
     try {
       const result = await signup.register(c.req.valid("json"), clientIpFromRequest(c));
       return c.json(result, 202);
@@ -69,6 +86,9 @@ export function createAuthRoutes(
     channel: z.enum(["email", "sms"]),
     code: z.string().length(6),
   })), async (c) => {
+    if (!(await allowIp(c, "lookup"))) {
+      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
+    }
     try {
       const { userId, channel, code } = c.req.valid("json");
       const result = await signup.verifyInitial({ userId, channel, code }, clientIpFromRequest(c));
@@ -82,10 +102,13 @@ export function createAuthRoutes(
 
   auth.post("/signup/resend", zValidator("json", z.object({
     userId: z.string().uuid().optional(),
-    continuationToken: z.string().min(1).optional(),
+    continuationToken: z.string().min(1).max(MAX_TOKEN).optional(),
   }).refine((value) => Boolean(value.userId) !== Boolean(value.continuationToken), {
     message: "Provide userId or continuationToken",
   })), async (c) => {
+    if (!(await allowIp(c, "lookup"))) {
+      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
+    }
     try {
       return c.json(await signup.resendInitial(c.req.valid("json"), clientIpFromRequest(c)));
     } catch (e) {
@@ -127,6 +150,9 @@ export function createAuthRoutes(
   // OTP send: legacy email verification stays on its old contract; login
   // channel and purpose are derived from the normalized identifier.
   auth.post("/otp/send", zValidator("json", otpSendSchema), async (c) => {
+    // Same generic answer for unknown accounts, cooldowns and delivery failures:
+    // status differences would reveal whether a verified contact exists.
+    if (!(await allowIp(c, "lookup"))) return c.json({ success: true });
     try {
       const { identifier, email, purpose } = c.req.valid("json");
       const destination = identifier ?? email;
@@ -134,18 +160,20 @@ export function createAuthRoutes(
 
       if (purpose === "email_verification") {
         await sendOtp(destination, "email_verification", clientIpFromRequest(c));
-        return c.json({ success: true });
+      } else {
+        await login.sendLoginOtp(destination, clientIpFromRequest(c));
       }
-      return c.json(await login.sendLoginOtp(destination, clientIpFromRequest(c)));
-    } catch (e) {
-      if (e instanceof ApiError) return errorResponse(c, e);
-      const message = e instanceof Error ? e.message : "Failed to send OTP";
-      return c.json({ error: message }, 400);
+    } catch {
+      // Intentionally silent.
     }
+    return c.json({ success: true });
   });
 
   // OTP verify: login codes create a session; verification codes stay silent.
   auth.post("/otp/verify", zValidator("json", otpVerifySchema), async (c) => {
+    if (!(await allowIp(c, "lookup"))) {
+      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
+    }
     try {
       const { identifier, email, code, purpose } = c.req.valid("json");
       const destination = identifier ?? email;
@@ -194,7 +222,10 @@ export function createAuthRoutes(
   // Google OAuth — server-owned state/nonce decide the validated return target.
   auth.get("/google", async (c) => {
     try {
-      return c.redirect(await googleOAuth.authorizationUrl(c.req.query("scheme")));
+      return c.redirect(await googleOAuth.authorizationUrl(
+        c.req.query("scheme"),
+        clientIpFromRequest(c),
+      ));
     } catch (e) {
       return errorResponse(c, e);
     }
@@ -207,13 +238,15 @@ export function createAuthRoutes(
         state: c.req.query("state"),
         code: c.req.query("code"),
         error: c.req.query("error"),
+        clientIp: clientIpFromRequest(c),
       });
       if (result.sessionId) {
         c.header("Set-Cookie", serializeSessionCookie(result.sessionId));
         getOrCreateCsrfToken(c);
       }
       return c.redirect(result.destination);
-    } catch {
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 429) return errorResponse(c, e);
       return c.redirect("/login?error=google_auth_failed");
     }
   });
@@ -222,7 +255,7 @@ export function createAuthRoutes(
   // no token is ever placed in a deep-link URL.
   auth.post("/google/exchange", zValidator("json", z.object({
     code: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-    scheme: z.string().trim().min(1),
+    scheme: z.string().trim().min(1).max(64),
   }), (result, c) => {
     if (!result.success) {
       return c.json({ error: "Invalid or expired Google exchange code" }, 400);
@@ -230,7 +263,7 @@ export function createAuthRoutes(
   }), async (c) => {
     try {
       const { code, scheme } = c.req.valid("json");
-      return c.json(await googleOAuth.exchangeMobileCode(code, scheme));
+      return c.json(await googleOAuth.exchangeMobileCode(code, scheme, clientIpFromRequest(c)));
     } catch (e) {
       return errorResponse(c, e);
     }
@@ -239,6 +272,7 @@ export function createAuthRoutes(
   // Code-based recovery. Both endpoints are intentionally generic: send never
   // creates a session and reset never logs the user in.
   auth.post("/recovery/send", zValidator("json", recoverySendSchema), async (c) => {
+    if (!(await allowIp(c, "lookup"))) return c.json({ success: true });
     try {
       await recovery.sendCode(c.req.valid("json").identifier, clientIpFromRequest(c));
     } catch {
@@ -248,6 +282,9 @@ export function createAuthRoutes(
   });
 
   auth.post("/recovery/reset", zValidator("json", recoveryResetSchema), async (c) => {
+    if (!(await allowIp(c, "lookup"))) {
+      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
+    }
     try {
       const { identifier, code, newPassword } = c.req.valid("json");
       await recovery.resetPassword(identifier, code, newPassword, clientIpFromRequest(c));
@@ -259,8 +296,9 @@ export function createAuthRoutes(
 
   // Deprecated legacy link flow, kept temporarily for existing mobile clients.
   auth.post("/forgot-password", zValidator("json", z.object({
-    email: z.string().email(),
+    email: z.string().email().max(320),
   })), async (c) => {
+    if (!(await allowIp(c, "lookup"))) return c.json({ success: true });
     try {
       const { email } = c.req.valid("json");
       await sendPasswordResetEmail(email);
@@ -271,9 +309,12 @@ export function createAuthRoutes(
   });
 
   auth.post("/reset-password", zValidator("json", z.object({
-    token: z.string().min(1),
-    password: z.string().min(8),
+    token: z.string().min(1).max(MAX_TOKEN),
+    password: z.string().min(8).max(MAX_PASSWORD),
   })), async (c) => {
+    if (!(await allowIp(c, "lookup"))) {
+      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
+    }
     try {
       const { token, password } = c.req.valid("json");
       await resetPassword(token, password);
@@ -306,8 +347,7 @@ export function createAuthRoutes(
       clearCsrfToken(c);
       return c.json({ success: true });
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to delete account";
-      return c.json({ error: message }, 400);
+      return errorResponse(c, e);
     }
   });
 
@@ -341,4 +381,10 @@ export function createAuthRoutes(
   return auth;
 }
 
-export const authRoutes = createAuthRoutes();
+export const authRoutes = createAuthRoutes(
+  undefined,
+  undefined,
+  undefined,
+  undefined,
+  redisIpLimiter,
+);

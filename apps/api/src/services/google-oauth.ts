@@ -8,6 +8,7 @@ import { redis } from "../lib/redis";
 import { createSession, destroySession, validateSession } from "./auth";
 import { normalizeLoginIdentifier } from "./login";
 import { isPendingSignupUser } from "./pending-account";
+import { oauthRateLimiter, type OAuthRateLimiter } from "./oauth-rate-limit";
 
 const STATE_TTL_SECONDS = 10 * 60;
 const EXCHANGE_TTL_SECONDS = 60;
@@ -43,6 +44,7 @@ export type GoogleOAuthDeps = {
   fetch?: typeof globalThis.fetch;
   jwksUrl?: string;
   now?: () => number;
+  rateLimiter?: OAuthRateLimiter;
 };
 
 type ClientType = "web" | "mobile";
@@ -71,6 +73,7 @@ export type GoogleCallbackInput = {
   state?: string;
   code?: string;
   error?: string;
+  clientIp?: string;
 };
 
 export type GoogleCallbackResult = {
@@ -247,6 +250,7 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
   const store = (deps.redis ?? redis) as RedisLike;
   const fetchImpl = deps.fetch ?? globalThis.fetch;
   const now = deps.now ?? (() => Date.now());
+  const rateLimiter = deps.rateLimiter ?? oauthRateLimiter;
   const jwks = createRemoteJWKSet(new URL(deps.jwksUrl ?? DEFAULT_JWKS_URL));
 
   async function exchangeCodeForIdToken(code: string) {
@@ -315,8 +319,23 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
     return `${webBaseUrl()}/login?error=google_auth_failed`;
   }
 
+  async function rejectExchange(code: string, ip: string | undefined, message: string) {
+    const allowed = await rateLimiter.allow("failure", { ip, subject: hash(code) });
+    if (!allowed) throw new ApiError("Too many requests. Please try again later.", 429);
+    throw new ApiError(message, 400);
+  }
+
+  async function noteFailure(ip?: string) {
+    if (!(await rateLimiter.allow("failure", { ip }))) {
+      throw new ApiError("Too many requests. Please try again later.", 429);
+    }
+  }
+
   return {
-    async authorizationUrl(requestedScheme?: string) {
+    async authorizationUrl(requestedScheme?: string, clientIp?: string) {
+      if (!(await rateLimiter.allow("initiation", { ip: clientIp }))) {
+        throw new ApiError("Too many requests. Please try again later.", 429);
+      }
       let record: OAuthStateRecord;
       const scheme = requestedScheme?.trim();
 
@@ -358,7 +377,10 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
       try {
         record = await consumeState(input.state);
         if (record) failure.destination = failureDestination(record);
-        if (!record || input.error || !input.code) return failure;
+        if (!record || input.error || !input.code) {
+          await noteFailure(input.clientIp);
+          return failure;
+        }
 
         const idToken = await exchangeCodeForIdToken(input.code);
         const identity = await verifyIdentity(idToken, record.nonce);
@@ -389,16 +411,20 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
           throw error;
         }
         return { destination: `${record.redirectTarget}?code=${exchangeCode}` };
-      } catch {
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 429) throw error;
+        await noteFailure(input.clientIp);
         return failure;
       }
     },
 
-    async exchangeMobileCode(code: string, requestedScheme?: string) {
-      if (!OPAQUE_RE.test(code)) throw new ApiError("Invalid or expired Google exchange code", 400);
+    async exchangeMobileCode(code: string, requestedScheme?: string, clientIp?: string) {
+      if (!OPAQUE_RE.test(code)) {
+        return await rejectExchange(code, clientIp, "Invalid or expired Google exchange code");
+      }
       const scheme = requestedScheme?.trim();
       if (!scheme || !SCHEME_RE.test(scheme) || !mobileSchemes().has(scheme)) {
-        throw new ApiError("Invalid OAuth client", 400);
+        return await rejectExchange(code, clientIp, "Invalid OAuth client");
       }
 
       const raw = (await store.eval(
@@ -410,12 +436,12 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
       )) as string | null;
       const record = parseExchangeRecord(raw);
       if (!record || record.scheme !== scheme || record.clientType !== MOBILE_CLIENT_TYPE) {
-        throw new ApiError("Invalid or expired Google exchange code", 400);
+        return await rejectExchange(code, clientIp, "Invalid or expired Google exchange code");
       }
 
       const session = await validateSession(record.sessionId);
       if (!session || session.userId !== record.userId) {
-        throw new ApiError("Invalid or expired Google exchange code", 400);
+        return await rejectExchange(code, clientIp, "Invalid or expired Google exchange code");
       }
       return { token: record.sessionId };
     },

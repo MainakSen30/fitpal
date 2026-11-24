@@ -1,11 +1,12 @@
 import crypto from "node:crypto";
 import { redis } from "../lib/redis";
+import { incrementWindows } from "./rate-limit-counter";
 
 const WINDOW_SECONDS = 15 * 60;
 const COMPOSITE_LIMIT = 5;
 const IP_LIMIT = 20;
 
-type CounterRedis = Pick<typeof redis, "incr" | "expire">;
+type CounterRedis = Parameters<typeof incrementWindows>[0];
 
 export type PasswordLoginAttempt = {
   identifier: string;
@@ -47,11 +48,10 @@ export function createPasswordLoginLimiter(
             ]
           : [{ key: `login:password:global:${window}`, limit: IP_LIMIT }];
 
-        const counts = await Promise.all(entries.map((entry) => client.incr(entry.key)));
-        await Promise.all(
-          entries.map((entry, index) =>
-            counts[index] === 1 ? client.expire(entry.key, WINDOW_SECONDS) : Promise.resolve(0),
-          ),
+        const counts = await incrementWindows(
+          client,
+          entries.map((entry) => entry.key),
+          WINDOW_SECONDS,
         );
         return counts.every((count, index) => count <= entries[index].limit);
       } catch {

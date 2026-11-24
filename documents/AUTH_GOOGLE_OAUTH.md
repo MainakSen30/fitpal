@@ -195,6 +195,26 @@ and account deletion/logout semantics are unchanged. See
 [`AUTH_RECOVERY.md`](./AUTH_RECOVERY.md) for the full session-validation sequence and
 failure behavior.
 
+## Phase 8.5 abuse controls
+
+- `GET /auth/google` is throttled at 10 requests/IP and 60/global per 15-minute window
+  using the same trusted client-IP resolver as password login; forwarded headers are
+  ignored unless `TRUSTED_PROXY_IP` exactly matches the immediate peer.
+- Callback and mobile-exchange failures are counted per code/IP pair (5), per IP (20),
+  and globally (60) per 15-minute window. Valid exchanges do not consume the failure
+  budget. Repeated invalid state, callback, or exchange failures return `429`.
+- All counters use atomic `INCR`/`EXPIRE` Lua scripts and hashed Redis keys. OAuth
+  throttling fails closed because Redis is already required to store state and codes.
+
+**PKCE status:** not implemented. Complete S256 needs a client-held verifier, so it
+cannot be shipped API-only without breaking existing clients: the API would hold the
+verifier and gain no protection against state/code replay. A coordinated follow-up must
+add `code_challenge`/`code_verifier` to the API, a web login route with an HttpOnly
+binding cookie, and a mobile S256 primitive plus verifier persistence in the exchange
+request, then cut all clients over together. Until then, state remains server-owned,
+opaque, and single-use, but it is not bound to the initiating browser/app; treating that
+gap is part of the PKCE cutover.
+
 ## Failure behavior and limitations
 
 - A failed or expired state requires restarting sign-in; the authorization code is not

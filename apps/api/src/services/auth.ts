@@ -143,7 +143,10 @@ export async function validateSession(sessionId: string) {
   } catch {
     return null;
   }
-  if (!session?.userId || typeof session.createdAt !== "number") return null;
+  if (
+    typeof session?.userId !== "string" ||
+    !Number.isFinite(session.createdAt)
+  ) return null;
 
   let user: SessionUser | null;
   try {
@@ -159,8 +162,11 @@ export async function validateSession(sessionId: string) {
   }
 
   // Legacy sessions without a version remain usable only while the database version is 0.
-  const recordedVersion = session.version ?? 0;
-  if (!Number.isSafeInteger(recordedVersion) || recordedVersion < 0) return null;
+  const hasVersion = Object.prototype.hasOwnProperty.call(session, "version");
+  const recordedVersion: unknown = hasVersion ? session.version : 0;
+  if (typeof recordedVersion !== "number" || !Number.isSafeInteger(recordedVersion) || recordedVersion < 0) {
+    return null;
+  }
   if (recordedVersion !== user.sessionVersion) {
     await redis.del(key).catch(() => {});
     return null;
@@ -169,7 +175,10 @@ export async function validateSession(sessionId: string) {
 }
 
 export async function destroySession(sessionId: string) {
-  await redis.del(`${SESSION_PREFIX}${sessionId}`);
+  await redis.del(`${SESSION_PREFIX}${sessionId}`).catch(() => {
+    // Logout still clears the client cookie; the Redis TTL bounds an orphaned key.
+    console.warn("[session] session deletion failed");
+  });
 }
 
 export async function sendPasswordResetEmail(email: string) {
@@ -211,6 +220,18 @@ export async function sendPasswordResetEmail(email: string) {
 export async function resetPassword(token: string, newPassword: string) {
   const tokenHash = hashToken(token);
   const now = new Date();
+  // Reject impossible tokens before bcrypt; the conditional claim below stays authoritative.
+  const [candidate] = await db
+    .select({ userId: passwordResetTokens.userId })
+    .from(passwordResetTokens)
+    .where(and(
+      eq(passwordResetTokens.tokenHash, tokenHash),
+      isNull(passwordResetTokens.usedAt),
+      gt(passwordResetTokens.expiresAt, now),
+    ))
+    .limit(1);
+  if (!candidate) throw new ApiError("Invalid or expired reset token", 400);
+
   // Bcrypt stays outside the transaction; no row lock is held while hashing.
   const passwordHash = await hash(newPassword, 10);
 

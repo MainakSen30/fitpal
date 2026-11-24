@@ -14,6 +14,7 @@ import {
   type GoogleOAuthService,
 } from "../src/services/google-oauth";
 import { createLoginService } from "../src/services/login";
+import { allowAllOAuthRateLimiter } from "../src/services/oauth-rate-limit";
 import { recoveryService } from "../src/services/recovery";
 import { signupService } from "../src/services/signup";
 
@@ -263,6 +264,7 @@ function makeService(store = new FakeRedis()) {
     fetch: fetchImpl,
     jwksUrl,
     now: () => clock.value,
+    rateLimiter: allowAllOAuthRateLimiter,
   });
   return { service, store, google };
 }

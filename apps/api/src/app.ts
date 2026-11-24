@@ -1,10 +1,19 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
+import { HTTPException } from "hono/http-exception";
 import { allowedOrigins } from "./lib/origins";
+import { errorResponse } from "./lib/errors";
 import { csrfProtection } from "./middleware/csrf";
 
 export const app = new Hono();
+
+app.onError((error, c) => {
+  if (error instanceof HTTPException) return error.getResponse();
+  // Classification only: stacks and driver errors can contain internal details.
+  console.error(`[api] unhandled ${error.name || "Error"}`);
+  return errorResponse(c, error);
+});
 
 // Pathname only: query strings can carry OAuth codes and one-time state values.
 app.use("*", async (c, next) => {

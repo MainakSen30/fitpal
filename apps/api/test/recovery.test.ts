@@ -19,6 +19,7 @@ import {
   resetPassword,
   validateSession,
 } from "../src/services/auth";
+import { noPasswordLoginLimiter } from "../src/services/login-rate-limit";
 import { createLoginService } from "../src/services/login";
 import { loadOtpConfig } from "../src/services/otp/config";
 import { OtpEngine } from "../src/services/otp/engine";
@@ -101,7 +102,7 @@ function makeService(engine: OtpEngine): RecoveryService {
 }
 
 function appFor(engine: OtpEngine, recovery: RecoveryService) {
-  const login = createLoginService({ otp: engine });
+  const login = createLoginService({ otp: engine, limiter: noPasswordLoginLimiter });
   return new Hono()
     .basePath("/api/v1")
     .route("/auth", createAuthRoutes(signupService, login, recovery));
@@ -328,7 +329,7 @@ describeDb("account recovery", () => {
     const user = await createUser("purpose-isolation", { emailVerified: true });
     const { engine, sent } = makeEngine();
     const service = makeService(engine);
-    const login = createLoginService({ otp: engine });
+    const login = createLoginService({ otp: engine, limiter: noPasswordLoginLimiter });
 
     await service.sendCode(user.email);
     await login.sendLoginOtp(user.email);
@@ -405,7 +406,7 @@ describeDb("account recovery", () => {
     expect((await latestChallenge(user.id, "password_recovery"))?.status).toBe("active");
     expect(await verify("old-password123", (await currentUser(user.id))?.passwordHash as string)).toBe(true);
 
-    const login = createLoginService();
+    const login = createLoginService({ limiter: noPasswordLoginLimiter });
     await expect(login.loginWithIdentifier(user.email, "old-password123")).resolves.toMatchObject({
       id: user.id,
     });

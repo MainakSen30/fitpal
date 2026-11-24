@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { phoneNumberSchema } from "../lib/phone";
 
+export const MAX_IDENTIFIER = 320;
+export const MAX_PASSWORD = 128;
+export const MAX_TOKEN = 256;
+
 /**
  * Normal (email/password) registration identity: phone is mandatory and
  * normalized to E.164. Routes adopt this in the registration phase; Google
@@ -8,9 +12,9 @@ import { phoneNumberSchema } from "../lib/phone";
  */
 export const normalRegistrationSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  email: z.string().trim().email(),
+  email: z.string().trim().email().max(MAX_IDENTIFIER),
   phone: phoneNumberSchema(),
-  password: z.string().min(8),
+  password: z.string().min(8).max(MAX_PASSWORD),
 });
 
 /** Normal registration plus the contact the user wants to verify first. */
@@ -23,14 +27,14 @@ const oneIdentifier = (value: { identifier?: string; email?: string }) =>
 
 /** `email` is the legacy shape; `identifier` accepts email or E.164 phone. */
 export const passwordLoginSchema = z.object({
-  identifier: z.string().trim().min(1).optional(),
-  email: z.string().trim().email().optional(),
-  password: z.string().min(1),
+  identifier: z.string().trim().min(1).max(MAX_IDENTIFIER).optional(),
+  email: z.string().trim().email().max(MAX_IDENTIFIER).optional(),
+  password: z.string().min(1).max(MAX_PASSWORD),
 }).refine(oneIdentifier, { message: "Provide identifier or email" });
 
 const otpIdentifierFields = {
-  identifier: z.string().trim().min(1).optional(),
-  email: z.string().trim().email().optional(),
+  identifier: z.string().trim().min(1).max(MAX_IDENTIFIER).optional(),
+  email: z.string().trim().email().max(MAX_IDENTIFIER).optional(),
   purpose: z.enum(["email_verification", "login"]).optional(),
 };
 
@@ -52,11 +56,11 @@ export const otpVerifySchema = z.object({
 
 /** Recovery never accepts a channel, purpose, token or session in the request. */
 export const recoverySendSchema = z.object({
-  identifier: z.string().trim().min(1),
+  identifier: z.string().trim().min(1).max(MAX_IDENTIFIER),
 });
 
 export const recoveryResetSchema = z.object({
-  identifier: z.string().trim().min(1),
+  identifier: z.string().trim().min(1).max(MAX_IDENTIFIER),
   code: z.string().regex(/^\d{6}$/),
-  newPassword: z.string().min(8),
+  newPassword: z.string().min(8).max(MAX_PASSWORD),
 });

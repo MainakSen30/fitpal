@@ -12,9 +12,8 @@ const SESSION_COOKIE = "session";
  */
 export function sessionTokenFromRequest(c: Context): string | undefined {
   const authorization = c.req.header("Authorization");
-  if (authorization?.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length);
-  }
+  const bearer = /^Bearer\s+([A-Za-z0-9_-]{1,256})$/i.exec(authorization ?? "");
+  if (bearer) return bearer[1];
   return getCookie(c, SESSION_COOKIE);
 }
 

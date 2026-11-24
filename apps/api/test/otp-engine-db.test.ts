@@ -269,9 +269,11 @@ describeDb("OTP engine lifecycle", () => {
       status: "success",
     });
 
-    await expect(loginWithPassword(user.email, "correct-horse-battery-staple")).resolves.toMatchObject(
-      { id: user.id },
-    );
+    await expect(loginWithPassword(
+      user.email,
+      "correct-horse-battery-staple",
+      `198.51.100.${crypto.randomInt(1, 254)}`,
+    )).resolves.toMatchObject({ id: user.id });
 
     clock.value = baseTime + 3_600_001;
     expect((await restarted.engine.send(target)).status).toBe("sent");
