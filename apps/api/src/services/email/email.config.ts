@@ -8,6 +8,7 @@ export type EmailConfig = {
   user: string;
   password: string;
   from: string;
+  replyTo: string;
 };
 
 export class EmailConfigurationError extends Error {}
@@ -36,6 +37,7 @@ export function loadEmailConfig(env: EmailEnv = process.env): EmailConfig {
   const user = env.SMTP_USER?.trim() ?? "";
   const password = env.SMTP_PASSWORD?.trim() ?? "";
   const from = env.EMAIL_FROM?.trim() ?? "";
+  const replyTo = env.REPLY_TO?.trim() || from;
 
   const missing = [
     ["SMTP_HOST", host],
@@ -65,5 +67,6 @@ export function loadEmailConfig(env: EmailEnv = process.env): EmailConfig {
     user,
     password,
     from,
+    replyTo,
   };
 }

@@ -22,6 +22,9 @@ const OPAQUE_RE = /^[A-Za-z0-9_-]{43}$/;
 const SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]{1,63}$/;
 const MOBILE_TARGET_RE = /^([a-zA-Z][a-zA-Z0-9+.-]{1,63}):\/\/auth\/callback$/;
 const MOBILE_CLIENT_TYPE = "mobile";
+const TOKEN_TIMEOUT_MS = 10_000;
+const DANGEROUS_SCHEMES = new Set(["http", "https", "javascript", "data"]);
+const CALLBACK_PATH = "/api/v1/auth/google/callback";
 const CONSUME_EXCHANGE_SCRIPT = `
 local raw = redis.call("GET", KEYS[1])
 if not raw then return nil end
@@ -104,10 +107,38 @@ function webBaseUrl() {
   } catch {
     throw new ApiError("Invalid CLIENT_URL", 500);
   }
-  if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
+  if (
+    !["http:", "https:"].includes(parsed.protocol) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.pathname !== "/"
+  ) {
     throw new ApiError("Invalid CLIENT_URL", 500);
   }
   return raw.replace(/\/+$/, "");
+}
+
+function googleRedirectUri() {
+  const raw = requireEnv("GOOGLE_REDIRECT_URI");
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new ApiError("Invalid GOOGLE_REDIRECT_URI", 500);
+  }
+  if (
+    !["http:", "https:"].includes(parsed.protocol) ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    parsed.pathname !== CALLBACK_PATH
+  ) {
+    throw new ApiError("Invalid GOOGLE_REDIRECT_URI", 500);
+  }
+  return raw;
 }
 
 function mobileSchemes() {
@@ -115,7 +146,12 @@ function mobileSchemes() {
     .split(",")
     .map((scheme) => scheme.trim())
     .filter(Boolean);
-  if (configured.length === 0 || configured.some((scheme) => !SCHEME_RE.test(scheme))) {
+  if (
+    configured.length === 0 ||
+    configured.some(
+      (scheme) => !SCHEME_RE.test(scheme) || DANGEROUS_SCHEMES.has(scheme.toLowerCase()),
+    )
+  ) {
     throw new ApiError("Invalid MOBILE_OAUTH_SCHEMES", 500);
   }
   return new Set(configured);
@@ -261,9 +297,10 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
         code,
         client_id: requireEnv("GOOGLE_CLIENT_ID"),
         client_secret: requireEnv("GOOGLE_CLIENT_SECRET"),
-        redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
+        redirect_uri: googleRedirectUri(),
         grant_type: "authorization_code",
       }),
+      signal: AbortSignal.timeout(TOKEN_TIMEOUT_MS),
     });
     if (!response.ok) throw googleAuthFailed();
     const body = (await response.json()) as { id_token?: unknown };
@@ -358,7 +395,7 @@ export function createGoogleOAuthService(deps: GoogleOAuthDeps = {}) {
 
       const params = new URLSearchParams({
         client_id: requireEnv("GOOGLE_CLIENT_ID"),
-        redirect_uri: requireEnv("GOOGLE_REDIRECT_URI"),
+        redirect_uri: googleRedirectUri(),
         response_type: "code",
         scope: "openid email profile",
         state,

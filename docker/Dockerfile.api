@@ -23,6 +23,11 @@ COPY . .
 # Build
 RUN bun run --cwd apps/api build
 
+# Migration image: keeps the full workspace (packages/database + drizzle-kit)
+# because the migrate service runs `cd packages/database && bun run migrate`.
+# Compose selects it via build.target=migrate.
+FROM base AS migrate
+
 # Production image — same glibc base so native addons keep loading
 FROM oven/bun:1.3.14 AS production
 WORKDIR /app
@@ -36,12 +41,9 @@ COPY --from=base /app/apps/api/dist ./dist
 COPY --from=base /app/node_modules ./node_modules
 RUN rm -rf /app/node_modules/@node-rs && \
     mkdir -p /app/node_modules/@node-rs && \
-    cp -RL /app/node_modules/.bun/@node-rs+bcrypt@*/node_modules/@node-rs/. /app/node_modules/@node-rs/
+    cp -RL /app/node_modules/.bun/@node-rs+bcrypt@*/node_modules/@node-rs/. /app/node_modules/@node-rs/ && \
+    chown -R bun:bun /app
 
+USER bun
 EXPOSE 3001
-CMD ["bun", "run", "dist/index.js"]
-
-# Migration image: keeps the full workspace (packages/database + drizzle-kit)
-# because the migrate service runs `cd packages/database && bun run migrate`.
-# Compose selects it via build.target=migrate.
-FROM base AS migrate
+CMD ["bun", "dist/index.js"]

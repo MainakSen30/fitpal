@@ -4,6 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { HTTPException } from "hono/http-exception";
 import { allowedOrigins } from "./lib/origins";
 import { errorResponse } from "./lib/errors";
+import { checkReadiness } from "./lib/readiness";
 import { csrfProtection } from "./middleware/csrf";
 
 export const app = new Hono();
@@ -32,6 +33,16 @@ app.use("*", cors({
 }));
 
 app.get("/health", (c) => c.json({ status: "ok" }));
+
+app.get("/readyz", async (c) => {
+  const readiness = await checkReadiness();
+  if (!readiness.ready) {
+    // Category only: no dependency addresses or credentials in logs/responses.
+    console.error(`[api] readiness failed dependency=${readiness.dependency}`);
+    return c.json({ status: "unavailable" }, 503);
+  }
+  return c.json({ status: "ready" });
+});
 
 const v1 = app.basePath("/api/v1");
 

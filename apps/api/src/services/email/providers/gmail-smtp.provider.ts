@@ -13,7 +13,13 @@ export type SmtpTransportOptions = {
   host: string;
   port: number;
   secure: boolean;
+  requireTLS?: boolean;
   pool: boolean;
+  maxConnections: number;
+  maxMessages: number;
+  connectionTimeout: number;
+  greetingTimeout: number;
+  socketTimeout: number;
   auth: { user: string; pass: string };
 };
 
@@ -48,7 +54,13 @@ export function createGmailSmtpProvider(
     host: config.host,
     port: config.port,
     secure: config.secure,
+    requireTLS: !config.secure,
     pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 30_000,
     auth: { user: config.user, pass: config.password },
   });
 
@@ -59,6 +71,7 @@ export function createGmailSmtpProvider(
       try {
         const info = await transporter.sendMail({
           from: config.from,
+          replyTo: config.replyTo,
           to: message.to,
           subject: message.subject,
           html: message.html,

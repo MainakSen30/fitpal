@@ -131,6 +131,16 @@ platform injects a forwarding header, set `TRUSTED_PROXY_IP` to that proxy's add
 or per-client limits degrade to the proxy IP. No-IP requests use the global counter,
 never an identifier-only bucket.
 
+### Production configuration guard
+
+`NODE_ENV=production` enables fail-fast validation in
+`apps/api/src/config/production.ts`. Production refuses to start with missing secrets,
+wildcard or non-HTTPS `CORS_ORIGIN`, unsafe mobile OAuth schemes, mock SMS, implicit
+email providers, malformed URLs/ports, or non-TLS public database/Redis hosts. `REDIS_URL`
+and `CORS_ORIGIN` no longer fall back to localhost defaults at runtime. `GET /readyz`
+checks PostgreSQL and Redis; `GET /health` remains liveness-only. See
+[`AUTH_PRODUCTION_READINESS.md`](./AUTH_PRODUCTION_READINESS.md).
+
 ### Phase 8.5 pre-lookup throttling
 
 `authRoutes` installs one best-effort IP edge limiter before identifier-based work:
@@ -162,9 +172,9 @@ was added where an existing engine or password counter already covered the risk.
 | `GET /google` | OAuth initiation 10/IP and 60/global per 15 min: `oauth:init:*` | Redis, fail-closed | Uses trusted socket peer only; state/nonce are server-owned and Redis-backed. |
 | `GET /google/callback` | OAuth failure 5/pair, 20/IP, 60/global per 15 min: `oauth:failure:*` | Redis, fail-closed | State is single-use via Lua `GETDEL`; valid codes do not consume the failure budget; generic redirect except 429. |
 | `POST /google/exchange` | OAuth failure 5/pair, 20/IP, 60/global per 15 min | Redis, fail-closed | Exchange code is single-use and bound to scheme/client/session; valid exchanges do not consume failures. |
-| `POST /recovery/send`, `/forgot-password` | Edge `lookup` 30/10 min; engine send/token limits | Redis edge fail-open; PostgreSQL authoritative | Uniform `200`; no account existence or delivery detail in the response. |
+| `POST /recovery/send`, `/forgot-password` | Edge `lookup` 30/10 min; `/recovery/send` also uses engine send limits | Redis edge fail-open; PostgreSQL authoritative | Uniform `200`; no account existence or delivery detail in the response. The legacy link flow does not use the OTP engine. |
 | `POST /recovery/reset`, `/reset-password` | Edge `lookup` 30/10 min; engine verify/token limits | Redis edge fail-open; PostgreSQL authoritative | Token precheck before bcrypt; conditional token claim plus session-version increment are atomic in PostgreSQL. |
-| `GET /me`, `POST /logout`, `DELETE /account` | No new edge counter; session lookup on every request | Redis session + PostgreSQL authoritative validation | Malformed records fail closed; DB failure does not destroy a Redis session; logout delete is best-effort. |
+| `GET /me`, `POST /logout`, `DELETE /account` | No new edge counter | Redis session + PostgreSQL authoritative validation for `/me` and `/account`; logout deletes the supplied token best-effort | Malformed records fail closed; DB failure does not destroy a Redis session; logout clears the cookie even when Redis deletion fails. |
 
 ## Verified-contact matrix
 

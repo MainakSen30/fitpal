@@ -65,7 +65,13 @@ SMTP_USER=support.fitpal@gmail.com
 SMTP_PASSWORD=your-16-character-app-password
 
 EMAIL_FROM=FitPal <support.fitpal@gmail.com>
+REPLY_TO=FitPal <support.fitpal@gmail.com>
 ```
+
+`REPLY_TO` falls back to `EMAIL_FROM` in development, but production startup requires
+it explicitly. The SMTP transport uses 10-second connect/greeting timeouts, a 30-second
+socket timeout, a small connection pool, and `requireTLS` for plaintext ports. Provider
+errors are logged as provider name plus category only.
 
 `CLIENT_URL` (already configured) is used to build password reset links:
 `<CLIENT_URL>/reset-password?token=...`.
@@ -163,12 +169,14 @@ right-most valid forwarded address is used. Requests with no trustworthy IP skip
 edge limiter rather than creating an identifier-only bucket. See
 [`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md#client-ip-trust).
 
-## 8. SMS delivery (mock only)
+## 8. SMS delivery (mock locally, disabled in production)
 
-SMS lives in `apps/api/src/services/sms/`. No SMS provider or credentials are
-configured, so `SMS_MODE=mock` is the only supported value. Set it explicitly in
-the API environment; a missing value or any other value fails with a configuration
-error instead of silently switching to mock delivery.
+SMS lives in `apps/api/src/services/sms/`. No real SMS provider or credentials are
+configured. `SMS_MODE=mock` is for local development and tests only; production
+startup rejects it. Production must set `SMS_MODE=disabled`, which returns a clear
+configuration failure on delivery instead of claiming success. A missing value or any
+unsupported value fails with a configuration error rather than silently switching to
+mock delivery.
 
 The mock provider returns `{ status: "mock" }`, which is explicitly **not** real
 delivery. It does not send anything, log message contents, or expose OTPs in console

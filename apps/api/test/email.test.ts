@@ -19,6 +19,7 @@ const config: EmailConfig = {
   user: "support.fitpal@gmail.com",
   password: "app-password-value",
   from: "FitPal <support.fitpal@gmail.com>",
+  replyTo: "FitPal <support.fitpal@gmail.com>",
 };
 
 const message: EmailMessage = {
@@ -30,19 +31,23 @@ const message: EmailMessage = {
 
 function transportRecorder() {
   const sent: SendMailOptions[] = [];
+  const options: unknown[] = [];
 
-  const createTransport: TransportFactory = () => ({
-    sendMail: async (options) => {
-      sent.push(options);
-      return {
-        messageId: "message-1",
-        envelope: { from: "", to: [] },
-      };
-    },
-    verify: async (): Promise<true> => true,
-  });
+  const createTransport: TransportFactory = (transportOptions) => {
+    options.push(transportOptions);
+    return {
+      sendMail: async (mail) => {
+        sent.push(mail);
+        return {
+          messageId: "message-1",
+          envelope: { from: "", to: [] },
+        };
+      },
+      verify: async (): Promise<true> => true,
+    };
+  };
 
-  return { sent, createTransport };
+  return { sent, options, createTransport };
 }
 
 function failingTransport(error: unknown): TransportFactory {
@@ -65,6 +70,7 @@ describe("loadEmailConfig", () => {
     SMTP_USER: "support.fitpal@gmail.com",
     SMTP_PASSWORD: "app-password-value",
     EMAIL_FROM: "FitPal <support.fitpal@gmail.com>",
+    REPLY_TO: "FitPal <support.fitpal@gmail.com>",
   };
 
   it("reads the Gmail SMTP settings", () => {
@@ -116,6 +122,29 @@ describe("gmail SMTP provider", () => {
       html: message.html,
       text: message.text,
     });
+  });
+
+  it("uses bounded SMTP timeouts and an explicit reply-to", () => {
+    const { options, createTransport } = transportRecorder();
+    createGmailSmtpProvider(config, createTransport);
+
+    expect(options[0]).toMatchObject({
+      requireTLS: false,
+      maxConnections: 5,
+      maxMessages: 100,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 30_000,
+    });
+  });
+
+  it("sends the explicit reply-to address", async () => {
+    const { sent, createTransport } = transportRecorder();
+    const provider = createGmailSmtpProvider(config, createTransport);
+
+    await provider.send(message);
+
+    expect(sent[0].replyTo).toBe(config.replyTo);
   });
 
   it("maps an SMTP authentication failure to an error result", async () => {

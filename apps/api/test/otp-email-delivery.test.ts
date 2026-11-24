@@ -24,6 +24,7 @@ const config: EmailConfig = {
   user: "support.fitpal@gmail.com",
   password: "app-password-value",
   from: "FitPal <support.fitpal@gmail.com>",
+  replyTo: "FitPal <support.fitpal@gmail.com>",
 };
 
 const purposes: Array<{ purpose: OtpPurpose; subject: string; marker: string }> = [

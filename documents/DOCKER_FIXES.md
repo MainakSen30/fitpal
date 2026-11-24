@@ -150,6 +150,9 @@ After adding the `migrate` stage to `Dockerfile.api`, the compose `api` service 
 Fixes/actions:
 - `docker/docker-compose.yml`: explicit `build.target: production` for `api`
   (`migrate` already pinned to its stage; web's final stage is production).
+- `docker/docker-compose.prod.yml` now also pins `build.target: production`, and
+  `Dockerfile.api` ends with the production stage so an unpinned build cannot select
+  `migrate`.
 - To clear the phantom state: `docker compose down` → check
   `lsof -nP -iTCP:3000 -sTCP:LISTEN`; if `com.docker.backend` still holds it,
   `killall com.docker.backend` (supervisor respawns fresh), else quit/reopen

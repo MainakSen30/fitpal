@@ -12,5 +12,13 @@ if (!databaseUrl) {
   );
 }
 
-const client = postgres(databaseUrl);
+const client = postgres(databaseUrl, {
+  max: 10,
+  idle_timeout: 30,
+  connect_timeout: 10,
+});
 export const db = drizzle(client);
+
+export async function closeDb() {
+  await client.end({ timeout: 5 });
+}

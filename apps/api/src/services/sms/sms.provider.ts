@@ -1,6 +1,7 @@
 import type { DeliveryFailureReason } from "../delivery/types";
+import { createDisabledSmsProvider } from "./providers/disabled-sms.provider";
 import { createMockSmsProvider } from "./providers/mock-sms.provider";
-import { SmsConfigurationError, type SmsConfig } from "./sms.config";
+import type { SmsConfig } from "./sms.config";
 
 export type SmsMessage = { to: string; body: string };
 
@@ -19,5 +20,5 @@ export type SmsSink = (message: SmsMessage) => void;
 
 export function createSmsProvider(config: SmsConfig, sink?: SmsSink): SmsProvider {
   if (config.mode === "mock") return createMockSmsProvider(sink);
-  throw new SmsConfigurationError(`Unsupported SMS provider mode: ${config.mode}`);
+  return createDisabledSmsProvider();
 }

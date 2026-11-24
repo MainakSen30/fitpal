@@ -1,10 +1,11 @@
 # FitPal Google OAuth and account linking (Phase 7)
 
-Phase 7 hardens the backend Google sign-in flow. It is backend-only: no web or mobile UI
-was changed. The mobile client must later adopt the one-time exchange contract described
-below. See [`GOOGLE_OAUTH_TESTING.md`](./GOOGLE_OAUTH_TESTING.md) for local setup and
-simulator notes, and [`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md) for the rest of the
-authentication surface.
+Phase 7 hardened the backend Google sign-in flow; the mobile client now uses the one-time
+exchange contract described below. The web OAuth UI is still missing. See
+[`GOOGLE_OAUTH_TESTING.md`](./GOOGLE_OAUTH_TESTING.md) for local setup and simulator
+notes, [`AUTH_LOGIN_MATRIX.md`](./AUTH_LOGIN_MATRIX.md) for the rest of the authentication
+surface, and [`AUTH_PRODUCTION_READINESS.md`](./AUTH_PRODUCTION_READINESS.md) for
+production configuration.
 
 ## Root causes fixed
 
@@ -131,8 +132,12 @@ Phase 6 recovery because those flows require an existing `passwordHash`.
 | `CLIENT_URL` | Fixed web base URL; callback ignores browser-supplied return URLs. |
 | `MOBILE_OAUTH_SCHEMES` | Comma-separated bare-scheme allowlist, e.g. `exp,fitpal`. |
 
-All OAuth variables are validated when OAuth is invoked. Missing or invalid configuration
-returns a generic failure and is never echoed with its value.
+All OAuth variables are validated when OAuth is invoked. In `NODE_ENV=production`,
+startup additionally requires every variable above, an exact HTTPS callback path
+`/api/v1/auth/google/callback`, a bare HTTPS `CLIENT_URL`, a `CORS_ORIGIN` allowlist that
+contains `CLIENT_URL`, and safe mobile schemes. The `http`, `https`, `javascript` and
+`data` schemes are rejected, and `exp` is development-only. Errors name variables or
+categories only; values are never logged.
 
 Google Cloud Console must list the exact `GOOGLE_REDIRECT_URI`. For local docker compose
 this is currently `http://localhost:3011/api/v1/auth/google/callback`; a directly run API

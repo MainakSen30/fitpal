@@ -24,6 +24,7 @@ function providerKey(config: EmailConfig): string {
     config.user,
     config.password,
     config.from,
+    config.replyTo,
   ].join("\0");
 }
 
