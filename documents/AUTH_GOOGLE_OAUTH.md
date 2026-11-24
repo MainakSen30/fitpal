@@ -135,9 +135,11 @@ Phase 6 recovery because those flows require an existing `passwordHash`.
 All OAuth variables are validated when OAuth is invoked. In `NODE_ENV=production`,
 startup additionally requires every variable above, an exact HTTPS callback path
 `/api/v1/auth/google/callback`, a bare HTTPS `CLIENT_URL`, a `CORS_ORIGIN` allowlist that
-contains `CLIENT_URL`, and safe mobile schemes. The `http`, `https`, `javascript` and
-`data` schemes are rejected, and `exp` is development-only. Errors name variables or
-categories only; values are never logged.
+contains `CLIENT_URL`, and bare mobile schemes. The `http`, `https`, `javascript` and
+`data` schemes are rejected by both the startup guard and route-time validation. The
+`exp` scheme is **not** rejected by either guard; it is recommended for local Expo Go
+only and must be omitted from `MOBILE_OAUTH_SCHEMES` in production. Errors name variables
+or categories only; values are never logged.
 
 Google Cloud Console must list the exact `GOOGLE_REDIRECT_URI`. For local docker compose
 this is currently `http://localhost:3011/api/v1/auth/google/callback`; a directly run API
