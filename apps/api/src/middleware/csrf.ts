@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
 import { timingSafeEqual } from "node:crypto";
+import { parseBearerToken } from "../lib/bearer";
 import { CSRF_COOKIE, CSRF_HEADER } from "../lib/csrf";
 import { allowedOrigins } from "../lib/origins";
 
@@ -15,8 +16,9 @@ function secureEqual(a: string, b: string) {
 /**
  * CSRF guard for cookie-authenticated browsers.
  *
- * Mobile sends `Authorization: Bearer` from SecureStore, which a cross-site
- * page cannot attach, so those requests skip the check. Cookie sessions must
+ * Mobile sends a valid `Authorization: Bearer <token>` from SecureStore, which
+ * a cross-site page cannot attach, so those requests skip the check. Malformed
+ * Bearer values do not exempt cookie sessions. Cookie sessions must
  * echo the non-HttpOnly csrf_token cookie in X-CSRF-Token (double submit).
  * Unsafe requests without a session (login/register/OTP) reject foreign
  * browser Origins to block login CSRF; non-browser clients send no Origin.
@@ -24,7 +26,7 @@ function secureEqual(a: string, b: string) {
 export const csrfProtection = createMiddleware(async (c, next) => {
   if (SAFE_METHODS.has(c.req.method)) return next();
 
-  if (c.req.header("Authorization")?.startsWith("Bearer ")) return next();
+  if (parseBearerToken(c.req.header("Authorization"))) return next();
 
   const hasSessionCookie = Boolean(getCookie(c, "session"));
   if (hasSessionCookie) {

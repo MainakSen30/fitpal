@@ -26,6 +26,30 @@ describe("csrfProtection", () => {
     expect(res.status).toBe(200);
   });
 
+  it("blocks a malformed Bearer header with a valid cookie session", async () => {
+    const res = await post({
+      Cookie: "session=web-session",
+      Authorization: "Bearer :",
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "Invalid CSRF token" });
+  });
+
+  it("blocks other malformed Bearer headers with a valid cookie session", async () => {
+    const malformed = [
+      "Bearer",
+      "Bearer ",
+      "Bearer token:",
+      `Bearer ${"a".repeat(257)}`,
+      "Bearer bad.token",
+      "Bearer token extra",
+    ];
+    for (const Authorization of malformed) {
+      const res = await post({ Cookie: "session=web-session", Authorization });
+      expect(res.status).toBe(403);
+    }
+  });
+
   it("blocks cookie-authenticated requests without a token", async () => {
     const res = await post({ Cookie: "session=web-session" });
     expect(res.status).toBe(403);

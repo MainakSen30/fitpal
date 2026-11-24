@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
 import type { Context } from "hono";
+import { parseBearerToken } from "../lib/bearer";
 import { validateSession } from "../services/auth";
 
 const SESSION_COOKIE = "session";
@@ -11,9 +12,8 @@ const SESSION_COOKIE = "session";
  * Header wins so mobile doesn't need cookies; cookie keeps web working.
  */
 export function sessionTokenFromRequest(c: Context): string | undefined {
-  const authorization = c.req.header("Authorization");
-  const bearer = /^Bearer\s+([A-Za-z0-9_-]{1,256})$/i.exec(authorization ?? "");
-  if (bearer) return bearer[1];
+  const bearer = parseBearerToken(c.req.header("Authorization"));
+  if (bearer) return bearer;
   return getCookie(c, SESSION_COOKIE);
 }
 

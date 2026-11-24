@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
+import { parseBearerToken } from "../src/lib/bearer";
 import { sessionTokenFromRequest } from "../src/middleware/requireAuth";
 
 function tokenApp() {
@@ -39,7 +40,40 @@ describe("sessionTokenFromRequest", () => {
     expect(token).toBe("web-session");
   });
 
+  it("ignores malformed Bearer headers and still reads the cookie", async () => {
+    expect(await resolveToken({
+      Authorization: "Bearer :",
+      Cookie: "session=web-session",
+    })).toBe("web-session");
+  });
+
   it("returns null when neither transport is present", async () => {
     expect(await resolveToken()).toBeNull();
+  });
+});
+
+describe("parseBearerToken", () => {
+  it("accepts the strict scheme and URL-safe token syntax", () => {
+    expect(parseBearerToken("Bearer mobile-session")).toBe("mobile-session");
+    expect(parseBearerToken("bearer abcDEF0123_-")).toBe("abcDEF0123_-");
+    expect(parseBearerToken("BEARER\ttoken")).toBe("token");
+    expect(parseBearerToken(`Bearer ${"a".repeat(256)}`)).toBe("a".repeat(256));
+  });
+
+  it("returns null for malformed, oversized or unsupported headers", () => {
+    const invalid = [
+      undefined,
+      null,
+      "",
+      "Basic dXNlcjpwYXNz",
+      "Bearer",
+      "Bearer ",
+      "Bearer :",
+      "Bearer token:",
+      "Bearer bad.token",
+      `Bearer ${"a".repeat(257)}`,
+      "Bearer token extra",
+    ];
+    for (const header of invalid) expect(parseBearerToken(header)).toBeNull();
   });
 });
