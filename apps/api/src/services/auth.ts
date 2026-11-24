@@ -181,11 +181,14 @@ export async function validateSession(sessionId: string) {
   return session;
 }
 
-export async function destroySession(sessionId: string) {
-  await redis.del(`${SESSION_PREFIX}${sessionId}`).catch(() => {
-    // Logout still clears the client cookie; the Redis TTL bounds an orphaned key.
+export async function destroySession(sessionId: string): Promise<boolean> {
+  try {
+    await redis.del(`${SESSION_PREFIX}${sessionId}`);
+    return true;
+  } catch {
     console.warn("[session] session deletion failed");
-  });
+    return false;
+  }
 }
 
 export async function sendPasswordResetEmail(email: string) {

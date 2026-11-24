@@ -328,11 +328,10 @@ export function createAuthRoutes(
   auth.post("/logout", async (c) => {
     // Mobile sends the session as Bearer; web relies on the cookie.
     const sessionId = sessionTokenFromRequest(c);
-    if (sessionId) {
-      await destroySession(sessionId);
-    }
+    const revoked = sessionId ? await destroySession(sessionId) : true;
     c.header("Set-Cookie", serializeSessionCookie("", 0));
     clearCsrfToken(c);
+    if (!revoked) return errorResponse(c, new ApiError("Unable to revoke session", 503));
     return c.json({ success: true });
   });
 
@@ -341,6 +340,7 @@ export function createAuthRoutes(
     try {
       const userId = c.get("userId") as string;
       const sessionId = c.get("sessionId") as string;
+      // Best effort only: the database delete is the authoritative revocation.
       await destroySession(sessionId);
       await deleteAccount(userId);
       c.header("Set-Cookie", serializeSessionCookie("", 0));

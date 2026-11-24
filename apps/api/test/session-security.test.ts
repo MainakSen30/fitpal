@@ -337,4 +337,88 @@ describeDb("session security", () => {
     });
     expect(await json(replay)).toEqual({ user: null });
   });
+
+  it("reports successful logout and clears both browser cookies", async () => {
+    const user = await createUser("logout-success", { emailVerified: true });
+    const session = track(await createSession(user.id));
+    const instance = app();
+
+    const response = await instance.request("/api/v1/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session}` },
+    });
+    expect(response.status).toBe(200);
+    expect(await json(response)).toEqual({ success: true });
+    expect(await redis.get(`session:${session}`)).toBeNull();
+    expect(await json(await instance.request("/api/v1/auth/me", {
+      headers: { Authorization: `Bearer ${session}` },
+    }))).toEqual({ user: null });
+
+    const cookies = response.headers.get("set-cookie") ?? "";
+    expect(cookies).toContain("session=;");
+    expect(cookies).toContain("csrf_token=;");
+  });
+
+  it("reports logout failure without clearing the Redis session until revocation succeeds", async () => {
+    const user = await createUser("logout-del-failure", { emailVerified: true });
+    const session = track(await createSession(user.id));
+    const instance = app();
+
+    const failed = await withRedisFailure("del", async () => instance.request("/api/v1/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session}` },
+    }));
+    expect(failed.status).toBe(503);
+    expect(await json(failed)).toEqual({ error: "Unable to revoke session" });
+
+    const cookies = failed.headers.get("set-cookie") ?? "";
+    expect(cookies).toContain("session=;");
+    expect(cookies).toContain("csrf_token=;");
+    expect(await redis.get(`session:${session}`)).not.toBeNull();
+    expect(await json(await instance.request("/api/v1/auth/me", {
+      headers: { Authorization: `Bearer ${session}` },
+    }))).toMatchObject({ user: { id: user.id } });
+
+    const retry = await instance.request("/api/v1/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session}` },
+    });
+    expect(retry.status).toBe(200);
+    expect(await redis.get(`session:${session}`)).toBeNull();
+    expect(await json(await instance.request("/api/v1/auth/me", {
+      headers: { Authorization: `Bearer ${session}` },
+    }))).toEqual({ user: null });
+  });
+
+  it("keeps logout idempotent when no session exists", async () => {
+    const instance = app();
+    const headerSets: Record<string, string>[] = [{}, { Authorization: `Bearer ${crypto.randomUUID()}` }];
+    for (const headers of headerSets) {
+      const response = await instance.request("/api/v1/auth/logout", { method: "POST", headers });
+      expect(response.status).toBe(200);
+      expect(await json(response)).toEqual({ success: true });
+
+      const cookies = response.headers.get("set-cookie") ?? "";
+      expect(cookies).toContain("session=;");
+      expect(cookies).toContain("csrf_token=;");
+    }
+  });
+
+  it("still deletes the account when Redis cleanup fails and keeps the old session invalid", async () => {
+    const user = await createUser("delete-del-failure", { emailVerified: true });
+    const session = track(await createSession(user.id));
+    const instance = app();
+
+    const response = await withRedisFailure("del", async () => instance.request("/api/v1/auth/account", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${session}` },
+    }));
+    expect(response.status).toBe(200);
+    expect(await json(response)).toEqual({ success: true });
+    expect(await currentUser(user.id)).toBeUndefined();
+    expect(await redis.get(`session:${session}`)).not.toBeNull();
+    expect(await json(await instance.request("/api/v1/auth/me", {
+      headers: { Authorization: `Bearer ${session}` },
+    }))).toEqual({ user: null });
+  });
 });
