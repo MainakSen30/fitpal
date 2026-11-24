@@ -81,6 +81,13 @@ export async function applyPasswordChange(
   passwordHash: string,
   now: Date,
 ) {
+  // Consume sibling reset tokens in the same transaction before changing the
+  // password, so a failed password update rolls their consumption back too.
+  await tx
+    .update(passwordResetTokens)
+    .set({ usedAt: now })
+    .where(and(eq(passwordResetTokens.userId, userId), isNull(passwordResetTokens.usedAt)));
+
   const [user] = await tx
     .update(users)
     .set({

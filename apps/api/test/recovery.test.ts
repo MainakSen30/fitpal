@@ -160,6 +160,16 @@ async function currentUser(userId: string) {
   return row;
 }
 
+async function issueResetToken(userId: string, expiresAt = new Date(Date.now() + 60 * 60 * 1000)) {
+  const token = crypto.randomUUID() + crypto.randomUUID();
+  await db.insert(passwordResetTokens).values({
+    userId,
+    tokenHash: crypto.createHash("sha256").update(token).digest("hex"),
+    expiresAt,
+  });
+  return token;
+}
+
 function sessionVersionCacheKey(userId: string) {
   return `session:version:${crypto.createHash("sha256").update(userId).digest("hex")}`;
 }
@@ -472,5 +482,72 @@ describeDb("account recovery", () => {
     expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
     expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
     expect((await currentUser(user.id))?.sessionVersion).toBe(2);
+  });
+
+  it("invalidates sibling legacy reset tokens when one token is used", async () => {
+    const user = await createUser("legacy-siblings", { emailVerified: true });
+    const first = await issueResetToken(user.id);
+    const sibling = await issueResetToken(user.id);
+
+    await resetPassword(first, "sibling-password");
+    expect(await verify("sibling-password", (await currentUser(user.id))?.passwordHash as string)).toBe(true);
+    await expect(resetPassword(first, "sibling-replay")).rejects.toThrow("Invalid or expired reset token");
+    await expect(resetPassword(sibling, "sibling-attacker")).rejects.toThrow("Invalid or expired reset token");
+    expect(await verify("sibling-password", (await currentUser(user.id))?.passwordHash as string)).toBe(true);
+
+    const rows = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.userId, user.id));
+    expect(rows).toHaveLength(2);
+    for (const row of rows) expect(row.usedAt).not.toBeNull();
+  });
+
+  it("invalidates legacy reset tokens after OTP recovery", async () => {
+    const user = await createUser("otp-invalidates-legacy", { emailVerified: true });
+    const legacy = await issueResetToken(user.id);
+    const { engine, sent } = makeEngine();
+    const service = makeService(engine);
+
+    await service.sendCode(user.email);
+    const code = sent.email[sent.email.length - 1]?.code;
+    expect(code).toMatch(/^\d{6}$/);
+    await service.resetPassword(user.email, code as string, "otp-recovered-password");
+
+    await expect(resetPassword(legacy, "legacy-after-otp")).rejects.toThrow("Invalid or expired reset token");
+    expect(await verify("otp-recovered-password", (await currentUser(user.id))?.passwordHash as string)).toBe(true);
+    const [row] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.userId, user.id));
+    expect(row?.usedAt).not.toBeNull();
+  });
+
+  it("rolls back token consumption when the password-change transaction fails", async () => {
+    const user = await createUser("legacy-tx-failure", { emailVerified: true });
+    await db.update(users).set({ sessionVersion: 2_147_483_647 }).where(eq(users.id, user.id));
+    const token = await issueResetToken(user.id);
+    const sibling = await issueResetToken(user.id);
+
+    await expect(resetPassword(token, "should-not-apply")).rejects.toThrow();
+
+    const updated = await currentUser(user.id);
+    expect(await verify("old-password123", updated?.passwordHash as string)).toBe(true);
+    expect(updated?.sessionVersion).toBe(2_147_483_647);
+    const rows = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.userId, user.id));
+    expect(rows).toHaveLength(2);
+    for (const row of rows) expect(row.usedAt).toBeNull();
+  });
+
+  it("rejects expired and unknown legacy reset tokens", async () => {
+    const user = await createUser("legacy-expired", { emailVerified: true });
+    const expired = await issueResetToken(user.id, new Date(Date.now() - 60_000));
+
+    await expect(resetPassword(expired, "expired-password")).rejects.toThrow("Invalid or expired reset token");
+    await expect(resetPassword("not-a-token", "unknown-password")).rejects.toThrow("Invalid or expired reset token");
+    expect(await verify("old-password123", (await currentUser(user.id))?.passwordHash as string)).toBe(true);
   });
 });
