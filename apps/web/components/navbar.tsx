@@ -1,62 +1,115 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import { FitPalMark } from "@/components/fitpal-mark";
 
 const features = [
-  { name: "Workout Logging", href: "/features/workout-logging", desc: "Log sets, reps & weights" },
-  { name: "Custom Routines", href: "/features/routines", desc: "Build your split" },
-  { name: "Logbook & PRs", href: "/features/logbook", desc: "Track history & records" },
-  { name: "Weekly Progress", href: "/features/progress", desc: "Analytics & insights" },
-  { name: "Rest Timer", href: "/features/rest-timer", desc: "Smart rest countdown" },
-  { name: "Offline Ready", href: "/features/offline-sync", desc: "Train anywhere" },
+  { name: "Workout Logging", href: "/features/workout-logging" },
+  { name: "Routines", href: "/features/routines" },
+  { name: "Logbook & PRs", href: "/features/logbook" },
+  { name: "Weekly Progress", href: "/features/progress" },
+  { name: "Rest Timer", href: "/features/rest-timer" },
+  { name: "Offline Ready", href: "/features/offline-sync" },
 ];
 
 export function Navbar() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const downloadHref = pathname === "/" ? "#download" : "/#download";
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
-    <header className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-1.5rem)] max-w-6xl">
-      <div className="backdrop-blur-xl bg-[#090807]/70 border border-white/5 rounded-full px-6 h-14 flex items-center justify-between shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12.22 2.05c-.32-.23-.74-.23-1.06-.01C9.62 3.12 6.54 5.72 6.54 9.9c0 2.22.89 3.82 1.83 4.96.22.27.18.66-.08.88-.26.21-.65.18-.87-.09-1.12-1.35-2.08-3.21-2.08-5.75 0-.41-.42-.69-.8-.54C3.65 9.77 2 12.3 2 15.17 2 20.04 6.03 24 11 24c5.52 0 10-4.48 10-10 0-4.83-2.88-8.99-6.9-10.95-.38-.19-.83.05-.88.47-.11.96-.54 2.21-1.46 3.11-.27.26-.71.22-.92-.09-.2-.3-.15-.71.12-.96.9-1.03 1.26-2.31 1.26-3.53 0-.01 0 0 0 0z" />
-            </svg>
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-white">
-            Fit<span className="text-brand-500">Pal</span>
+    <header className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-page -translate-x-1/2">
+      <div className="flex h-16 items-center justify-between rounded-full border border-border bg-wine-900 px-4 shadow-surface sm:px-6 lg:px-7">
+        <Link href="/" aria-label="FitPal home" className="flex items-center gap-2.5">
+          <FitPalMark />
+          <span className="text-lg font-semibold tracking-tight text-cream-100">
+            Fit<span className="text-accent-clay">Pal</span>
           </span>
         </Link>
-        <nav className="hidden md:flex items-center gap-8 text-sm text-stone-400">
-          <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-            <button className="flex items-center gap-1 hover:text-white transition-colors">
-              Features
-              <ChevronDown className="w-3.5 h-3.5" />
-            </button>
-            {open && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2">
-                <div className="w-64 rounded-xl bg-[#090807]/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
-                  {features.map((f) => (
-                    <Link
-                      key={f.href}
-                      href={f.href}
-                      className="block px-4 py-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                    >
-                      <div className="text-sm font-medium text-white">{f.name}</div>
-                      <div className="text-xs text-stone-500 mt-0.5">{f.desc}</div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          <Link href="/#download" className="hover:text-white transition-colors">Download</Link>
+
+        <nav aria-label="Primary" className="hidden items-center gap-5 text-sm text-cream-300 lg:flex xl:gap-6">
+          {features.map(({ name, href }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`transition-colors hover:text-cream-100 ${active ? "text-cream-100" : ""}`}
+              >
+                {name}
+              </Link>
+            );
+          })}
         </nav>
-        <Link href="/#download" className="px-4 py-1.5 rounded-full text-sm font-medium text-white bg-white/10 hover:bg-white/15 border border-white/10 transition-all">
+
+        <Link href={downloadHref} className="button-secondary hidden px-4 py-1.5 text-sm lg:inline-flex">
           Get the App
         </Link>
+
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          aria-controls="mobile-navigation"
+          onClick={() => setOpen((value) => !value)}
+          className="flex h-11 w-11 items-center justify-center rounded-control text-cream-100 transition-colors hover:bg-wine-800 lg:hidden"
+        >
+          {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
+        </button>
+      </div>
+
+      <div
+        id="mobile-navigation"
+        aria-hidden={!open}
+        className={`absolute left-0 right-0 top-full z-50 mt-2 rounded-card border border-border bg-wine-900 p-2 shadow-surface transition-[opacity,transform] duration-150 lg:hidden ${
+          open ? "visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-2 opacity-0"
+        }`}
+      >
+        <nav aria-label="Mobile primary" className="flex flex-col gap-1">
+          {features.map(({ name, href }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                onClick={() => setOpen(false)}
+                className={`flex min-h-11 items-center rounded-control px-3 text-sm transition-colors hover:bg-wine-800 hover:text-cream-100 ${
+                  active ? "bg-wine-800 text-cream-100" : "text-cream-300"
+                }`}
+              >
+                {name}
+              </Link>
+            );
+          })}
+          <Link
+            href={downloadHref}
+            onClick={() => setOpen(false)}
+            className="button-secondary mt-2 min-h-11 px-4 py-3 text-sm"
+          >
+            Get the App
+          </Link>
+        </nav>
       </div>
     </header>
   );
