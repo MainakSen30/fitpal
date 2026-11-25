@@ -73,12 +73,6 @@ it explicitly. The SMTP transport uses 10-second connect/greeting timeouts, a 30
 socket timeout, a small connection pool, and `requireTLS` for plaintext ports. Provider
 errors are logged as provider name plus category only.
 
-**Current code constraint:** Gmail is the only implemented `EmailProvider`, and
-`assertProductionConfig()` accepts only `EMAIL_PROVIDER=gmail`. The production guard
-therefore permits Gmail SMTP even though the rest of this document treats it as
-development-only. Moving to Resend or another provider requires a provider implementation
-and a matching production-guard change; it is not a configuration-only switch today.
-
 `CLIENT_URL` (already configured) is used to build password reset links:
 `<CLIENT_URL>/reset-password?token=...`.
 
@@ -90,10 +84,8 @@ Rules:
 - If a password is exposed, revoke it in the Google account and generate a new one.
 
 If a required value is missing, the API returns a clear configuration error naming the
-missing variables (never their values). SMTP configuration is loaded lazily on the first
-email send: in development the API still starts and unrelated tests still run without it.
-With `NODE_ENV=production`, the startup guard requires the SMTP settings before the
-server listens, so this lazy-loading exception does not apply.
+missing variables (never their values). SMTP configuration is loaded lazily on the
+first email send, so the API still starts and unrelated tests still run without it.
 
 ## 4. Test delivery locally
 
@@ -150,9 +142,7 @@ Templates and business logic stay the same.
    address on the verified FitPal domain.
 5. Remove Gmail SMTP settings from deployment environments.
 
-No authentication flow, token rule or template needs to change, but
-`apps/api/src/config/production.ts` must be updated in the same change or production
-startup will reject `EMAIL_PROVIDER=resend`.
+No authentication flow, token rule or template needs to change.
 
 ## 7. OTP HMAC pepper
 

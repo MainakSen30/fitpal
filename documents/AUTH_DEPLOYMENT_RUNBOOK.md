@@ -5,14 +5,6 @@ deploy commands are out of scope; the API uses the same environment contract on 
 platform. Never run these steps against a development database, and never put database
 credentials in this document or in logs.
 
-Phase 8.7 reconciles this runbook against the source at commit `9c7e8b0`. The stack is
-**not approved for production** until the external prerequisites in
-[`AUTH_PRODUCTION_READINESS.md`](./AUTH_PRODUCTION_READINESS.md) are satisfied. Status
-labels used in the final audit are: **Code verified** (source/tests), **Configuration
-required** (operator-supplied values/topology), **External dependency** (provider or
-platform not in the repo), **Deferred** (known work not in this phase), and
-**Unverified** (cannot be established locally).
-
 ## 1. Preconditions
 
 - The target is a dedicated production PostgreSQL database and Redis instance/service.
@@ -38,12 +30,6 @@ Generate a unique `OTP_PEPPER` in the secret manager (for example with
 `openssl rand -hex 32`). Rotating it invalidates every outstanding OTP. Use a distinct
 reply-to and sender on a verified domain. Set `SMS_MODE=disabled` until a real SMS
 provider is implemented; mock delivery is rejected in production.
-
-Two source-level constraints must be read literally: the production guard accepts only
-`EMAIL_PROVIDER=gmail` even though Gmail SMTP is development-only guidance, and it does
-not reject `MOBILE_OAUTH_SCHEMES=exp` (it rejects only `http`, `https`, `javascript` and
-`data`). Omit `exp` from the production allowlist. Replace Gmail with a verified-domain
-provider only as a coordinated provider + guard change.
 
 ## 3. Database backup
 
@@ -122,10 +108,7 @@ Expected responses:
 
 `/health` is liveness only. `/readyz` checks PostgreSQL and Redis and returns `503`
 with `{"status":"unavailable"}` if either is unavailable. Neither endpoint exposes
-connection details. The API checks dependencies at startup in production, but the
-committed Compose healthcheck calls `/health`, not `/readyz`. Configure the platform's
-readiness/load-balancer probe to call `/readyz` separately; otherwise a dependency outage
-after startup will not remove the instance from traffic even though auth fails closed.
+connection details.
 
 Also verify from the platform:
 
@@ -192,8 +175,6 @@ Before a production release, require all of the following to pass in CI:
 - Docker Compose validation and both production image builds;
 - secret scanning/dependency audit if the platform already provides one.
 
-The committed CD workflow is inert: it references a missing `fly.api.toml` and a
-placeholder repository guard (`your-org/fitpal`), so neither deploy job can run as
-written. Treat deployment as a manual, approved operation until the deployment target
-configuration is committed and verified. CI checks add gates but do not deploy or prove
-the production environment.
+The committed CD workflow is not yet usable: it references a missing `fly.api.toml`
+and a placeholder repository guard. Treat deployment as a manual, approved operation
+until the deployment target configuration is committed and verified.

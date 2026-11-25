@@ -46,8 +46,7 @@ the token returned by the exchange endpoint in `SecureStore` under `auth_token`.
 | dev build / standalone | `fitpal` | Registered by the app's native scheme configuration. |
 
 Both must be listed in `MOBILE_OAUTH_SCHEMES` during local development. A production
-build should normally allow only `fitpal`. The startup guard does not reject `exp`, so
-remove it from the production allowlist explicitly.
+build should normally allow only `fitpal`.
 
 ### The `exp+fitpal` trap (verified, not assumed)
 

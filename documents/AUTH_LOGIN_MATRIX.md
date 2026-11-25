@@ -2,9 +2,7 @@
 
 ## Pre-implementation audit
 
-The following table is a historical snapshot of the pre-Phase-5 baseline (commit
-`322b93a`), not a description of current code. Later rows in this document record the
-implemented Phase 5–8.7 behavior.
+The following behavior was present before Phase 5 (commit `322b93a`):
 
 | Area | Existing behavior | Callers that depend on it |
 | --- | --- | --- |
@@ -142,30 +140,6 @@ email providers, malformed URLs/ports, or non-TLS public database/Redis hosts. `
 and `CORS_ORIGIN` no longer fall back to localhost defaults at runtime. `GET /readyz`
 checks PostgreSQL and Redis; `GET /health` remains liveness-only. See
 [`AUTH_PRODUCTION_READINESS.md`](./AUTH_PRODUCTION_READINESS.md).
-
-### Phase 8.7 final consolidated capability matrix
-
-Source is authoritative; this table reconciles web/mobile clients, the API, and the
-evidence used to verify each capability. Status labels are the final audit labels:
-**Code verified** (behaviour established from source/tests), **Configuration required**
-(operator must supply values/topology), **External dependency** (provider/platform outside
-the repository), **Deferred** (known gap with separate corrective work), and
-**Unverified** (cannot be established locally).
-
-| Capability | Web | Mobile | Verification behavior / evidence | Final status |
-| --- | --- | --- | --- | --- |
-| Password login | `POST /auth/login`; session cookie plus double-submit CSRF; web helper exists | Same endpoint; returned token stored in Expo `SecureStore` and sent as Bearer | Login/session/auth-journey tests; generic `401`; Redis login limiter and PostgreSQL session validation | **Code verified** |
-| Email OTP login/send | `POST /auth/otp/send|verify`; no code returned; generic send response | Same API; Bearer session on verify | OTP engine DB tests; PostgreSQL authoritative cooldown/quota/lock; SMTP provider tests use fakes | **Code verified** backend; **Configuration required** SMTP values |
-| Phone OTP login/send | Same API with E.164 identifier; production delivery returns a configuration failure | Same API; no usable code without a provider | Disabled-SMS provider test; mock provider never sends; no real provider exists | **External dependency** |
-| Signup and progressive verification | Pending account gets no session until email/phone verification; web signup/verify UI is not complete | Mobile signup/recovery screens are not complete | Signup tests; server-derived purposes; one-time continuation-token resend handle | **Code verified** API; **Deferred** client screens |
-| Google OAuth | Backend creates cookie session, CSRF token, redirects to `CLIENT_URL`; `/dashboard` and `/login` web routes are absent | Server-owned state, one-time exchange code, Bearer token in `SecureStore` | OIDC/nonce/state tests with local JWKS; live Google Console registration and device flow are local-unverified | **Code verified** backend; **Deferred** web routes; **External dependency** live OAuth |
-| Cookie/CSRF session handling | `csrf_token` cookie echoed in `X-CSRF-Token`; host-only, non-HttpOnly, `Secure`, `SameSite=Lax` | Bearer requests are exempt; no CSRF cookie required | CSRF tests; token is reusable and not bound to a session or rotated | **Code verified** mechanism; **Deferred** session-bound hardening |
-| Session validation and revocation | PostgreSQL-authoritative version check on every request; web logout calls `/auth/logout` | Bearer validation uses same path; `/auth/logout` exists but mobile sign-out only deletes the local token | Session-security tests; password change/reset increments `session_version` | **Code verified** API; **Deferred** mobile server-side logout |
-| Password recovery | API sends generic response, never creates a session, revokes sessions on reset; reset screen absent | Same API; reset screen absent | Recovery tests; atomic OTP consume + password/version update | **Code verified** API; **Deferred** client screen |
-| Production startup guard | `NODE_ENV=production` fail-fast validation before listen | Same API contract | `production-readiness` tests; config module loaded at `index.ts` before server start | **Code verified** guard; **Configuration required** values |
-| Health and readiness | `/health` static liveness; `/readyz` checks PostgreSQL and Redis; Compose probes `/health` only | Same endpoints | Readiness tests; startup readiness in production; no continuous Compose `/readyz` probe | **Code verified** endpoints; **Configuration required** platform readiness probe |
-| CSRF origin/proxy assumptions | Explicit CORS allowlist; `X-Forwarded-For` trusted only from exact `TRUSTED_PROXY_IP` | Not applicable to Bearer except shared rate-limit IP resolution | Client-IP and CORS tests; real proxy peer and published origins are deployment-specific | **Code verified** logic; **Configuration required** topology |
-| PKCE S256 | Not implemented; server-owned state is single-use but not browser/app-bound | Not implemented | Source and OAuth documentation confirm deferral | **Deferred** |
 
 ### Phase 8.5 pre-lookup throttling
 
