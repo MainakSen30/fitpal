@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Navbar } from "@/components/navbar";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,8 +16,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth dark">
-      <body className="bg-dark-base text-gray-100 antialiased selection:bg-brand-500 selection:text-white">
-        {children}
+      <body className="bg-wine-900 text-cream-100 antialiased selection:bg-wine-700 selection:text-cream-100">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-100 focus:rounded-control focus:bg-cream-100 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-wine-950"
+        >
+          Skip to content
+        </a>
+        <Navbar />
+        <main id="main-content" tabIndex={-1} className="relative focus:outline-none">
+          {children}
+        </main>
+        <SiteFooter />
       </body>
     </html>
   );
