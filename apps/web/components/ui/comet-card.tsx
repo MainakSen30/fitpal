@@ -53,7 +53,7 @@ export const CometCard = ({
   const glareX = useTransform(mouseXSpring, [-0.5, 0.5], [0, 100]);
   const glareY = useTransform(mouseYSpring, [-0.5, 0.5], [0, 100]);
 
-  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.12) 10%, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0) 80%)`;
+  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(247,240,228,0.10) 10%, rgba(247,240,228,0.05) 20%, rgba(255,255,255,0) 80%)`;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!ref.current) return;
@@ -92,7 +92,7 @@ export const CometCard = ({
           translateY,
           overflow: "hidden",
         }}
-        className="relative rounded-2xl"
+        className="relative rounded-card"
       >
         <>{children}</>
         <motion.div
