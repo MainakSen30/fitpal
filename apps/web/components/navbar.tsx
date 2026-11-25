@@ -36,16 +36,14 @@ export function Navbar() {
   }, [open]);
 
   return (
-    <header className="fixed top-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-page -translate-x-1/2">
-      <div className="flex h-16 items-center justify-between rounded-full border border-border bg-wine-900 px-4 shadow-surface sm:px-6 lg:px-7">
-        <Link href="/" aria-label="FitPal home" className="flex items-center gap-2.5">
-          <FitPalMark />
-          <span className="text-lg font-semibold tracking-tight text-cream-100">
-            Fit<span className="text-accent-clay">Pal</span>
-          </span>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-hairline bg-wine-900/90 backdrop-blur-md">
+      <div className="container-editorial flex h-16 items-center justify-between gap-6">
+        <Link href="/" aria-label="FitPal home" className="flex flex-shrink-0 items-center gap-2.5">
+          <FitPalMark className="h-7 w-7 rounded-[6px]" />
+          <span className="font-display text-[17px] font-semibold tracking-tight text-cream-100">FitPal</span>
         </Link>
 
-        <nav aria-label="Primary" className="hidden items-center gap-5 text-sm text-cream-300 lg:flex xl:gap-6">
+        <nav aria-label="Primary" className="hidden items-center gap-5 text-[13px] text-cream-300 lg:flex xl:gap-7">
           {features.map(({ name, href }) => {
             const active = pathname === href;
             return (
@@ -53,15 +51,23 @@ export function Navbar() {
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`transition-colors hover:text-cream-100 ${active ? "text-cream-100" : ""}`}
+                className={`relative py-2 transition-colors hover:text-cream-100 ${
+                  active ? "text-cream-100" : ""
+                }`}
               >
                 {name}
+                {active ? (
+                  <span className="absolute inset-x-0 -bottom-px h-px bg-accent-clay" aria-hidden="true" />
+                ) : null}
               </Link>
             );
           })}
         </nav>
 
-        <Link href={downloadHref} className="button-secondary hidden px-4 py-1.5 text-sm lg:inline-flex">
+        <Link
+          href={downloadHref}
+          className="button-primary hidden px-4 py-2.5 text-[13px] lg:inline-flex"
+        >
           Get the App
         </Link>
 
@@ -72,7 +78,7 @@ export function Navbar() {
           aria-expanded={open}
           aria-controls="mobile-navigation"
           onClick={() => setOpen((value) => !value)}
-          className="flex h-11 w-11 items-center justify-center rounded-control text-cream-100 transition-colors hover:bg-wine-800 lg:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-control text-cream-100 transition-colors hover:bg-wine-800 active:bg-wine-700 lg:hidden"
         >
           {open ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
         </button>
@@ -81,11 +87,11 @@ export function Navbar() {
       <div
         id="mobile-navigation"
         aria-hidden={!open}
-        className={`absolute left-0 right-0 top-full z-50 mt-2 rounded-card border border-border bg-wine-900 p-2 shadow-surface transition-[opacity,transform] duration-150 lg:hidden ${
+        className={`absolute inset-x-0 top-full border-b border-hairline bg-wine-900 transition-[opacity,transform] duration-150 lg:hidden ${
           open ? "visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-2 opacity-0"
         }`}
       >
-        <nav aria-label="Mobile primary" className="flex flex-col gap-1">
+        <nav aria-label="Mobile primary" className="container-editorial flex flex-col py-3">
           {features.map(({ name, href }) => {
             const active = pathname === href;
             return (
@@ -94,8 +100,8 @@ export function Navbar() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 onClick={() => setOpen(false)}
-                className={`flex min-h-11 items-center rounded-control px-3 text-sm transition-colors hover:bg-wine-800 hover:text-cream-100 ${
-                  active ? "bg-wine-800 text-cream-100" : "text-cream-300"
+                className={`flex min-h-11 items-center border-b border-divider text-sm transition-colors last:border-b-0 hover:text-cream-100 ${
+                  active ? "text-cream-100" : "text-cream-300"
                 }`}
               >
                 {name}
@@ -105,7 +111,7 @@ export function Navbar() {
           <Link
             href={downloadHref}
             onClick={() => setOpen(false)}
-            className="button-secondary mt-2 min-h-11 px-4 py-3 text-sm"
+            className="button-primary mt-4 min-h-11 px-4 py-3 text-sm"
           >
             Get the App
           </Link>

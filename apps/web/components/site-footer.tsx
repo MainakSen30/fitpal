@@ -36,20 +36,24 @@ export function SiteFooter() {
   if (!links) return null;
 
   return (
-    <footer className="relative z-10 border-t border-divider bg-wine-900 py-10">
-      <div className="mx-auto flex max-w-page flex-col items-center justify-between gap-6 px-4 sm:px-6 md:flex-row lg:px-8">
-        <div className="flex items-center gap-2.5">
-          <FitPalMark />
-          <span className="text-sm font-medium text-cream-100">FitPal</span>
-          <span className="text-xs text-cream-400">© 2026 FitPal Inc.</span>
+    <footer className="border-t border-hairline bg-wine-950">
+      <div className="container-editorial py-10 lg:py-12">
+        <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2.5">
+            <FitPalMark className="h-7 w-7 rounded-[6px]" />
+            <span className="font-display text-sm font-semibold tracking-tight text-cream-100">FitPal</span>
+          </div>
+          <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-7 gap-y-3 text-[13px] text-cream-300">
+            {links.map(({ label, href }) => (
+              <Link key={`${href}-${label}`} href={href} className="transition-colors hover:text-cream-100">
+                {label}
+              </Link>
+            ))}
+          </nav>
         </div>
-        <nav aria-label="Footer" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-cream-400">
-          {links.map(({ label, href }) => (
-            <Link key={`${href}-${label}`} href={href} className="transition-colors hover:text-cream-100">
-              {label}
-            </Link>
-          ))}
-        </nav>
+        <div className="mt-8 border-t border-divider pt-5">
+          <p className="type-label text-cream-400">© 2026 FitPal Inc.</p>
+        </div>
       </div>
     </footer>
   );

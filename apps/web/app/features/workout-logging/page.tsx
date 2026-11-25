@@ -1,114 +1,64 @@
 "use client";
 
-import Link from "next/link";
-import { motion } from "framer-motion";
+import { MotionReveal } from "@/components/motion-reveal";
 import { PhoneMockup, WorkoutLoggingMockup } from "@/components/phone-mockup";
-import { CheckCircle2, Zap } from "lucide-react";
-import { CanvasText } from "@/components/ui/canvas-text";
-import { CometCard } from "@/components/ui/comet-card";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { NoiseBackground } from "@/components/ui/noise-background";
+import { FeatureIntro } from "@/components/feature-intro";
+import { SiteCta } from "@/components/site-cta";
+
+const points = [
+  { title: "Instant Start", desc: "Begin an empty session or load a routine in one tap" },
+  { title: "Smart Auto-Fill", desc: "Previous weights and reps pre-populated for each exercise automatically" },
+  { title: "PR Detection", desc: "Instantly celebrate when you hit a personal record" },
+  { title: "Optimized for Speed", desc: "Designed for one-handed use between sets in the gym" },
+];
 
 export default function WorkoutLoggingPage() {
   return (
-    <div className="min-h-screen bg-wine-900 text-cream-100 antialiased">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_0%,rgba(27,5,12,0.4),transparent_70%)]" />
-      </div>
+    <div className="overflow-x-hidden text-cream-100 antialiased">
+      <section className="container-editorial pb-16 pt-28 sm:pt-32 lg:pb-24 lg:pt-36">
+        <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-16">
+          <MotionReveal className="lg:col-span-6">
+            <FeatureIntro
+              index="01"
+              title="Quick Workout Logging"
+              body="Log sets, reps, and weights faster than ever. Start from scratch or from a routine, track your progress set by set, and hit new PRs with intelligent auto-fill and instant PR detection."
+            />
+          </MotionReveal>
 
-      <div className="relative z-10">
-        <section className="pt-32 pb-20 md:pt-40 md:pb-28">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-clay/10 border border-accent-clay/20 text-xs font-medium text-accent-clay mb-8">
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Feature</span>
-                </div>
-                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[120px]"><CanvasText text="Quick Workout Logging" className="font-semibold tracking-tight text-4xl sm:text-5xl lg:text-6xl" colors={["#D9BE8A", "#C9795A", "#EADFCB", "#A89279"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
-                <div className="text-lg text-cream-300 leading-relaxed mb-10">
-                  <TextGenerateEffect
-                    words="Log sets, reps, and weights faster than ever. Start from scratch or from a routine, track your progress set by set, and hit new PRs with intelligent auto-fill and instant PR detection."
-                    className="max-w-xl"
-                    duration={0.25}
-                  />
-                </div>
-                <div className="space-y-6">
-                  {[
-                    { title: "Instant Start", desc: "Begin an empty session or load a routine in one tap" },
-                    { title: "Smart Auto-Fill", desc: "Previous weights and reps pre-populated for each exercise automatically" },
-                    { title: "PR Detection", desc: "Instantly celebrate when you hit a personal record" },
-                    { title: "Optimized for Speed", desc: "Designed for one-handed use between sets in the gym" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-4">
-                      <CheckCircle2 className="w-5 h-5 text-accent-clay flex-shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-cream-100 mb-1">{item.title}</div>
-                        <div className="text-sm text-cream-300 leading-relaxed">{item.desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
-                className="flex justify-center"
-              >
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-b from-wine-600/15 to-transparent rounded-[3rem] blur-2xl" />
-                  <CometCard rotateDepth={16} translateDepth={16}>
-                    <PhoneMockup>
-                      <WorkoutLoggingMockup />
-                    </PhoneMockup>
-                  </CometCard>
-                </div>
-              </motion.div>
+          <MotionReveal className="flex justify-center lg:col-span-6 lg:justify-end" delay={0.06}>
+            <div className="w-full max-w-[360px]">
+              <div className="mb-5 hidden items-center justify-between border-b border-hairline pb-3 lg:flex">
+                <span className="type-label">Current Session</span>
+                <span className="type-label">01 / 06</span>
+              </div>
+              <div className="flex justify-center lg:justify-end">
+                <PhoneMockup>
+                  <WorkoutLoggingMockup />
+                </PhoneMockup>
+              </div>
             </div>
-          </div>
-        </section>
-      </div>
+          </MotionReveal>
+        </div>
+      </section>
 
-        <section className="py-16 sm:py-20 border-t border-divider">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-cream-100 mb-4">Ready to start your journey?</h2>
-            <p className="text-lg text-cream-300 mb-10">Download FitPal and track every rep towards your goals.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/#download" className="group">
-                <NoiseBackground
-                  className="rounded-full"
-                  containerClassName="rounded-full"
-                  gradientColors={["rgba(113,48,71,0.6)", "rgba(92,27,45,0.5)", "rgba(201,121,90,0.2)"]}
-                  noiseIntensity={0.22}
-                  speed={0.12}
-                >
-                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-cream-100 border border-border group-hover:border-accent-clay/40 transition-all">
-                    Download for iOS
-                  </div>
-                </NoiseBackground>
-              </Link>
-              <Link href="/#download" className="group">
-                <NoiseBackground
-                  className="rounded-full"
-                  containerClassName="rounded-full"
-                  gradientColors={["rgba(113,48,71,0.6)", "rgba(92,27,45,0.5)", "rgba(201,121,90,0.2)"]}
-                  noiseIntensity={0.22}
-                  speed={0.12}
-                >
-                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-cream-100 border border-border group-hover:border-accent-clay/40 transition-all">
-                    Download for Android
-                  </div>
-                </NoiseBackground>
-              </Link>
+      <section className="container-editorial pb-20 lg:pb-24">
+        <div className="grid gap-px border border-hairline bg-hairline sm:grid-cols-2">
+          {points.map((point, index) => (
+            <div key={point.title} className="bg-wine-900 p-6 sm:p-8 lg:p-10">
+              <span className="type-label">0{index + 1}</span>
+              <h2 className="type-title mt-5">{point.title}</h2>
+              <p className="type-body mt-2 max-w-sm">{point.desc}</p>
             </div>
-          </div>
-        </section>
+          ))}
+        </div>
+      </section>
 
+      <SiteCta
+        actions={[
+          { label: "Download for iOS", href: "/#download" },
+          { label: "Download for Android", href: "/#download" },
+        ]}
+      />
     </div>
   );
 }

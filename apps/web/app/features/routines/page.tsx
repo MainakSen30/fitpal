@@ -1,114 +1,67 @@
 "use client";
 
-import Link from "next/link";
-import { motion } from "framer-motion";
+import { MotionReveal } from "@/components/motion-reveal";
 import { PhoneMockup, RoutinesMockup } from "@/components/phone-mockup";
-import { CometCard } from "@/components/ui/comet-card";
-import { TextGenerateEffect } from "@/components/ui/text-generate-effect";
-import { NoiseBackground } from "@/components/ui/noise-background";
-import { CanvasText } from "@/components/ui/canvas-text";
-import { CheckCircle2, ListChecks } from "lucide-react";
+import { FeatureIntro } from "@/components/feature-intro";
+import { SiteCta } from "@/components/site-cta";
+
+const points = [
+  { title: "Flexible Splits", desc: "Design any routine structure that fits your schedule and goals" },
+  { title: "Exercise Ordering", desc: "Reorder exercises with drag-and-drop to match your flow" },
+  { title: "Targets & Notes", desc: "Set reps, sets, RPE, rest periods, and notes per exercise" },
+  { title: "Start Instantly", desc: "Launch any routine into an active workout session in one tap" },
+];
 
 export default function RoutinesPage() {
   return (
-    <div className="min-h-screen bg-wine-900 text-cream-100 antialiased">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_0%,rgba(27,5,12,0.4),transparent_70%)]" />
-      </div>
+    <div className="overflow-x-hidden text-cream-100 antialiased">
+      <section className="container-editorial pb-12 pt-28 sm:pt-32 lg:pb-16 lg:pt-36">
+        <MotionReveal>
+          <FeatureIntro
+            index="02"
+            title="Custom Routines & Splits"
+            body="Build your perfect training program. Create Push/Pull/Legs, Upper/Lower, or any custom split tailored to your goals. Start any routine instantly with all your targets pre-loaded."
+            layout="split"
+          />
+        </MotionReveal>
+      </section>
 
-      <div className="relative z-10">
-        <section className="pt-32 pb-20 md:pt-40 md:pb-28">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-              >
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-clay/10 border border-accent-clay/20 text-xs font-medium text-accent-clay mb-8">
-                  <ListChecks className="w-3.5 h-3.5" />
-                  <span>Feature</span>
+      <section className="container-editorial pb-20 lg:pb-24">
+        <div className="grid gap-12 lg:grid-cols-12 lg:items-center lg:gap-16">
+          <MotionReveal className="flex justify-center lg:col-span-5 lg:justify-start" delay={0.06}>
+            <div className="w-full max-w-[360px]">
+              <div className="mb-5 flex items-center justify-between border-b border-hairline pb-3">
+                <span className="type-label">Training</span>
+                <span className="type-label">02 / 06</span>
+              </div>
+              <div className="flex justify-center lg:justify-start">
+                <PhoneMockup>
+                  <RoutinesMockup />
+                </PhoneMockup>
+              </div>
+            </div>
+          </MotionReveal>
+
+          <div className="lg:col-span-7">
+            <div className="grid gap-px border border-hairline bg-hairline sm:grid-cols-2">
+              {points.map((point, index) => (
+                <div key={point.title} className="bg-wine-900 p-6 sm:p-8">
+                  <span className="type-label">0{index + 1}</span>
+                  <h2 className="type-title mt-5">{point.title}</h2>
+                  <p className="type-body mt-2">{point.desc}</p>
                 </div>
-                <div className="mb-6 min-h-[80px] sm:min-h-[100px] lg:min-h-[120px]"><CanvasText text="Custom Routines & Splits" className="font-semibold tracking-tight text-4xl sm:text-5xl lg:text-6xl" colors={["#D9BE8A", "#C9795A", "#EADFCB", "#A89279"]} animationDuration={4} lineWidth={1.2} lineGap={8} curveIntensity={40} /></div>
-                <div className="text-lg text-cream-300 leading-relaxed mb-10">
-                  <TextGenerateEffect
-                    words="Build your perfect training program. Create Push/Pull/Legs, Upper/Lower, or any custom split tailored to your goals. Start any routine instantly with all your targets pre-loaded."
-                    className="max-w-xl"
-                    duration={0.25}
-                  />
-                </div>
-                <div className="space-y-6">
-                  {[
-                    { title: "Flexible Splits", desc: "Design any routine structure that fits your schedule and goals" },
-                    { title: "Exercise Ordering", desc: "Reorder exercises with drag-and-drop to match your flow" },
-                    { title: "Targets & Notes", desc: "Set reps, sets, RPE, rest periods, and notes per exercise" },
-                    { title: "Start Instantly", desc: "Launch any routine into an active workout session in one tap" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-start gap-4">
-                      <CheckCircle2 className="w-5 h-5 text-accent-clay flex-shrink-0 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-cream-100 mb-1">{item.title}</div>
-                        <div className="text-sm text-cream-300 leading-relaxed">{item.desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.15, ease: [0.25, 0.1, 0.25, 1] }}
-                className="flex justify-center"
-              >
-                <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-b from-wine-600/15 to-transparent rounded-[3rem] blur-2xl" />
-                  <CometCard rotateDepth={16} translateDepth={16}>
-                  <PhoneMockup>
-                    <RoutinesMockup />
-                  </PhoneMockup>
-                  </CometCard>
-                </div>
-              </motion.div>
+              ))}
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
-        <section className="py-16 sm:py-20 border-t border-divider">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl sm:text-4xl font-semibold tracking-tight text-cream-100 mb-4">Ready to start your journey?</h2>
-            <p className="text-lg text-cream-300 mb-10">Download FitPal and track every rep towards your goals.</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/#download" className="group">
-                <NoiseBackground
-                  className="rounded-full"
-                  containerClassName="rounded-full"
-                  gradientColors={["rgba(113,48,71,0.6)", "rgba(92,27,45,0.5)", "rgba(201,121,90,0.2)"]}
-                  noiseIntensity={0.22}
-                  speed={0.12}
-                >
-                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-cream-100 border border-border group-hover:border-accent-clay/40 transition-all">
-                    Download for iOS
-                  </div>
-                </NoiseBackground>
-              </Link>
-              <Link href="/#download" className="group">
-                <NoiseBackground
-                  className="rounded-full"
-                  containerClassName="rounded-full"
-                  gradientColors={["rgba(113,48,71,0.6)", "rgba(92,27,45,0.5)", "rgba(201,121,90,0.2)"]}
-                  noiseIntensity={0.22}
-                  speed={0.12}
-                >
-                  <div className="px-6 py-2.5 rounded-full font-medium text-sm text-cream-100 border border-border group-hover:border-accent-clay/40 transition-all">
-                    Download for Android
-                  </div>
-                </NoiseBackground>
-              </Link>
-            </div>
-          </div>
-        </section>
-
+      <SiteCta
+        actions={[
+          { label: "Download for iOS", href: "/#download" },
+          { label: "Download for Android", href: "/#download" },
+        ]}
+      />
     </div>
   );
 }

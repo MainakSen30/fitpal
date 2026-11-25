@@ -1,25 +1,25 @@
 # FitPal Web Design System
 
-Status: active for `apps/web`. Phase 1 visual foundations.
+Status: active for `apps/web`. Phase 7 visual redesign.
 
-This document supersedes the previous charcoal and orange design guidance. It reflects the tokens and foundations implemented in Phase 1. Page layouts, copy, routes, navigation destinations and component structures were intentionally left in place.
+This document describes the implemented public marketing system: tokens, typography, layout grid, components, motion and page composition. It supersedes the Phase 1 foundation notes where they differ. Copy, routes, navigation destinations and product claims were left unchanged by the redesign.
 
 ## 1. Design philosophy
 
 **Editorial minimalism for the overall identity. Athletic precision for the workout experience.**
 
-The public website introduces the FitPal mobile product. It should read like a premium fitness journal: calm, confident, typographic and precise. The identity comes from deep burgundy fields, warm cream type, restrained surfaces and deliberate spacing, not from decorative effects.
+The public website introduces the FitPal mobile product. It should read like a premium fitness journal: calm, confident, typographic and precise. The identity comes from deep burgundy fields, warm cream type, hairline rules and deliberate spacing, not from decorative effects.
 
-Workout data should be structured, legible and tabular. Set rows, metrics and labels should align tightly and use clear hierarchy. Visual interest should come from composition and typography rather than glows, gradients, glass panels or perpetual motion.
+Workout data should be structured, legible and tabular. Set rows, metrics and labels align tightly and use clear hierarchy. Visual interest comes from composition and type rather than glows, gradients, glass panels or perpetual motion.
 
 ## 2. Editorial minimalism and athletic precision
 
 Editorial minimalism means:
 
-- Generous margins and clear section rhythm.
+- Generous margins and a clear section rhythm.
 - Strong headline hierarchy with tight tracking.
 - Short, calm labels rather than loud badges.
-- Restrained borders and dividers instead of heavy containers.
+- Ruled sections and hairline dividers instead of heavy containers.
 - One clear focal point per section.
 
 Athletic precision means:
@@ -38,88 +38,81 @@ Exact values implemented in `apps/web/app/globals.css`.
 |---|---|---|---|
 | wine-950 | `--wine-950` | `#1B050C` | Deepest background, device interiors |
 | wine-900 | `--wine-900` | `#2A0812` | Primary page background |
-| wine-800 | `--wine-800` | `#3A0D1A` | Alternating surfaces, cards |
-| wine-700 | `--wine-700` | `#4A1424` | Secondary surface, logo tile |
-| wine-600 | `--wine-600` | `#5C1B2D` | Elevated surface, selection |
-| wine-500 | `--wine-500` | `#713047` | Hover and active surface |
+| wine-800 | `--wine-800` | `#3A0D1A` | Panels, device bezel |
+| wine-700 | `--wine-700` | `#4A1424` | Hover and secondary surface |
+| wine-600 | `--wine-600` | `#5C1B2D` | Selection |
+| wine-500 | `--wine-500` | `#713047` | Active surface |
 | cream-100 | `--cream-100` | `#F7F0E4` | Primary text, primary button fill |
-| cream-200 | `--cream-200` | `#EADFCB` | Secondary text, primary button hover |
+| cream-200 | `--cream-200` | `#EADFCB` | Body copy, primary button hover |
 | cream-300 | `--cream-300` | `#CBB99F` | Muted text |
-| cream-400 | `--cream-400` | `#A89279` | Low-emphasis metadata |
+| cream-400 | `--cream-400` | `#A89279` | Labels and low-emphasis metadata |
 | accent-clay | `--accent-clay` | `#C9795A` | Occasional data or state accent |
-| accent-sand | `--accent-sand` | `#D9BE8A` | Small highlights, hover accents |
+| accent-sand | `--accent-sand` | `#D9BE8A` | Small highlights |
 | focus | `--focus-ring` | `#F0D9AE` | Keyboard focus outline |
 
-Additional tokens:
+Surface and rule tokens:
 
 | Token | CSS variable | Value |
 |---|---|---|
-| Border | `--border-subtle` | `rgba(247, 240, 228, 0.14)` |
-| Divider | `--divider-subtle` | `rgba(247, 240, 228, 0.10)` |
+| Hairline | `--border-hairline` | `rgba(247, 240, 228, 0.12)` |
+| Strong hairline | `--border-hairline-strong` | `rgba(247, 240, 228, 0.24)` |
+| Divider | `--divider-subtle` | `rgba(247, 240, 228, 0.08)` |
 | Page background | `--background` | `var(--wine-900)` |
 | Page foreground | `--foreground` | `var(--cream-100)` |
 
 Colour rules:
 
-- Burgundy is the dominant background.
-- Cream is the primary text colour.
-- Wine surfaces distinguish cards and sections.
-- Clay is an occasional accent, not a dominant accent.
-- Sand is used sparingly for focus, hover and small highlights.
+- Burgundy is the dominant background; cream is the primary text colour.
+- Clay is an occasional accent for data, active indicators and emphasis, not a field colour.
+- Sand is used sparingly.
+- Hairline rules carry most of the structure. No glows, gradients or coloured fields.
+- Measured contrast on wine-900: cream-100 16.2:1, cream-200 13.9:1, cream-300 9.6:1, cream-400 6.2:1, clay 5.6:1, sand 10.2:1.
 - Do not introduce new accent colours without a documented reason.
 
-## 4. Typography direction and fallback
+## 4. Typography
 
-The reference direction is a confident modern sans-serif identity. The exact Sweety font configuration is not present in the repository and was not installed in Phase 1.
+Loaded with `next/font/google` in `apps/web/app/layout.tsx` and exposed as CSS variables.
 
-Implemented fallback:
+| Role | Family | Variable |
+|---|---|---|
+| Display and headings | Plus Jakarta Sans | `--font-jakarta` |
+| Body, labels, UI | Inter | `--font-inter` |
+| Numeric fallback | system monospace | `--font-mono` |
 
-- Sans: `-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif`
-- Mono: `ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace`
-- Tabular numerals are enabled globally with `font-variant-numeric: tabular-nums`.
+Implemented utilities:
 
-Direction:
+- `.type-display`: `clamp(2.5rem, 6.4vw, 4.25rem)`, 600, tracking `-0.03em`, leading `1.02`.
+- `.type-headline`: `clamp(2rem, 3.8vw, 2.75rem)`, 600, tracking `-0.025em`.
+- `.type-title`: `17px`, 600, tracking `-0.01em`.
+- `.type-metric`: `clamp(1.75rem, 3vw, 2.25rem)`, tabular numerals.
+- `.type-body-lg`: `17px`, leading `1.65`.
+- `.type-body`: `15px`, leading `1.65`.
+- `.type-small`: `13px`, cream-300.
+- `.type-label` / `.type-eyebrow`: `11px`, 500, tracking `0.16em`, uppercase, cream-400.
+- `.tabular-data`: tabular numerals.
 
-- Display headings: bold or semibold, tight tracking.
-- Body: readable system sans-serif, comfortable line height.
-- Small labels: restrained uppercase styling with `0.08em` letter spacing.
-- Metrics: tabular numerals, high contrast values, muted labels.
-- Do not introduce a serif display face.
-- Do not install fonts or add font dependencies in this phase.
+Rules:
+
+- Display face for headings and metrics; body face for paragraphs, labels and navigation.
+- Headline tracking tightens as size grows. Labels are the only wide-tracked text.
+- Body copy stays at comfortable line lengths; no justified text.
+- Do not introduce a serif face.
 
 ## 5. Spacing and layout grid
 
-Implemented spacing scale in Tailwind's default 4px-based scale:
+Spacing follows Tailwind's 4px base scale: `4, 8, 12, 16, 24, 32, 48, 64, 96, 128px`.
 
-`4, 8, 12, 16, 24, 32, 48, 64, 96, 128px`
+Layout:
 
-Tailwind utility equivalents:
+- One editorial container: `.container-editorial`, max width `1240px`.
+- Gutters: `24px` below `1024px`, `40px` from `1024px`.
+- Desktop grid: 12 columns with `64px` gap (`gap-16`); tablet and mobile collapse to one or two columns.
+- Section rhythm: `80px` to `112px` vertical spacing on desktop, roughly half that on mobile.
+- Content is left-aligned; centred compositions are reserved for the rest timer page.
 
-`1, 2, 3, 4, 6, 8, 12, 16, 24, 32`
+Hierarchy comes from grid span, rule placement and type scale, not from nested cards.
 
-Grid direction:
-
-- Desktop: 12 columns.
-- Tablet: 8 columns.
-- Mobile: 4 columns.
-- Desktop grid gap: `32px` (`gap-8`).
-- Mobile grid gap: `24px` (`gap-6`).
-
-Use grid and spacing to create hierarchy. Do not add decoration to fill empty space.
-
-## 6. Container widths and breakpoints
-
-Implemented theme containers:
-
-| Container | CSS variable | Width |
-|---|---|---|
-| Page | `--container-page` | `1200px` |
-| Content | `--container-content` | `1120px` |
-| Reading | `--container-reading` | `68ch` |
-
-Tailwind mappings: `max-w-page`, `max-w-content`, `max-w-reading`.
-
-Breakpoints:
+## 6. Breakpoints
 
 | Name | Width |
 |---|---:|
@@ -129,157 +122,149 @@ Breakpoints:
 | xl | `1280px` |
 | 2xl | `1440px` |
 
-The `2xl` breakpoint is explicitly mapped in `@theme` to override Tailwind's larger default.
+The `2xl` breakpoint is explicitly mapped in `@theme` to override Tailwind's larger default. Layout decisions are made at `sm`, `lg` and the natural 1240px container cap; intermediate widths should reflow without new breakpoints.
 
-## 7. Cards and surface styling
+## 7. Surfaces and rules
 
-Implemented component utilities:
+Implemented utilities:
 
-- `.surface-card`: `wine-700` background, subtle border, `12px` radius.
-- `.surface-raised`: `wine-600` background, subtle border, `12px` radius.
-- `.eyebrow`: small uppercase label with wide letter spacing.
-- `.tabular-data`: tabular numerals for numeric groups.
+- `.panel`: hairline border, `16px` radius, translucent wine-800 fill.
+- `.panel-cell`: hairline cell border for ruled grids.
+- `.tabular-data`: numeric alignment.
 
 Rules:
 
-- Large cards use `12px` radius.
-- Small cards and controls use `6px` radius via `.rounded-control`.
-- Borders are `1px` and use the subtle cream token.
-- No default glow shadows.
-- If a shadow is required, use `.shadow-surface`, which is soft and dark.
-- Prefer flat surfaces and dividers over layered translucent panels.
+- Use `gap-px` grids over a hairline background for interior cell rules; do not stack borders that double up.
+- Panels are used for product evidence, logbook records and grouped feature lists, not for every section.
+- No drop shadows on cards. The only shadow is on the device bezel to seat it against the page.
+- Radii: panels `16px`, devices `40px`, buttons and pills fully rounded, small controls `8px`.
+- Borders are always `1px` hairlines.
 
 ## 8. Buttons and links
 
-Implemented component utilities:
+Implemented utilities:
 
-- `.button-primary`: cream fill, burgundy text, no glow, subtle cream hover.
-- `.button-secondary`: transparent fill, cream hairline border, cream text.
-- `.text-link`: cream text, underline offset `4px`, sand hover.
+- `.button-primary`: cream pill, wine-950 text, cream-200 hover, slight press scale.
+- `.button-secondary`: transparent pill, strong hairline border, cream text, faint cream hover fill.
+- `.text-link`: cream text with arrow icon; hover shifts to cream-300 and nudges the arrow.
 
 Rules:
 
-- Primary actions use cream fill and burgundy text.
-- Secondary actions use a transparent background and cream border.
-- Text links are cream with an underline and sand hover.
-- Do not use animated gradient buttons in new work.
-- Do not change CTA wording or destinations as part of token work.
+- Primary and secondary actions are pill-shaped and never wrap.
+- Labels and destinations are fixed; design work must not change CTA wording.
+- Hover and focus states must not shift layout.
+- Icons are `lucide-react` line icons at the text's optical size.
 
 ## 9. Borders, dividers and shadows
 
-- Use `border-border` for subtle cream borders.
-- Use `border-divider` and `divide-divider` for section rules and quiet separators.
-- Use `1px` borders only.
-- Do not use bright or high-contrast borders as the default.
-- Do not use orange glow, neon glow or radial glow fields.
-- Do not use large diffuse blurred colour fields.
-- `.shadow-surface` is the only implemented shadow token and is intentionally restrained.
+- `border-hairline` for section rules, table rows and panel edges.
+- `border-hairline-strong` for interactive outlines and the device bezel.
+- `border-divider` for internal mockup separators only.
+- No bright borders by default, no glow, no radial gradients, no blurred colour fields.
+- The single shadow token is the device drop shadow in `PhoneMockup`.
 
-## 10. Focus and accessibility standards
+## 10. Motion
 
 Implemented:
 
-- Global `:focus-visible` outline: `2px solid var(--focus-ring)` with `2px` offset.
-- Visually hidden "Skip to content" link that appears on focus and targets `#main-content`.
-- One `main` landmark per public route with `id="main-content"`.
-- Global text colours that keep body copy readable on burgundy.
-- No black text on burgundy backgrounds.
-- Selection styling uses `wine-700` with `cream-100` text.
+- `MotionProvider` plus `MotionReveal` for entrance reveals.
+- Reveals animate opacity and a short vertical offset only, once, and never loop.
+- CSS smooth scrolling is enabled by default.
+- Under `prefers-reduced-motion: reduce`, smooth scrolling is off, CSS transitions and animations are cut to near zero, and `[data-motion-reveal]` is forced to full opacity with no transform.
+- A `<noscript>` rule makes revealed content visible without JavaScript.
+
+Rules:
+
+- Motion supports hierarchy and feedback only.
+- No infinite decorative loops, parallax, floating cards or marquees.
+- Never rely on motion to communicate state.
+- Any new motion must degrade to a static layout under reduced motion.
+
+## 11. Focus and accessibility
+
+Implemented:
+
+- Global `:focus-visible` outline: `2px solid var(--focus-ring)` with `3px` offset.
+- Skip link to `#main-content`, visible on focus.
+- One `main` landmark per route with `id="main-content"`.
+- One `h1` per route; feature pages use `h2` for feature points.
+- `aria-current="page"` on the active navigation item.
+- Mobile menu: labelled trigger, `aria-expanded`, `aria-controls`, Escape to close with focus return, 44px targets.
+- Anchor targets carry `scroll-mt-24` to clear the fixed header.
+- Decorative icons are `aria-hidden`; no emoji in interface copy.
 
 Standards:
 
-- Every interactive element must have a visible focus state.
-- Focus must not rely on colour alone.
-- Hover states must be visible without changing layout.
-- Muted text must remain readable against its surface.
-- Headings and landmarks must remain semantic.
-- Do not add decorative emojis to user-facing copy.
+- Every interactive element needs a visible focus state.
+- Hover states must be visible without layout shift.
+- Muted text must remain readable: no label below cream-400 on wine-900.
 - Do not use em dashes in user-facing copy.
 
-## 11. Reduced-motion principles
+## 12. Components
 
-Implemented CSS foundation:
+- **Header** (`navbar.tsx`): fixed 64px bar, hairline bottom rule, logo, six feature links, primary "Get the App" pill, and a full-width mobile menu.
+- **Footer** (`site-footer.tsx`): compact two-tier block with brand line, feature links, legal line and year.
+- **Logo** (`fitpal-mark.tsx`): simplified geometric mark on a cream tile.
+- **Device** (`phone-mockup.tsx`): `264px` mobile, `300px` from `sm`; one bezel, one shadow. Exports one mockup per feature plus `HeroSessionMockup`, all preserving the original preview strings.
+- **FeatureIntro** (`feature-intro.tsx`): shared eyebrow, `h1` and body with `stacked`, `split` and `centered` variants.
+- **SiteCta** (`site-cta.tsx`): shared closing panel with fixed heading, supporting line and page-specific actions.
+- **MotionReveal** (`motion-reveal.tsx`): the only entrance animation primitive.
 
-- `html` uses `scroll-behavior: smooth` by default.
-- Under `prefers-reduced-motion: reduce`, smooth scrolling is disabled.
-- CSS animation and transition durations are reduced to near zero.
-- Non-essential CSS motion is disabled where safe.
+Rules:
 
-Principles:
-
-- Motion should support hierarchy and feedback, not fill space.
-- Do not add infinite loops as decoration.
-- Do not rely on motion to communicate essential state.
-- JavaScript animation refactors are deferred to the dedicated motion phase.
-
-## 12. Component design principles
-
-Current component roles:
-
-- Site header: quiet, non-glass surface with clear links and a visible CTA.
-- Hero: large editorial headline, restrained description, focused device figure.
-- Feature cards: flat, readable, typography-led surfaces.
-- Phone and mockups: precise data displays with tabular values.
-- CTA sections: clear primary and secondary actions with real focus states.
-- Footer: low-emphasis metadata and navigation.
-
-Principles:
-
-- Prefer typography, composition and spacing over decorative effects.
-- Keep workout data aligned and structured.
-- Keep the public website focused on introducing the mobile product.
+- Prefer real text and hairline structure over effect components. `canvas-text`, `comet-card`, `glare-card` and `text-generate-effect` are no longer used by any route.
+- Keep workout data aligned and structured in every mockup.
 - Do not imply product capabilities that are not implemented.
-- Do not redesign component layout during token work.
-- Recolour existing effects rather than expanding their complexity.
 
-Known Phase 1 limitation: `GlareCard`, `CometCard`, `NoiseBackground` and `CanvasText` retain their current interaction and animation structures. Their colours were migrated to the new palette. Full simplification or replacement belongs to later component and motion phases.
+## 13. Page composition
 
-## 13. Responsive design principles
+All seven routes share the container, type scale, header, footer and CTA. Each keeps a distinct composition:
 
-- Start from a 4-column mobile grid and expand at the defined breakpoints.
-- Use one column for primary content on small screens.
-- Keep line lengths comfortable and avoid dense numeric tables on narrow screens.
-- Preserve tap targets and visible focus on all breakpoints.
-- Use `24px` grid gaps on mobile and `32px` on desktop.
-- Avoid horizontal overflow from fixed-width device mockups.
-- Maintain the same hierarchy across web and mobile: headline, description, evidence, action.
+- **Home**: 7/5 hero split with a ruled glance list; product evidence panel pairing session metrics with the device; four-cell ruled statistics band; 4/8 feature index with numbered rows; shared CTA.
+- **Workout Logging**: 6/6 hero with the device and a "Current Session" caption; 2×2 numbered feature grid; CTA.
+- **Routines**: split hero across the full width; 5/7 device-and-grid split; CTA.
+- **Logbook**: 7/5 hero with sticky device; full-width ruled record table; CTA.
+- **Progress**: 6/6 hero; full-width four-column metric band; CTA.
+- **Rest Timer**: centred hero; three-column composition with the device flanked by two ruled point lists; CTA.
+- **Offline Sync**: 5/7 mirrored hero with the device first on desktop; panel with an offline status bar and a 2×2 grid; CTA.
 
-## 14. Explicit avoid-list
+## 14. Responsive behaviour
+
+- Hero splits stack from `lg`; the device stays centred and never exceeds `300px`.
+- Numbered grids go two-up at `sm` and four-up at `lg` where the content supports it.
+- Tables collapse to stacked label/value blocks below `sm`.
+- The navigation switches to the mobile menu below `lg`.
+- Verified at `1440×900`, `768×1024`, `390×844` and `320×720` with no horizontal overflow.
+- Tap targets stay at least 44px; the smallest viewport keeps readable body copy and non-wrapping CTAs.
+
+## 15. Explicit avoid-list
 
 Do not use:
 
-- Orange glow.
-- Neon gradients.
+- Orange glow, neon gradients or animated gradient buttons.
 - Charcoal or near-black page backgrounds.
-- Glassmorphism as a default treatment.
-- Translucent floating decorative panels.
-- Animated orange CTA gradients.
-- Radial glow hero fields.
-- Grid-line decorative backgrounds.
+- Glassmorphism, translucent floating panels or parallax cards.
+- Radial glow hero fields or grid-line decorative backgrounds.
 - Emoji as interface labels or decoration.
 - Em dashes in user-facing copy.
-- Animations added only to fill empty space.
-- Generic AI-generated SaaS dashboard styling.
-- Dense dashboards on the public marketing site.
+- Motion added only to fill space.
+- Generic AI-generated SaaS dashboard styling or dense dashboards on the public site.
 - New accent colours without justification.
 
-## 15. Relationship between web and mobile design language
+## 16. Relationship between web and mobile design language
 
-Web and mobile should share the same identity:
+Web and mobile share the same identity:
 
-- Deep burgundy backgrounds.
-- Warm cream typography.
-- Muted wine surfaces.
-- Restrained borders and dividers.
-- Confident modern sans-serif headings.
-- Precise, tabular workout data.
-- Calm, minimal visual effects.
+- Deep burgundy backgrounds and warm cream typography.
+- Muted wine surfaces, hairline rules and restrained borders.
+- Confident modern sans-serif headings with tabular workout data.
+- Calm, minimal effects.
 
-Platform conventions still matter:
+Platform conventions still apply:
 
 - Web uses wider editorial composition and responsive grids.
 - Mobile uses focused screens, native spacing and touch-friendly controls.
-- Navigation may adapt to each platform while preserving the same information structure.
-- Motion should respect each platform's accessibility settings.
+- Navigation adapts per platform while preserving the same information structure.
+- Motion respects each platform's accessibility settings.
 
-The design system documents the current implemented foundation and these shared rules. It does not document planned routes, unimplemented product capabilities or future page redesigns.
+This document reflects the implemented foundation and these shared rules. It does not document planned routes, unimplemented capabilities or future redesigns.
