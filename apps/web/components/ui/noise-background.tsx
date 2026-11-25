@@ -58,9 +58,9 @@ export const NoiseBackground = ({
   className,
   containerClassName,
   gradientColors = [
-    "rgb(255, 100, 150)",
-    "rgb(100, 150, 255)",
-    "rgb(255, 200, 100)",
+    "rgba(113,48,71,0.55)",
+    "rgba(92,27,45,0.45)",
+    "rgba(201,121,90,0.18)",
   ],
   noiseIntensity = 0.2,
   speed = 0.1,
@@ -170,9 +170,8 @@ export const NoiseBackground = ({
     <div
       ref={containerRef}
       className={cn(
-        "group relative overflow-hidden rounded-2xl bg-neutral-200 p-2 backdrop-blur-sm dark:bg-neutral-800",
-        "shadow-[0px_0.5px_1px_0px_var(--color-neutral-400)_inset,0px_1px_0px_0px_var(--color-neutral-100)]",
-        "dark:shadow-[0px_1px_0px_0px_var(--color-neutral-950)_inset,0px_1px_0px_0px_var(--color-neutral-800)]",
+        "group relative overflow-hidden rounded-card bg-wine-800 p-2",
+        "shadow-surface",
         backdropBlur &&
           "after:absolute after:inset-0 after:h-full after:w-full after:backdrop-blur-lg after:content-['']",
         containerClassName,
