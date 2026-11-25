@@ -214,11 +214,13 @@ migration to any other environment explicitly during deployment.
 
 ## Future SMS and provider setup
 
-SMS delivery is still mock-only: `SMS_MODE=mock` never sends a real message. Before
-phone recovery can be used by real users, a production SMS provider must be added behind
-the existing `SmsProvider` interface in `apps/api/src/services/sms/`, with real delivery
-status reporting and no code or phone number in logs. The `phone_password_recovery`
-purpose and template are already wired, so only the provider needs to change.
+SMS delivery has no real provider. `SMS_MODE=mock` never sends a real message and is
+rejected by production startup; `SMS_MODE=disabled` is the production-safe value and
+returns a configuration failure without activating an OTP. Before phone recovery can be
+used by real users, a production SMS provider must be added behind the existing
+`SmsProvider` interface in `apps/api/src/services/sms/`, with real delivery status
+reporting and no code or phone number in logs. The `phone_password_recovery` purpose and
+template are already wired, so the provider and its mode are the missing pieces.
 
 ## Verification
 
