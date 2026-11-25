@@ -1,65 +1,201 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #060709;
-  --foreground: #f3f4f6;
+  --wine-950: #1B050C;
+  --wine-900: #2A0812;
+  --wine-800: #3A0D1A;
+  --wine-700: #4A1424;
+  --wine-600: #5C1B2D;
+  --wine-500: #713047;
+
+  --cream-100: #F7F0E4;
+  --cream-200: #EADFCB;
+  --cream-300: #CBB99F;
+  --cream-400: #A89279;
+
+  --accent-clay: #C9795A;
+  --accent-sand: #D9BE8A;
+  --focus-ring: #F0D9AE;
+
+  --border-subtle: rgba(247, 240, 228, 0.14);
+  --divider-subtle: rgba(247, 240, 228, 0.10);
+
+  --background: var(--wine-900);
+  --foreground: var(--cream-100);
+
+  --layout-page: 1200px;
+  --layout-content: 1120px;
+  --layout-reading: 68ch;
+
+  --radius-card-lg: 12px;
+  --radius-control-sm: 6px;
+
+  --shadow-surface-soft: 0 12px 32px rgba(11, 2, 6, 0.35);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
-  
-  --color-brand-50: #fff7ed;
-  --color-brand-100: #ffedd5;
-  --color-brand-400: #fb923c;
-  --color-brand-500: #f97316;
-  --color-brand-600: #ea580c;
-  --color-brand-700: #c2410c;
-  --color-brand-glow: #ff6200;
-  
-  --color-dark-base: #060709;
-  --color-dark-card: #0d0f14;
-  --color-dark-surface: #13161f;
-  --color-dark-border: rgba(255, 255, 255, 0.08);
-  
-  --shadow-glow-orange: 0 0 50px -10px rgba(249, 115, 22, 0.45);
-  --shadow-glow-phone: 0 25px 60px -15px rgba(249, 115, 22, 0.25), 0 0 100px -20px rgba(234, 88, 12, 0.15);
-  --shadow-glow-sm: 0 0 20px -5px rgba(249, 115, 22, 0.35);
+
+  --color-wine-950: var(--wine-950);
+  --color-wine-900: var(--wine-900);
+  --color-wine-800: var(--wine-800);
+  --color-wine-700: var(--wine-700);
+  --color-wine-600: var(--wine-600);
+  --color-wine-500: var(--wine-500);
+
+  --color-cream-100: var(--cream-100);
+  --color-cream-200: var(--cream-200);
+  --color-cream-300: var(--cream-300);
+  --color-cream-400: var(--cream-400);
+
+  --color-accent-clay: var(--accent-clay);
+  --color-accent-sand: var(--accent-sand);
+  --color-focus: var(--focus-ring);
+  --color-border: var(--border-subtle);
+  --color-divider: var(--divider-subtle);
+
+  --container-page: var(--layout-page);
+  --container-content: var(--layout-content);
+  --container-reading: var(--layout-reading);
+
+  --radius-card: var(--radius-card-lg);
+  --radius-control: var(--radius-control-sm);
+
+  --shadow-surface: var(--shadow-surface-soft);
+
+  --breakpoint-2xl: 1440px;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--cream-100);
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    color: var(--cream-200);
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--divider-subtle);
+    text-underline-offset: 4px;
+  }
+
+  ::selection {
+    background: var(--wine-600);
+    color: var(--cream-100);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
 }
 
-.glass-card {
-  background: rgba(13, 16, 22, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+@layer components {
+  .surface-card {
+    background: var(--wine-700);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card-lg);
+  }
+
+  .surface-raised {
+    background: var(--wine-600);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card-lg);
+  }
+
+  .button-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cream-100);
+    border: 1px solid transparent;
+    border-radius: var(--radius-control-sm);
+    color: var(--wine-950);
+    font-weight: 500;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+
+  .button-primary:hover {
+    background: var(--cream-200);
+  }
+
+  .button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-control-sm);
+    color: var(--cream-100);
+    font-weight: 500;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+
+  .button-secondary:hover {
+    background: rgba(247, 240, 228, 0.05);
+    border-color: var(--accent-sand);
+  }
+
+  .text-link {
+    color: var(--cream-200);
+    text-decoration: underline;
+    text-decoration-color: var(--divider-subtle);
+    text-underline-offset: 4px;
+  }
+
+  .text-link:hover {
+    color: var(--accent-sand);
+  }
+
+  .eyebrow {
+    color: var(--cream-400);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    line-height: 1.33;
+    text-transform: uppercase;
+  }
+
+  .tabular-data {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-.glass-pill {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 
-.radial-glow-hero {
-  background: radial-gradient(circle 600px at 70% 40%, rgba(249, 115, 22, 0.18), transparent 75%),
-              radial-gradient(circle 500px at 25% 65%, rgba(234, 88, 12, 0.1), transparent 70%),
-              radial-gradient(circle 400px at 85% 80%, rgba(245, 158, 11, 0.08), transparent 60%);
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
-
-.grid-lines {
-  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 56px 56px;
-}
-
