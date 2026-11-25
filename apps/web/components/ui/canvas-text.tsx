@@ -7,6 +7,7 @@ interface CanvasTextProps {
   className?: string;
   backgroundClassName?: string;
   colors?: string[];
+  /** Retained for existing call sites; the wave is intentionally static. */
   animationDuration?: number;
   lineWidth?: number;
   lineGap?: number;
@@ -30,7 +31,6 @@ export function CanvasText({
   className = "",
   backgroundClassName = "bg-wine-900",
   colors = ["#D9BE8A", "#C9795A", "#EADFCB", "#A89279"],
-  animationDuration = 5,
   lineWidth = 1.5,
   lineGap = 10,
   curveIntensity = 60,
@@ -39,8 +39,6 @@ export function CanvasText({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const bgRef = useRef<HTMLSpanElement>(null);
-  const animationRef = useRef<number>(0);
-  const startTimeRef = useRef<number>(0);
   const [bgColor, setBgColor] = useState("#2A0812");
   const [resolvedColors, setResolvedColors] = useState<string[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -117,64 +115,48 @@ export function CanvasText({
     const baselineY = (height + ascent - descent) / 2;
 
     const numLines = Math.floor(height / lineGap) + 10;
-    startTimeRef.current = performance.now();
+    const phase = Math.PI / 4;
 
-    const animate = (currentTime: number) => {
-      const elapsed = (currentTime - startTimeRef.current) / 1000;
-      const phase = (elapsed / animationDuration) * Math.PI * 2;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
 
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.font = font;
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#000";
+    ctx.fillText(text, 0, baselineY);
 
-      ctx.globalCompositeOperation = "source-over";
-      ctx.font = font;
-      ctx.textBaseline = "alphabetic";
-      ctx.textAlign = "left";
-      ctx.fillStyle = "#000";
-      ctx.fillText(text, 0, baselineY);
+    ctx.globalCompositeOperation = "source-in";
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, width, height);
 
-      ctx.globalCompositeOperation = "source-in";
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, width, height);
+    ctx.globalCompositeOperation = "source-atop";
+    for (let i = 0; i < numLines; i++) {
+      const y = i * lineGap;
+      const curve1 = Math.sin(phase) * curveIntensity;
+      const curve2 = Math.sin(phase + 0.5) * curveIntensity * 0.6;
 
-      ctx.globalCompositeOperation = "source-atop";
-      for (let i = 0; i < numLines; i++) {
-        const y = i * lineGap;
+      ctx.strokeStyle = resolvedColors[i % resolvedColors.length];
+      ctx.lineWidth = lineWidth;
 
-        const curve1 = Math.sin(phase) * curveIntensity;
-        const curve2 = Math.sin(phase + 0.5) * curveIntensity * 0.6;
-
-        const colorIndex = i % resolvedColors.length;
-        ctx.strokeStyle = resolvedColors[colorIndex];
-        ctx.lineWidth = lineWidth;
-
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.bezierCurveTo(
-          width * 0.33,
-          y + curve1,
-          width * 0.66,
-          y + curve2,
-          width,
-          y,
-        );
-        ctx.stroke();
-      }
-
-      animationRef.current = requestAnimationFrame(animate);
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationRef.current);
-    };
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(
+        width * 0.33,
+        y + curve1,
+        width * 0.66,
+        y + curve2,
+        width,
+        y,
+      );
+      ctx.stroke();
+    }
   }, [
     text,
     font,
     bgColor,
     resolvedColors,
-    animationDuration,
     lineWidth,
     lineGap,
     curveIntensity,
@@ -210,6 +192,11 @@ export function CanvasText({
         aria-label={text}
         role="img"
       />
+      <noscript>
+        <span aria-hidden="true" className={className}>
+          {text}
+        </span>
+      </noscript>
     </span>
   );
 }

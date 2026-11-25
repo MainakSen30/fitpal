@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   motion,
   useMotionValue,
@@ -8,6 +8,9 @@ import {
   useMotionTemplate,
 } from "motion/react";
 import { cn } from "@/lib/utils";
+import { useFinePointer, usePrefersReducedMotion } from "@/lib/motion-environment";
+
+const easeOut: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export const CometCard = ({
   rotateDepth = 17.5,
@@ -21,33 +24,39 @@ export const CometCard = ({
   children: React.ReactNode;
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const finePointer = useFinePointer();
+  const reduceMotion = usePrefersReducedMotion();
+  const interactive = finePointer && !reduceMotion;
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  const mouseXSpring = useSpring(x);
-  const mouseYSpring = useSpring(y);
+  const mouseXSpring = useSpring(x, { stiffness: 260, damping: 30, mass: 0.6 });
+  const mouseYSpring = useSpring(y, { stiffness: 260, damping: 30, mass: 0.6 });
+
+  const tiltDepth = Math.min(rotateDepth, 8);
+  const shiftDepth = Math.min(translateDepth, 8);
 
   const rotateX = useTransform(
     mouseYSpring,
     [-0.5, 0.5],
-    [`-${rotateDepth}deg`, `${rotateDepth}deg`],
+    [`-${tiltDepth}deg`, `${tiltDepth}deg`],
   );
   const rotateY = useTransform(
     mouseXSpring,
     [-0.5, 0.5],
-    [`${rotateDepth}deg`, `-${rotateDepth}deg`],
+    [`${tiltDepth}deg`, `-${tiltDepth}deg`],
   );
 
   const translateX = useTransform(
     mouseXSpring,
     [-0.5, 0.5],
-    [`-${translateDepth}px`, `${translateDepth}px`],
+    [`-${shiftDepth}px`, `${shiftDepth}px`],
   );
   const translateY = useTransform(
     mouseYSpring,
     [-0.5, 0.5],
-    [`${translateDepth}px`, `-${translateDepth}px`],
+    [`${shiftDepth}px`, `-${shiftDepth}px`],
   );
 
   const glareX = useTransform(mouseXSpring, [-0.5, 0.5], [0, 100]);
@@ -55,15 +64,18 @@ export const CometCard = ({
 
   const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(247,240,228,0.10) 10%, rgba(247,240,228,0.05) 20%, rgba(255,255,255,0) 80%)`;
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    if (!interactive) {
+      x.set(0);
+      y.set(0);
+    }
+  }, [interactive, x, y]);
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
+    const xPct = (event.clientX - rect.left) / rect.width - 0.5;
+    const yPct = (event.clientY - rect.top) / rect.height - 0.5;
     x.set(xPct);
     y.set(yPct);
   };
@@ -77,14 +89,11 @@ export const CometCard = ({
     <div className={cn("perspective-distant transform-3d", className)}>
       <motion.div
         ref={ref}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        initial={{ scale: 1, z: 0 }}
-        whileHover={{
-          scale: 1.02,
-          z: 50,
-          transition: { duration: 0.2 },
-        }}
+        onMouseMove={interactive ? handleMouseMove : undefined}
+        onMouseLeave={interactive ? handleMouseLeave : undefined}
+        initial={false}
+        whileHover={interactive ? { scale: 1.01 } : undefined}
+        transition={{ duration: 0.18, ease: easeOut }}
         style={{
           rotateX,
           rotateY,
