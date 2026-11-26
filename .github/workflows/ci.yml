@@ -116,6 +116,8 @@ jobs:
       NEXT_PUBLIC_API_URL: http://localhost:3011
     steps:
       - uses: actions/checkout@v4
+      - name: Create CI env file
+        run: cp .env.example .env
       - run: docker compose -f docker/docker-compose.yml config -q
       - run: docker compose -f docker/docker-compose.prod.yml config -q
       - name: Build API production image
