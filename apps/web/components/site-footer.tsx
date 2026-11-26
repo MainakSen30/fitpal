@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { FitPalMark } from "@/components/fitpal-mark";
+import { useEditorialMotion } from "@/lib/motion-system";
 
 const footerLinks: Record<string, { label: string; href: string }[]> = {
   "/": [
@@ -32,11 +34,20 @@ const footerLinks: Record<string, { label: string; href: string }[]> = {
 export function SiteFooter() {
   const pathname = usePathname();
   const links = footerLinks[pathname];
+  const { section, viewport } = useEditorialMotion();
 
   if (!links) return null;
 
   return (
-    <footer className="border-t border-hairline bg-wine-950">
+    <motion.footer
+      key={pathname}
+      data-motion-reveal
+      variants={section}
+      initial="hidden"
+      whileInView="visible"
+      viewport={viewport}
+      className="border-t border-hairline bg-wine-950"
+    >
       <div className="container-editorial py-10 lg:py-12">
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-2.5">
@@ -55,6 +66,6 @@ export function SiteFooter() {
           <p className="type-label text-cream-400">© 2026 FitPal Inc.</p>
         </div>
       </div>
-    </footer>
+    </motion.footer>
   );
 }

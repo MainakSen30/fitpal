@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { useEditorialMotion } from "@/lib/motion-system";
 
 type CtaAction = { label: string; href: string };
 
@@ -11,8 +15,18 @@ export function SiteCta({
   id?: string;
   className?: string;
 }) {
+  const { section, viewport } = useEditorialMotion();
+
   return (
-    <section id={id} className={`scroll-mt-24 pb-20 lg:pb-28 ${className}`}>
+    <motion.section
+      id={id}
+      data-motion-reveal
+      variants={section}
+      initial="hidden"
+      whileInView="visible"
+      viewport={viewport}
+      className={`scroll-mt-24 pb-20 lg:pb-28 ${className}`}
+    >
       <div className="container-editorial">
         <div className="rounded-2xl border border-hairline bg-wine-800/40 px-6 py-10 sm:px-10 lg:px-14 lg:py-14">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
@@ -34,6 +48,6 @@ export function SiteCta({
           </div>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }

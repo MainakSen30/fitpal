@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { FitPalMark } from "@/components/fitpal-mark";
+import { useEditorialMotion } from "@/lib/motion-system";
 
 const features = [
   { name: "Workout Logging", href: "/features/workout-logging" },
@@ -20,6 +22,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const downloadHref = pathname === "/" ? "#download" : "/#download";
+  const { indicator, intro } = useEditorialMotion();
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +39,13 @@ export function Navbar() {
   }, [open]);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-hairline bg-wine-900/90 backdrop-blur-md">
+    <motion.header
+      data-motion-reveal
+      variants={intro}
+      initial="hidden"
+      animate="visible"
+      className="fixed inset-x-0 top-0 z-50 border-b border-hairline bg-wine-900/90 backdrop-blur-md"
+    >
       <div className="container-editorial flex h-16 items-center justify-between gap-6">
         <Link href="/" aria-label="FitPal home" className="flex flex-shrink-0 items-center gap-2.5">
           <FitPalMark className="h-7 w-7 rounded-[6px]" />
@@ -57,7 +66,15 @@ export function Navbar() {
               >
                 {name}
                 {active ? (
-                  <span className="absolute inset-x-0 -bottom-px h-px bg-accent-clay" aria-hidden="true" />
+                  <motion.span
+                    key={pathname}
+                    data-motion-reveal
+                    variants={indicator}
+                    initial="hidden"
+                    animate="visible"
+                    className="absolute inset-x-0 -bottom-px h-px origin-left bg-accent-clay"
+                    aria-hidden="true"
+                  />
                 ) : null}
               </Link>
             );
@@ -86,8 +103,9 @@ export function Navbar() {
 
       <div
         id="mobile-navigation"
+        data-lenis-prevent
         aria-hidden={!open}
-        className={`absolute inset-x-0 top-full border-b border-hairline bg-wine-900 transition-[opacity,transform] duration-150 lg:hidden ${
+        className={`absolute inset-x-0 top-full border-b border-hairline bg-wine-900 transition-[opacity,transform,visibility] duration-150 ease-[var(--ease-editorial)] [transition-behavior:allow-discrete] lg:hidden ${
           open ? "visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-2 opacity-0"
         }`}
       >
@@ -117,6 +135,6 @@ export function Navbar() {
           </Link>
         </nav>
       </div>
-    </header>
+    </motion.header>
   );
 }
