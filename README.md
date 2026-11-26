@@ -13,6 +13,7 @@ The repository currently contains a working backend and an early mobile client. 
 - [Fresh-clone setup](#fresh-clone-setup)
 - [Environment configuration](#environment-configuration)
 - [Running the applications](#running-the-applications)
+- [Deployment](#deployment)
 - [Database operations](#database-operations)
 - [API documentation](#api-documentation)
 - [Authentication](#authentication)
@@ -289,6 +290,54 @@ curl http://localhost:3001/readyz   # native; DB + Redis readiness
 ```
 
 In Compose, use port `3011` instead.
+
+## Deployment
+
+The public marketing website is deployed on Cloudflare Pages as the `fitpal` project from `MainakSen30/fitpal`. The verified production site is [https://fitpal-33p.pages.dev](https://fitpal-33p.pages.dev). No custom domain is configured for the Pages project; use the `pages.dev` address above.
+
+### Current production
+
+| Field | Value |
+| --- | --- |
+| Production URL | https://fitpal-33p.pages.dev |
+| Provider | Cloudflare Pages |
+| Project | `fitpal` |
+| GitHub repository | `MainakSen30/fitpal` |
+| Production branch | `main` |
+| Latest production commit | `02cce715d1533b6ff79954ae82350efdadfc3251` |
+| Latest deployment ID | `1172ec01-f021-42ba-9d1f-3e7c148dc96d` |
+| Deployment status | Successful |
+
+### Branch workflow
+
+- Pushes to `main` trigger production deployments.
+- `staging` is configured as a preview branch, so pushes to `staging` trigger preview deployments.
+- Pull requests follow the existing GitHub and Cloudflare Pages integration behavior.
+- Cloudflare generates a unique preview deployment URL for each preview build; there is no permanent staging URL to document. Find a specific preview URL by opening the `fitpal` project in the Cloudflare Pages dashboard and selecting the relevant deployment.
+
+### Cloudflare Pages build configuration
+
+| Setting | Value |
+| --- | --- |
+| Root directory | `/` |
+| Framework preset | Custom / None |
+| Build command | `bun run --cwd apps/web build` |
+| Build output directory | `apps/web/out` |
+| Bun version | `1.3.14` |
+| Environment variable | `BUN_VERSION=1.3.14` |
+
+This Cloudflare Pages build publishes only `apps/web`, the static Next.js marketing site. The Hono API in `apps/api`, PostgreSQL, Redis, and the Expo mobile app are separate and are not deployed by this Pages workflow.
+
+### Local production build
+
+Use the pinned Bun version and the repository's frozen-lockfile install:
+
+```bash
+bun install --frozen-lockfile
+bun run --cwd apps/web build
+```
+
+The generated static output is written to `apps/web/out`, matching the Cloudflare Pages build output directory.
 
 ## Database operations
 
