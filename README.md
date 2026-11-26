@@ -161,19 +161,19 @@ Compose starts `postgres`, `redis`, `migrate`, `api`, and `web`. It hardcodes co
 
 **Native services:**
 
-Install and start PostgreSQL 17 and Redis 7 on the host. Create a database/role matching your `DATABASE_URL`. The repository does not provide a script that provisions the native database or role.
+Install and start PostgreSQL 17 and Redis 7 on the host. Create a database/role matching your `DATABASE_URL`. Replace `<your-local-password>` in the examples below with the password you set for the local `fitpal` role. The repository does not provide a script that provisions the native database or role.
 
 The example root `.env` targets native ports:
 
 ```bash
-export DATABASE_URL='postgres://fitpal:fitpal@localhost:5432/fitpal'
+export DATABASE_URL='postgres://fitpal:<your-local-password>@localhost:5432/fitpal'
 export REDIS_URL='redis://localhost:6379'
 ```
 
 If you instead use only the Compose databases from host processes, use the published ports:
 
 ```bash
-export DATABASE_URL='postgres://fitpal:fitpal@localhost:5433/fitpal'
+export DATABASE_URL='postgres://fitpal:<your-local-password>@localhost:5433/fitpal'
 export REDIS_URL='redis://localhost:6380'
 ```
 
@@ -230,7 +230,7 @@ Never commit `.env` files. Values below are names, purposes, and documented loca
 | --- | --- | --- | --- |
 | `NODE_ENV` | Runtime mode; `production`/`prod` enables strict config checks | Optional locally; required in production | `development` in `.env.example` |
 | `PORT` | API listen port | Optional locally; required in production | `3001` |
-| `DATABASE_URL` | PostgreSQL connection for API and Drizzle | Yes, at API import and migration time | `postgres://fitpal:fitpal@localhost:5432/fitpal`; use host `5433` for the Compose database |
+| `DATABASE_URL` | PostgreSQL connection for API and Drizzle | Yes, at API import and migration time | `postgres://fitpal:<your-local-password>@localhost:5432/fitpal`; use host `5433` for the Compose database |
 | `REDIS_URL` | Redis connection for sessions/rate limits | Yes, at API import | `redis://localhost:6379`; use host `6380` for the Compose Redis |
 | `TRUSTED_PROXY_IP` | Exact immediate proxy IP when behind a trusted proxy | No | Unset; socket IP is used and `X-Forwarded-For` is ignored |
 
@@ -304,9 +304,8 @@ The public marketing website is deployed on Cloudflare Pages as the `fitpal` pro
 | Project | `fitpal` |
 | GitHub repository | `MainakSen30/fitpal` |
 | Production branch | `main` |
-| Latest production commit | `02cce715d1533b6ff79954ae82350efdadfc3251` |
-| Latest deployment ID | `1172ec01-f021-42ba-9d1f-3e7c148dc96d` |
-| Deployment status | Successful |
+
+Check the Cloudflare Pages dashboard for the current deployment status and deployment ID.
 
 ### Branch workflow
 
@@ -324,7 +323,7 @@ The public marketing website is deployed on Cloudflare Pages as the `fitpal` pro
 | Build command | `bun run --cwd apps/web build` |
 | Build output directory | `apps/web/out` |
 | Bun version | `1.3.14` |
-| Environment variable | `BUN_VERSION=1.3.14` |
+| Required environment variable (Preview and Production) | `BUN_VERSION=1.3.14` |
 
 This Cloudflare Pages build publishes only `apps/web`, the static Next.js marketing site. The Hono API in `apps/api`, PostgreSQL, Redis, and the Expo mobile app are separate and are not deployed by this Pages workflow.
 
@@ -477,7 +476,7 @@ bun run --cwd packages/shared typecheck
 DB-backed API suites are skipped unless `TEST_DATABASE_URL` is set. CI uses PostgreSQL on `5432`, Redis on `6379`, applies migrations to a `fitpal_test` database, and runs:
 
 ```bash
-TEST_DATABASE_URL=postgres://fitpal:fitpal@localhost:5432/fitpal_test \
+TEST_DATABASE_URL=postgres://fitpal:<your-local-password>@localhost:5432/fitpal_test \
 REDIS_URL=redis://localhost:6379 \
 OTP_PEPPER=test-only-otp-pepper-at-least-32-characters-long \
 SMS_MODE=mock \
