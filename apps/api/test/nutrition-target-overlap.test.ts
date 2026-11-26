@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { nutritionTargets, users } from "@fitpal/database";
 import { db } from "../src/db";
 import { app } from "../src/app";
@@ -53,44 +53,6 @@ async function json(response: Response) {
   return response.json();
 }
 
-type InsertBuilder = { values: (values: unknown) => { returning: () => Promise<unknown> } };
-
-async function concurrentOverlappingRequests(userId: string) {
-  let arrived = 0;
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  const originalInsert = db.insert.bind(db);
-  // Hold both inserts until both requests have passed the service pre-check.
-  const spy = spyOn(db, "insert").mockImplementation(((table: unknown) => {
-    const insert = originalInsert(table as never) as unknown as InsertBuilder;
-    if (table !== nutritionTargets) return insert as never;
-    return {
-      values(values: unknown) {
-        const builder = insert.values(values);
-        return {
-          async returning() {
-            arrived += 1;
-            if (arrived === 2) release();
-            await gate;
-            return builder.returning();
-          },
-        };
-      },
-    } as never;
-  }) as never);
-
-  try {
-    return await Promise.all([
-      putTarget(userId, "01-11-2026", "01-12-2026"),
-      putTarget(userId, "15-11-2026", "20-11-2026"),
-    ]);
-  } finally {
-    spy.mockRestore();
-  }
-}
-
 describeApi("nutrition target overlap constraint", () => {
   beforeEach(reset);
 
@@ -106,13 +68,20 @@ describeApi("nutrition target overlap constraint", () => {
   });
 
   it("allows only one of two concurrent overlapping requests", async () => {
-    const user = await makeUser("concurrent");
-    const [first, second] = await concurrentOverlappingRequests(user.id);
-    const conflict = first.status === 409 ? first : second;
+    // Both HTTP requests start together; the service lock serializes them in PostgreSQL.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      if (attempt > 0) await reset();
+      const user = await makeUser(`concurrent-${attempt}`);
+      const [first, second] = await Promise.all([
+        putTarget(user.id, "01-11-2026", "01-12-2026"),
+        putTarget(user.id, "15-11-2026", "20-11-2026"),
+      ]);
+      const conflict = first.status === 409 ? first : second;
 
-    expect([first.status, second.status].sort((a, b) => a - b)).toEqual([201, 409]);
-    expect(await json(conflict)).toEqual({ error: "Target period overlaps an existing target" });
-    expect(await db.select().from(nutritionTargets)).toHaveLength(1);
+      expect([first.status, second.status].sort((a, b) => a - b)).toEqual([201, 409]);
+      expect(await json(conflict)).toEqual({ error: "Target period overlaps an existing target" });
+      expect(await db.select().from(nutritionTargets)).toHaveLength(1);
+    }
   });
 
   it("accepts adjacent periods", async () => {
@@ -143,6 +112,18 @@ describeApi("nutrition target overlap constraint", () => {
 
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
+    expect(await db.select().from(nutritionTargets)).toHaveLength(2);
+  });
+
+  it("accepts identical periods for concurrent different users", async () => {
+    const firstUser = await makeUser("concurrent-user-one");
+    const secondUser = await makeUser("concurrent-user-two");
+    const [first, second] = await Promise.all([
+      putTarget(firstUser.id, "01-11-2026", "01-12-2026"),
+      putTarget(secondUser.id, "01-11-2026", "01-12-2026"),
+    ]);
+
+    expect([first.status, second.status].sort((a, b) => a - b)).toEqual([201, 201]);
     expect(await db.select().from(nutritionTargets)).toHaveLength(2);
   });
 

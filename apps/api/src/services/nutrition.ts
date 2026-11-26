@@ -9,7 +9,7 @@ import {
   type MealLog,
   type MealLogItem,
 } from "@fitpal/database";
-import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, or } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { ApiError } from "../lib/errors";
 import {
   addDays,
@@ -135,41 +135,53 @@ export async function getTargets(userId: string, dateKey?: string) {
 
 export async function configureTarget(userId: string, input: TargetsInput) {
   const until = input.effectiveUntil ?? "9999-12-31";
-  const [overlap] = await db
-    .select({ id: nutritionTargets.id })
-    .from(nutritionTargets)
-    .where(
-      and(
-        eq(nutritionTargets.userId, userId),
-        lt(nutritionTargets.effectiveFrom, until),
-        or(isNull(nutritionTargets.effectiveUntil), gt(nutritionTargets.effectiveUntil, input.effectiveFrom)),
-      ),
-    )
-    .limit(1);
-  if (overlap) throw new ApiError("Target period overlaps an existing target", 409);
+  return db.transaction(async (tx) => {
+    // Transaction-scoped lock: the first key namespaces this feature, the
+    // second hashes the user UUID text. A collision only makes unrelated users
+    // wait; it cannot weaken the exclusion constraint.
+    await tx.execute(sql`
+      select pg_advisory_xact_lock(
+        hashtext('fitpal:nutrition_targets'),
+        hashtext(${userId}::text)
+      )
+    `);
 
-  try {
-    const [target] = await db
-      .insert(nutritionTargets)
-      .values({
-        userId,
-        dailyCalories: gramsOrNull(input.dailyCalories),
-        proteinGrams: gramsOrNull(input.proteinGrams),
-        carbohydratesGrams: gramsOrNull(input.carbohydratesGrams),
-        fatGrams: gramsOrNull(input.fatGrams),
-        effectiveFrom: input.effectiveFrom,
-        effectiveUntil: input.effectiveUntil,
-      })
-      .returning();
-    return serializeTarget(target);
-  } catch (error) {
-    // 23P01 is the exclusion-constraint violation; the pre-check above cannot
-    // catch a concurrent insert, but the database constraint can.
-    if ((error as { code?: string } | null)?.code === "23P01") {
-      throw new ApiError("Target period overlaps an existing target", 409);
+    const [overlap] = await tx
+      .select({ id: nutritionTargets.id })
+      .from(nutritionTargets)
+      .where(
+        and(
+          eq(nutritionTargets.userId, userId),
+          lt(nutritionTargets.effectiveFrom, until),
+          or(isNull(nutritionTargets.effectiveUntil), gt(nutritionTargets.effectiveUntil, input.effectiveFrom)),
+        ),
+      )
+      .limit(1);
+    if (overlap) throw new ApiError("Target period overlaps an existing target", 409);
+
+    try {
+      const [target] = await tx
+        .insert(nutritionTargets)
+        .values({
+          userId,
+          dailyCalories: gramsOrNull(input.dailyCalories),
+          proteinGrams: gramsOrNull(input.proteinGrams),
+          carbohydratesGrams: gramsOrNull(input.carbohydratesGrams),
+          fatGrams: gramsOrNull(input.fatGrams),
+          effectiveFrom: input.effectiveFrom,
+          effectiveUntil: input.effectiveUntil,
+        })
+        .returning();
+      return serializeTarget(target);
+    } catch (error) {
+      // The lock serializes this path; the constraint remains the final
+      // arbiter for any other writer.
+      if ((error as { code?: string } | null)?.code === "23P01") {
+        throw new ApiError("Target period overlaps an existing target", 409);
+      }
+      throw error;
     }
-    throw error;
-  }
+  });
 }
 
 type MealWithItems = MealLog & { items: MealLogItem[] };
