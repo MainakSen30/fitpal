@@ -10,8 +10,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useFinePointer, usePrefersReducedMotion } from "@/lib/motion-environment";
 
-const easeOut: [number, number, number, number] = [0.22, 1, 0.36, 1];
-
 export const CometCard = ({
   rotateDepth = 17.5,
   translateDepth = 20,
@@ -45,7 +43,7 @@ export const CometCard = ({
   const rotateY = useTransform(
     mouseXSpring,
     [-0.5, 0.5],
-    [`${tiltDepth}deg`, `-${tiltDepth}deg`],
+    [`-${tiltDepth}deg`, `${tiltDepth}deg`],
   );
 
   const translateX = useTransform(
@@ -56,7 +54,7 @@ export const CometCard = ({
   const translateY = useTransform(
     mouseYSpring,
     [-0.5, 0.5],
-    [`${shiftDepth}px`, `-${shiftDepth}px`],
+    [`-${shiftDepth}px`, `${shiftDepth}px`],
   );
 
   const glareX = useTransform(mouseXSpring, [-0.5, 0.5], [0, 100]);
@@ -71,8 +69,8 @@ export const CometCard = ({
     }
   }, [interactive, x, y]);
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!interactive || event.pointerType !== "mouse" || !ref.current) return;
     const rect = ref.current.getBoundingClientRect();
     const xPct = (event.clientX - rect.left) / rect.width - 0.5;
     const yPct = (event.clientY - rect.top) / rect.height - 0.5;
@@ -80,36 +78,40 @@ export const CometCard = ({
     y.set(yPct);
   };
 
-  const handleMouseLeave = () => {
+  const handlePointerLeave = () => {
     x.set(0);
     y.set(0);
   };
 
   return (
-    <div className={cn("perspective-distant transform-3d", className)}>
+    <div className={cn("relative", className)} style={interactive ? { perspective: 1200 } : undefined}>
       <motion.div
         ref={ref}
-        onMouseMove={interactive ? handleMouseMove : undefined}
-        onMouseLeave={interactive ? handleMouseLeave : undefined}
+        onPointerMove={interactive ? handlePointerMove : undefined}
+        onPointerLeave={interactive ? handlePointerLeave : undefined}
         initial={false}
-        whileHover={interactive ? { scale: 1.01 } : undefined}
-        transition={{ duration: 0.18, ease: easeOut }}
+        whileHover={interactive ? { scale: 1.008 } : undefined}
+        transition={{ type: "spring", stiffness: 260, damping: 30, mass: 0.6 }}
         style={{
           rotateX,
           rotateY,
           translateX,
           translateY,
-          overflow: "hidden",
+          transformStyle: interactive ? "preserve-3d" : undefined,
+          willChange: interactive ? "transform" : undefined,
         }}
-        className="relative rounded-card"
+        className="group relative"
       >
         <>{children}</>
-        <motion.div
-          className="pointer-events-none absolute inset-0 z-50 h-full w-full rounded-[16px]"
-          style={{
-            background: glareBackground,
-          }}
-        />
+        {interactive ? (
+          <motion.div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-20 rounded-[2.5rem] opacity-0 transition-opacity duration-150 ease-[var(--ease-editorial)] group-hover:opacity-100"
+            style={{
+              background: glareBackground,
+            }}
+          />
+        ) : null}
       </motion.div>
     </div>
   );
