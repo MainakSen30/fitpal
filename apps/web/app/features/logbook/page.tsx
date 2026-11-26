@@ -42,7 +42,7 @@ export default function LogbookPage() {
       </section>
 
       <section className="container-editorial pb-20 lg:pb-24">
-        <div className="panel overflow-hidden">
+        <MotionReveal inView className="panel overflow-hidden">
           <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 sm:px-8">
             <span className="type-label text-cream-200">Logbook</span>
           </div>
@@ -56,7 +56,7 @@ export default function LogbookPage() {
               <p className="type-body">{point.desc}</p>
             </div>
           ))}
-        </div>
+        </MotionReveal>
       </section>
 
       <SiteCta

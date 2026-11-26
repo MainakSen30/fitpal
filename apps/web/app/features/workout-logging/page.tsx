@@ -42,7 +42,7 @@ export default function WorkoutLoggingPage() {
       </section>
 
       <section className="container-editorial pb-20 lg:pb-24">
-        <div className="grid gap-px border border-hairline bg-hairline sm:grid-cols-2">
+        <MotionReveal inView className="grid gap-px border border-hairline bg-hairline sm:grid-cols-2">
           {points.map((point, index) => (
             <div key={point.title} className="bg-wine-900 p-6 sm:p-8 lg:p-10">
               <span className="type-label">0{index + 1}</span>
@@ -50,7 +50,7 @@ export default function WorkoutLoggingPage() {
               <p className="type-body mt-2 max-w-sm">{point.desc}</p>
             </div>
           ))}
-        </div>
+        </MotionReveal>
       </section>
 
       <SiteCta

@@ -1,10 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { ArrowUpRight, Trophy } from "lucide-react";
 import { MotionReveal } from "@/components/motion-reveal";
 import { PhoneMockup, HeroSessionMockup } from "@/components/phone-mockup";
 import { SiteCta } from "@/components/site-cta";
+import { CometCard } from "@/components/ui/comet-card";
+import { useEditorialMotion } from "@/lib/motion-system";
+
+const MotionLink = motion.create(Link);
 
 const glance = [
   { index: "01", value: "0.4s", label: "Set Logging" },
@@ -53,25 +58,27 @@ const features = [
 ];
 
 export default function Home() {
+  const { item, section, stagger, viewport } = useEditorialMotion();
+
   return (
     <div className="overflow-x-hidden text-cream-100 antialiased">
       <section className="container-editorial pb-16 pt-28 sm:pt-32 lg:pb-20 lg:pt-36">
         <div className="grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-16">
-          <MotionReveal className="lg:col-span-7">
-            <div className="type-eyebrow">
+          <motion.div variants={stagger} initial="hidden" animate="visible" className="lg:col-span-7">
+            <motion.div data-motion-reveal variants={item} className="type-eyebrow">
               <span className="h-px w-6 bg-accent-clay" aria-hidden="true" />
               <span>Mobile-First Workout Tracker</span>
-            </div>
-            <h1 className="type-display mt-6 max-w-2xl">
+            </motion.div>
+            <motion.h1 data-motion-reveal variants={item} className="type-display mt-6 max-w-2xl">
               Track Your Workouts.
               <br />
               Own Your Progress.
-            </h1>
-            <p className="type-body-lg mt-6 max-w-xl">
+            </motion.h1>
+            <motion.p data-motion-reveal variants={item} className="type-body-lg mt-6 max-w-xl">
               The simplest way to log every set, build your routines, and track your strength progress. Everything you
               need to stay consistent, all in one place.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+            </motion.p>
+            <motion.div data-motion-reveal variants={item} className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
               <Link href="#download" className="button-primary px-6 py-3 text-sm">
                 Download FitPal Free
               </Link>
@@ -79,8 +86,8 @@ export default function Home() {
                 Explore Features
                 <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
               </Link>
-            </div>
-          </MotionReveal>
+            </motion.div>
+          </motion.div>
 
           <MotionReveal className="lg:col-span-5 lg:pt-3" delay={0.06}>
             <div className="border-t border-hairline">
@@ -98,7 +105,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="container-editorial pb-16 lg:pb-24">
+      <motion.section
+        data-motion-reveal
+        variants={section}
+        initial="hidden"
+        whileInView="visible"
+        viewport={viewport}
+        className="container-editorial pb-16 lg:pb-24"
+      >
         <div className="panel overflow-hidden">
           <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 sm:px-8">
             <div className="flex items-center gap-3">
@@ -135,46 +149,57 @@ export default function Home() {
             </div>
 
             <div className="flex justify-center lg:col-span-8 lg:justify-end">
-              <PhoneMockup>
-                <HeroSessionMockup />
-              </PhoneMockup>
+              <CometCard className="mx-auto w-fit" rotateDepth={8} translateDepth={6}>
+                <PhoneMockup>
+                  <HeroSessionMockup />
+                </PhoneMockup>
+              </CometCard>
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       <section className="border-y border-hairline">
         <div className="container-editorial">
-          <div className="grid grid-cols-2 gap-px bg-hairline lg:grid-cols-4">
+          <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={viewport} className="grid grid-cols-2 gap-px bg-hairline lg:grid-cols-4">
             {stats.map((stat, index) => (
-              <div key={stat.label} className="bg-wine-900 px-5 py-8 lg:px-8 lg:py-10">
+              <motion.div data-motion-reveal variants={item} key={stat.label} className="bg-wine-900 px-5 py-8 lg:px-8 lg:py-10">
                 <span className="type-label">0{index + 1}</span>
                 <div className="type-metric mt-4">{stat.value}</div>
                 <div className="type-small mt-2">{stat.label}</div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
       <section id="features" className="container-editorial scroll-mt-24 py-20 lg:py-28">
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-4">
+          <motion.div
+            data-motion-reveal
+            variants={section}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewport}
+            className="lg:col-span-4"
+          >
             <span className="type-label">Features</span>
             <h2 className="type-headline mt-4 max-w-md">Everything You Need to Own Your Progress.</h2>
             <p className="type-body-lg mt-5 max-w-sm">
               From logging every set to tracking personal records, FitPal keeps your training organised and your
               progress visible.
             </p>
-          </div>
+          </motion.div>
 
-          <div className="lg:col-span-8">
+          <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={viewport} className="lg:col-span-8">
             <div className="border-t border-hairline">
               {features.map((feature, index) => (
-                <Link
+                <MotionLink
+                  data-motion-reveal
+                  variants={item}
                   key={feature.href}
                   href={feature.href}
-                  className="group grid gap-2 border-b border-hairline py-6 transition-colors hover:bg-wine-800/30 sm:grid-cols-[2.5rem_1fr_auto] sm:items-baseline sm:gap-6 sm:px-3"
+                  className="feature-row group grid gap-2 border-b border-hairline py-6 transition-colors hover:bg-wine-800/30 sm:grid-cols-[2.5rem_1fr_auto] sm:items-baseline sm:gap-6 sm:px-3"
                 >
                   <span className="type-label">0{index + 1}</span>
                   <div>
@@ -185,10 +210,10 @@ export default function Home() {
                     Learn more
                     <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </span>
-                </Link>
+                </MotionLink>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

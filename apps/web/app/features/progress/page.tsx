@@ -43,7 +43,7 @@ export default function ProgressPage() {
 
       <section className="border-y border-hairline">
         <div className="container-editorial">
-          <div className="grid gap-px bg-hairline sm:grid-cols-2 lg:grid-cols-4">
+          <MotionReveal inView className="grid gap-px bg-hairline sm:grid-cols-2 lg:grid-cols-4">
             {points.map((point, index) => (
               <div key={point.title} className="bg-wine-900 px-5 py-8 lg:px-8">
                 <span className="type-label">0{index + 1}</span>
@@ -51,7 +51,7 @@ export default function ProgressPage() {
                 <p className="type-body mt-2 pr-6">{point.desc}</p>
               </div>
             ))}
-          </div>
+          </MotionReveal>
         </div>
       </section>
 

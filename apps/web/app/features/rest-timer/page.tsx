@@ -14,7 +14,7 @@ const points = [
 
 function PointList({ items, start }: { items: typeof points; start: number }) {
   return (
-    <div className="border-t border-hairline">
+    <MotionReveal inView className="border-t border-hairline">
       {items.map((point, index) => (
         <div key={point.title} className="border-b border-hairline py-6">
           <span className="type-label">0{start + index}</span>
@@ -22,7 +22,7 @@ function PointList({ items, start }: { items: typeof points; start: number }) {
           <p className="type-body mt-2">{point.desc}</p>
         </div>
       ))}
-    </div>
+    </MotionReveal>
   );
 }
 

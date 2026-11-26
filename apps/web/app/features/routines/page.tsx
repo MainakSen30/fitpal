@@ -42,7 +42,7 @@ export default function RoutinesPage() {
             </div>
           </MotionReveal>
 
-          <div className="lg:col-span-7">
+          <MotionReveal inView className="lg:col-span-7">
             <div className="grid gap-px border border-hairline bg-hairline sm:grid-cols-2">
               {points.map((point, index) => (
                 <div key={point.title} className="bg-wine-900 p-6 sm:p-8">
@@ -52,7 +52,7 @@ export default function RoutinesPage() {
                 </div>
               ))}
             </div>
-          </div>
+          </MotionReveal>
         </div>
       </section>
 

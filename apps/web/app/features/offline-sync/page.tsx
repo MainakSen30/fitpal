@@ -43,7 +43,7 @@ export default function OfflineSyncPage() {
       </section>
 
       <section className="container-editorial pb-20 lg:pb-24">
-        <div className="panel overflow-hidden">
+        <MotionReveal inView className="panel overflow-hidden">
           <div className="flex items-center justify-between gap-4 border-b border-hairline px-5 py-4 sm:px-8">
             <div className="flex items-center gap-2.5">
               <WifiOff className="h-3.5 w-3.5 text-accent-clay" aria-hidden="true" />
@@ -60,7 +60,7 @@ export default function OfflineSyncPage() {
               </div>
             ))}
           </div>
-        </div>
+        </MotionReveal>
       </section>
 
       <SiteCta
