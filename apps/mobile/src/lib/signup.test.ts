@@ -1220,3 +1220,81 @@ describe('signup service logging', () => {
     }
   });
 });
+
+describe('stable backend error code classification', () => {
+  it('classifies registration errors by code even with unfamiliar messages', async () => {
+    const validation = deps({
+      post: http(400, { error: 'Backend wording changed', code: 'VALIDATION_ERROR' }),
+    });
+    const duplicate = deps({
+      post: http(409, { error: 'Backend wording changed', code: 'IDENTITY_ALREADY_REGISTERED' }),
+    });
+    const limited = deps({
+      post: http(429, { error: 'Backend wording changed', code: 'RATE_LIMITED', retryAfterSeconds: 12 }),
+    });
+
+    expect(await createSignupService(validation).register(REGISTER_INPUT)).toEqual({
+      kind: 'validationError',
+    });
+    expect(await createSignupService(duplicate).register(REGISTER_INPUT)).toEqual({
+      kind: 'duplicateRegistration',
+    });
+    expect(await createSignupService(limited).register(REGISTER_INPUT)).toEqual({ kind: 'rateLimit' });
+  });
+
+  it('classifies verification lockout and rate limits without message matching', async () => {
+    const locked = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(400, { error: 'New wording', code: 'OTP_LOCKED', retryAfterSeconds: 90 }),
+    });
+    const cooldown = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(400, { error: 'New wording', code: 'OTP_RESEND_COOLDOWN', retryAfterSeconds: 12 }),
+    });
+    const quota = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(400, { error: 'New wording', code: 'OTP_RESEND_LIMIT' }),
+    });
+    const internal = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(500, { error: 'New wording', code: 'INTERNAL_ERROR' }),
+    });
+
+    expect(await createSignupService(locked).verify({ code: '123456' })).toEqual({ kind: 'codeLockout' });
+    expect(await createSignupService(cooldown).verify({ code: '123456' })).toEqual({ kind: 'rateLimit' });
+    expect(await createSignupService(quota).verify({ code: '123456' })).toEqual({ kind: 'rateLimit' });
+    expect(await createSignupService(internal).verify({ code: '123456' })).toEqual({
+      kind: 'unexpectedServerError',
+    });
+  });
+
+  it('classifies stale continuation tokens on resend without message matching', async () => {
+    const actions = deps({
+      loadPending: mock(async () => FAILED_PENDING),
+      post: http(401, { error: 'New wording', code: 'SIGNUP_CONTINUATION_INVALID' }),
+    });
+
+    expect(await createSignupService(actions).resend()).toEqual({ kind: 'invalidPendingSignup' });
+    expect(actions.clearPending).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers stable codes over legacy messages when both are present', async () => {
+    const actions = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(400, { error: LOCKOUT_MESSAGE, code: 'RATE_LIMITED' }),
+    });
+
+    expect(await createSignupService(actions).verify({ code: '123456' })).toEqual({ kind: 'rateLimit' });
+  });
+
+  it('keeps legacy message classification for older backends', async () => {
+    const legacy = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(400, { error: LOCKOUT_MESSAGE }),
+    });
+
+    expect(await createSignupService(legacy).verify({ code: '123456' })).toEqual({
+      kind: 'codeLockout',
+    });
+  });
+});

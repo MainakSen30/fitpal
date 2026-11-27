@@ -263,13 +263,26 @@ type BadRequestResult =
   | { kind: 'rateLimit' }
   | { kind: 'codeLockout' };
 
-// Temporary until the API exposes stable error codes. Only the current exact
-// backend messages are classified; unknown 400s are never confirmed lockouts.
+// Legacy message matching remains for older backends; new responses carry codes.
 const LOCKOUT_MESSAGE = 'Too many incorrect attempts. Request a new code after the lock expires.';
 const RATE_LIMIT_MESSAGE = 'Too many requests. Please try again later.';
 const DELIVERY_UNAVAILABLE_MESSAGE = 'Verification request could not be completed';
 
+function errorCodeOf(data: unknown): string | undefined {
+  const record = recordOf(data);
+  return stringField(record, 'code') ?? stringField(recordOf(record?.error), 'code');
+}
+
 function mapBadRequest(data: unknown): BadRequestResult {
+  const code = errorCodeOf(data);
+  if (code === 'VALIDATION_ERROR') return { kind: 'validationError' };
+  if (code === 'OTP_LOCKED') return { kind: 'codeLockout' };
+  if (
+    code === 'RATE_LIMITED'
+    || code === 'OTP_RESEND_COOLDOWN'
+    || code === 'OTP_RESEND_LIMIT'
+  ) return { kind: 'rateLimit' };
+
   const message = errorMessage(data);
   if (message === LOCKOUT_MESSAGE) return { kind: 'codeLockout' };
   if (message === RATE_LIMIT_MESSAGE || message === DELIVERY_UNAVAILABLE_MESSAGE) {
@@ -282,6 +295,30 @@ function mapBadRequest(data: unknown): BadRequestResult {
 type SignupOperation = 'register' | 'verify' | 'resend';
 
 function mapFailure(operation: SignupOperation, status: number, data: unknown): SignupResult {
+  const code = errorCodeOf(data);
+  switch (code) {
+    case 'VALIDATION_ERROR':
+      return { kind: 'validationError' };
+    case 'IDENTITY_ALREADY_REGISTERED':
+      return operation === 'register'
+        ? { kind: 'duplicateRegistration' }
+        : { kind: 'unexpectedServerError' };
+    case 'OTP_INVALID_OR_EXPIRED':
+      if (operation === 'verify') return { kind: 'invalidOrExpiredCode' };
+      if (operation === 'resend') return { kind: 'invalidPendingSignup' };
+      break;
+    case 'SIGNUP_CONTINUATION_INVALID':
+      return { kind: 'invalidPendingSignup' };
+    case 'OTP_LOCKED':
+      return { kind: 'codeLockout' };
+    case 'RATE_LIMITED':
+    case 'OTP_RESEND_COOLDOWN':
+    case 'OTP_RESEND_LIMIT':
+      return { kind: 'rateLimit' };
+    case 'INTERNAL_ERROR':
+      return { kind: 'unexpectedServerError' };
+  }
+
   switch (status) {
     case 400:
       return mapBadRequest(data);
@@ -528,7 +565,10 @@ export function createSignupService(actions: SignupActions) {
       }
 
       // Wrong, expired, consumed and superseded codes are indistinguishable.
-      if (response.status === 401) return { kind: 'invalidOrExpiredCode' };
+      if (
+        response.status === 401
+        || errorCodeOf(response.data) === 'OTP_INVALID_OR_EXPIRED'
+      ) return { kind: 'invalidOrExpiredCode' };
       return mapFailure('verify', response.status, response.data);
     },
 
@@ -564,7 +604,11 @@ export function createSignupService(actions: SignupActions) {
         return { kind: 'deliveryUnavailable', pending: rotated, continuationToken: token };
       }
 
-      if (response.status === 401) {
+      if (
+        response.status === 401
+        || errorCodeOf(response.data) === 'SIGNUP_CONTINUATION_INVALID'
+        || errorCodeOf(response.data) === 'OTP_INVALID_OR_EXPIRED'
+      ) {
         const cleaned = await clearLogicalPending(revision, () => actions.clearPending());
         return cleaned
           ? { kind: 'invalidPendingSignup' }
