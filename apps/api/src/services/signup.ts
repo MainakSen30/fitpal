@@ -3,7 +3,7 @@ import { otpChallenges, users, type User } from "@fitpal/database";
 import crypto from "node:crypto";
 import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 import { db } from "../db";
-import { ApiError } from "../lib/errors";
+import { ApiError, API_ERROR_CODES as CODES } from "../lib/errors";
 import { createSession } from "./auth";
 import { isPendingSignupUser } from "./pending-account";
 import { otpEngine as defaultOtpEngine, type OtpEngine } from "./otp/engine";
@@ -29,8 +29,15 @@ type SignupPurpose = (typeof SIGNUP_PURPOSES)[number];
 const LATER_PURPOSES = ["email_verification", "phone_verification"] as const;
 type LaterPurpose = (typeof LATER_PURPOSES)[number];
 
-const invalidOtp = () => new ApiError("Invalid or expired OTP", 401);
-const unavailable = () => new ApiError("Verification delivery is unavailable", 503);
+const invalidOtp = () => new ApiError("Invalid or expired OTP", 401, {
+  code: CODES.OTP_INVALID_OR_EXPIRED,
+});
+const invalidContinuation = () => new ApiError("Invalid or expired OTP", 401, {
+  code: CODES.SIGNUP_CONTINUATION_INVALID,
+});
+const unavailable = () => new ApiError("Verification delivery is unavailable", 503, {
+  code: CODES.OTP_DELIVERY_FAILED,
+});
 
 const CONTINUATION_PREFIX = "continuation:";
 const CONTINUATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -38,7 +45,7 @@ const CONTINUATION_TTL_MS = 24 * 60 * 60 * 1000;
 /** Delivery failure keeps the pending account, but exposes only an opaque resend handle. */
 export class SignupDeliveryError extends ApiError {
   constructor(readonly continuationToken: string) {
-    super("Verification delivery is unavailable", 503);
+    super("Verification delivery is unavailable", 503, { code: CODES.OTP_DELIVERY_FAILED });
   }
 }
 
@@ -71,7 +78,7 @@ async function issueContinuation(markerId: string, expectedHash?: string) {
     })
     .where(and(...conditions))
     .returning({ id: otpChallenges.id });
-  if (!updated) throw invalidOtp();
+  if (!updated) throw expectedHash ? invalidContinuation() : invalidOtp();
   return new SignupDeliveryError(token);
 }
 
@@ -110,7 +117,9 @@ function laterPurposeFor(channel: SignupChannel): LaterPurpose {
 
 function destinationFor(user: User, channel: SignupChannel): string {
   if (channel === "email") return user.email;
-  if (!user.phone) throw new ApiError("No phone number on this account", 400);
+  if (!user.phone) throw new ApiError("No phone number on this account", 400, {
+    code: CODES.VALIDATION_ERROR,
+  });
   return user.phone;
 }
 
@@ -123,21 +132,43 @@ function assertDelivery(result: SendOtpResult) {
     case "delivery_failed":
       throw unavailable();
     case "locked":
-      throw new ApiError("Too many incorrect attempts. Request a new code after the lock expires.", 400);
+      throw new ApiError("Too many incorrect attempts. Request a new code after the lock expires.", 400, {
+        code: CODES.OTP_LOCKED,
+        retryAfterSeconds: result.retryAfterSeconds,
+      });
+    case "cooldown":
+      throw new ApiError("Please wait before requesting another code.", 400, {
+        code: CODES.OTP_RESEND_COOLDOWN,
+        retryAfterSeconds: result.retryAfterSeconds,
+      });
+    case "quota_exhausted":
+      throw new ApiError("Too many verification requests. Please try again later.", 400, {
+        code: CODES.OTP_RESEND_LIMIT,
+        retryAfterSeconds: result.retryAfterSeconds,
+      });
     case "rate_limited":
-      throw new ApiError("Too many requests. Please try again later.", 400);
+      throw new ApiError("Too many requests. Please try again later.", 400, {
+        code: CODES.RATE_LIMITED,
+      });
     default:
-      throw new ApiError("Verification request could not be completed", 400);
+      throw new ApiError("Verification request could not be completed", 400, {
+        code: CODES.VALIDATION_ERROR,
+      });
   }
 }
 
 function assertVerified(result: VerifyOtpResult) {
   if (result.status === "success") return;
   if (result.status === "locked") {
-    throw new ApiError("Too many incorrect attempts. Request a new code after the lock expires.", 400);
+    throw new ApiError("Too many incorrect attempts. Request a new code after the lock expires.", 400, {
+      code: CODES.OTP_LOCKED,
+      retryAfterSeconds: result.retryAfterSeconds,
+    });
   }
   if (result.status === "rate_limited") {
-    throw new ApiError("Too many requests. Please try again later.", 400);
+    throw new ApiError("Too many requests. Please try again later.", 400, {
+      code: CODES.RATE_LIMITED,
+    });
   }
   throw invalidOtp();
 }
@@ -176,7 +207,9 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
         .from(users)
         .where(or(eq(users.email, email), eq(users.phone, input.phone)))
         .limit(1);
-      if (existing) throw new ApiError("Registration could not be completed", 409);
+      if (existing) throw new ApiError("Registration could not be completed", 409, {
+        code: CODES.IDENTITY_ALREADY_REGISTERED,
+      });
 
       const passwordHash = await hash(input.password, 10);
       const now = new Date();
@@ -208,7 +241,9 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
         markerId = created.markerId;
       } catch (error) {
         if ((error as { code?: string } | null)?.code === "23505") {
-          throw new ApiError("Registration could not be completed", 409);
+          throw new ApiError("Registration could not be completed", 409, {
+            code: CODES.IDENTITY_ALREADY_REGISTERED,
+          });
         }
         throw error;
       }
@@ -267,7 +302,7 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
           )
           .orderBy(desc(otpChallenges.sequence))
           .limit(1);
-        if (!marker) throw invalidOtp();
+        if (!marker) throw invalidContinuation();
         markerId = marker.id;
         user = await loadUser(marker.userId);
       } else if (input.userId) {
@@ -287,17 +322,19 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
         if (!marker) throw invalidOtp();
         markerId = marker.id;
       } else {
-        throw invalidOtp();
+        throw new ApiError("Invalid signup request", 400, { code: CODES.VALIDATION_ERROR });
       }
 
-      if (!user || !(await isPendingSignupUser(user.id))) throw invalidOtp();
+      if (!user || !(await isPendingSignupUser(user.id))) {
+        throw expectedHash ? invalidContinuation() : invalidOtp();
+      }
 
       const [marker] = await db
         .select({ purpose: otpChallenges.purpose })
         .from(otpChallenges)
         .where(eq(otpChallenges.id, markerId))
         .limit(1);
-      if (!marker) throw invalidOtp();
+      if (!marker) throw expectedHash ? invalidContinuation() : invalidOtp();
 
       const purpose = marker.purpose;
       const channel: SignupChannel = purpose === "signup_email_verification" ? "email" : "sms";
