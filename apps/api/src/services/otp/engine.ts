@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, count, desc, eq, gt, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, lt, min, sql } from "drizzle-orm";
 import {
   otpChallenges,
   otpSendHistory,
@@ -296,7 +296,7 @@ export class OtpEngine {
       }
 
       const [row] = await tx
-        .select({ value: count() })
+        .select({ value: count(), oldest: min(otpSendHistory.sentAt) })
         .from(otpSendHistory)
         .where(
           and(
@@ -305,7 +305,12 @@ export class OtpEngine {
           ),
         );
       if (row.value >= this.config.maxSends) {
-        return { status: "blocked", result: { status: "quota_exhausted" } };
+        if (!row.oldest) return { status: "blocked", result: { status: "quota_exhausted" } };
+        const retryAfterSeconds = Math.max(
+          1,
+          Math.ceil((row.oldest.getTime() + this.config.sendWindowMs - now.getTime()) / 1000),
+        );
+        return { status: "blocked", result: { status: "quota_exhausted", retryAfterSeconds } };
       }
 
       const challengeId = crypto.randomUUID();
