@@ -45,7 +45,7 @@ export type VerifyOtpInput = OtpScope & { code: string; clientIp?: string };
 export type SendOtpResult =
   | { status: "sent"; challengeId: string }
   | { status: "cooldown"; retryAfterSeconds: number }
-  | { status: "quota_exhausted" }
+  | { status: "quota_exhausted"; retryAfterSeconds?: number }
   | { status: "locked"; retryAfterSeconds: number }
   | { status: "delivery_failed"; reason: string }
   | { status: "mock_not_delivered" }

@@ -1,6 +1,6 @@
-import { Hono } from "hono";
+import { Hono, type Env, type ValidationTargets } from "hono";
 import { z } from "zod";
-import { zValidator } from "@hono/zod-validator";
+import { zValidator, type Hook } from "@hono/zod-validator";
 import {
   createSession,
   destroySession,
@@ -17,6 +17,7 @@ import { loginService, type LoginService } from "../services/login";
 import {
   noIpLimiter,
   redisIpLimiter,
+  ipRateLimitRetryAfterSeconds,
   type IpRateLimiter,
   type IpRateLimitAction,
 } from "../services/otp/ip-limit";
@@ -35,7 +36,7 @@ import { requireAuth, sessionTokenFromRequest, type AuthEnv } from "../middlewar
 import { serializeSessionCookie } from "../lib/cookies";
 import { clientIpFromRequest } from "../lib/client-ip";
 import { clearCsrfToken, getOrCreateCsrfToken } from "../lib/csrf";
-import { ApiError, errorResponse } from "../lib/errors";
+import { ApiError, API_ERROR_CODES as CODES, errorResponse } from "../lib/errors";
 import { users } from "@fitpal/database";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
@@ -54,11 +55,43 @@ export function createAuthRoutes(
     return ipLimiter.allow(action, clientIpFromRequest(c) ?? "unknown", new Date());
   }
 
+  const signupValidationError: Hook<unknown, Env, string, keyof ValidationTargets> = (result, c) => {
+    if (!result.success) {
+      return c.json({ error: "Invalid request", code: CODES.VALIDATION_ERROR }, 400);
+    }
+  };
+
+  function ipRateLimitError(c: Parameters<typeof errorResponse>[0]) {
+    return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429, {
+      code: CODES.RATE_LIMITED,
+      retryAfterSeconds: ipRateLimitRetryAfterSeconds(new Date()),
+    }));
+  }
+
   function signupErrorResponse(c: Parameters<typeof errorResponse>[0], error: unknown) {
     if (error instanceof SignupDeliveryError) {
-      return c.json({ error: error.message, continuationToken: error.continuationToken }, error.status);
+      return c.json({
+        error: error.message,
+        code: CODES.OTP_DELIVERY_FAILED,
+        continuationToken: error.continuationToken,
+      }, error.status);
     }
-    return errorResponse(c, error);
+    if (error instanceof ApiError) return errorResponse(c, error);
+    // postgres-js exposes the SQLSTATE on thrown errors.
+    const sqlState = (error as { code?: string } | null)?.code;
+    if (sqlState === "23505") {
+      return errorResponse(c, new ApiError("Registration could not be completed", 409, {
+        code: CODES.IDENTITY_ALREADY_REGISTERED,
+      }));
+    }
+    if (sqlState === "23503" || sqlState === "23514") {
+      return errorResponse(c, new ApiError("Invalid request", sqlState === "23503" ? 400 : 422, {
+        code: CODES.VALIDATION_ERROR,
+      }));
+    }
+    return errorResponse(c, new ApiError("Unexpected server error", 500, {
+      code: CODES.INTERNAL_ERROR,
+    }));
   }
 
   // Double-submit CSRF token for browser clients. Safe to call without a
@@ -69,10 +102,8 @@ export function createAuthRoutes(
 
   // Normal registration creates a pending account and starts signup verification.
   // No session is created until a contact has been verified.
-  auth.post("/register", zValidator("json", signupRegistrationSchema), async (c) => {
-    if (!(await allowIp(c, "register"))) {
-      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
-    }
+  auth.post("/register", zValidator("json", signupRegistrationSchema, signupValidationError), async (c) => {
+    if (!(await allowIp(c, "register"))) return ipRateLimitError(c);
     try {
       const result = await signup.register(c.req.valid("json"), clientIpFromRequest(c));
       return c.json(result, 202);
@@ -85,10 +116,8 @@ export function createAuthRoutes(
     userId: z.string().uuid(),
     channel: z.enum(["email", "sms"]),
     code: z.string().length(6),
-  })), async (c) => {
-    if (!(await allowIp(c, "lookup"))) {
-      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
-    }
+  }), signupValidationError), async (c) => {
+    if (!(await allowIp(c, "lookup"))) return ipRateLimitError(c);
     try {
       const { userId, channel, code } = c.req.valid("json");
       const result = await signup.verifyInitial({ userId, channel, code }, clientIpFromRequest(c));
@@ -96,7 +125,7 @@ export function createAuthRoutes(
       getOrCreateCsrfToken(c);
       return c.json(result);
     } catch (e) {
-      return errorResponse(c, e);
+      return signupErrorResponse(c, e);
     }
   });
 
@@ -105,10 +134,8 @@ export function createAuthRoutes(
     continuationToken: z.string().min(1).max(MAX_TOKEN).optional(),
   }).refine((value) => Boolean(value.userId) !== Boolean(value.continuationToken), {
     message: "Provide userId or continuationToken",
-  })), async (c) => {
-    if (!(await allowIp(c, "lookup"))) {
-      return errorResponse(c, new ApiError("Too many requests. Please try again later.", 429));
-    }
+  }), signupValidationError), async (c) => {
+    if (!(await allowIp(c, "lookup"))) return ipRateLimitError(c);
     try {
       return c.json(await signup.resendInitial(c.req.valid("json"), clientIpFromRequest(c)));
     } catch (e) {

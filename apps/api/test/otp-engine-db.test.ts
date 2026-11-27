@@ -188,7 +188,11 @@ describeDb("OTP engine lifecycle", () => {
     expect(await engine.send(target)).toEqual({ status: "cooldown", retryAfterSeconds: 54 });
 
     clock.value = baseTime + 366_000;
-    expect(await engine.send(target)).toEqual({ status: "quota_exhausted" });
+    const blocked = await engine.send(target);
+    expect(blocked.status).toBe("quota_exhausted");
+    if (blocked.status === "quota_exhausted") {
+      expect(blocked.retryAfterSeconds).toBe(3234);
+    }
 
     clock.value = baseTime + 3_661_001;
     expect((await engine.send(target)).status).toBe("sent");

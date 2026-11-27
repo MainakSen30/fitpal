@@ -208,7 +208,9 @@ describeDb("normal registration", () => {
       const { [field]: _ignored, ...missing } = valid;
       expect((await signupApi("POST", "/auth/register", missing)).status).toBe(400);
     }
-    expect((await signupApi("POST", "/auth/register", { ...valid, email: "not-an-email" })).status).toBe(400);
+    const invalidEmail = await signupApi("POST", "/auth/register", { ...valid, email: "not-an-email" });
+    expect(invalidEmail.status).toBe(400);
+    expect((await json(invalidEmail)).code).toBe("VALIDATION_ERROR");
     expect((await signupApi("POST", "/auth/register", { ...valid, phone: "+91 12345" })).status).toBe(400);
   });
 
@@ -255,7 +257,10 @@ describeDb("normal registration", () => {
 
     const duplicate = await signupApi("POST", "/auth/register", { ...input, name: "Again" });
     expect(duplicate.status).toBe(409);
-    expect(await json(duplicate)).toEqual({ error: "Registration could not be completed" });
+    expect(await json(duplicate)).toEqual({
+      error: "Registration could not be completed",
+      code: "IDENTITY_ALREADY_REGISTERED",
+    });
 
     const samePhone = await signupApi("POST", "/auth/register", {
       ...body("duplicate-phone"),
@@ -368,6 +373,7 @@ describeDb("initial phone verification", () => {
       expect(response.status).toBe(503);
       const result = await json(response);
       expect(result.error).toBe("Verification delivery is unavailable");
+      expect(result.code).toBe("OTP_DELIVERY_FAILED");
       expect(typeof result.continuationToken).toBe("string");
       expect(response.headers.get("set-cookie")).toBeNull();
       expect(routeCodes).toHaveLength(0);
@@ -565,9 +571,10 @@ describeDb("resend, locks and delivery failures", () => {
     const input = body("resend");
     const signup = await service.register(input);
 
-    await expect(service.resendInitial(signup.userId)).rejects.toThrow(
-      "Verification request could not be completed",
-    );
+    await expect(service.resendInitial(signup.userId)).rejects.toMatchObject({
+      status: 400,
+      metadata: { code: "OTP_RESEND_COOLDOWN" },
+    });
     clock.value += 61_000;
     const resent = await service.resendInitial(signup.userId);
     expect(resent.channel).toBe("email");
@@ -620,9 +627,10 @@ describeDb("resend, locks and delivery failures", () => {
       expect((await service.resendInitial(signup.userId)).channel).toBe("email");
     }
     clock.value += 61_000;
-    await expect(service.resendInitial(signup.userId)).rejects.toThrow(
-      "Verification request could not be completed",
-    );
+    await expect(service.resendInitial(signup.userId)).rejects.toMatchObject({
+      status: 400,
+      metadata: { code: "OTP_RESEND_LIMIT" },
+    });
   });
 
   it("returns a one-time continuation that resumes email signup after delivery failure", async () => {
@@ -657,6 +665,7 @@ describeDb("resend, locks and delivery failures", () => {
 
     const replay = await signupApi("POST", "/auth/signup/resend", { continuationToken });
     expect(replay.status).toBe(401);
+    expect((await json(replay)).code).toBe("SIGNUP_CONTINUATION_INVALID");
 
     const verified = await signupApi("POST", "/auth/signup/verify", {
       userId: stored.id,
@@ -681,15 +690,19 @@ describeDb("resend, locks and delivery failures", () => {
     const secondToken = (await json(second)).continuationToken as string;
     expect(secondToken).not.toBe(firstToken);
 
-    expect((await signupApi("POST", "/auth/signup/resend", {
+    const stale = await signupApi("POST", "/auth/signup/resend", {
       continuationToken: firstToken,
-    })).status).toBe(401);
+    });
+    expect(stale.status).toBe(401);
+    expect((await json(stale)).code).toBe("SIGNUP_CONTINUATION_INVALID");
   });
 
   it("rejects invalid and expired continuation tokens", async () => {
-    expect((await signupApi("POST", "/auth/signup/resend", {
+    const invalid = await signupApi("POST", "/auth/signup/resend", {
       continuationToken: "not-a-real-token",
-    })).status).toBe(401);
+    });
+    expect(invalid.status).toBe(401);
+    expect((await json(invalid)).code).toBe("SIGNUP_CONTINUATION_INVALID");
 
     routeEmailFailure = true;
     const input = body("expired-continuation");
@@ -703,7 +716,9 @@ describeDb("resend, locks and delivery failures", () => {
         eq(otpChallenges.status, "failed"),
       ));
 
-    expect((await signupApi("POST", "/auth/signup/resend", { continuationToken: token })).status).toBe(401);
+    const expired = await signupApi("POST", "/auth/signup/resend", { continuationToken: token });
+    expect(expired.status).toBe(401);
+    expect((await json(expired)).code).toBe("SIGNUP_CONTINUATION_INVALID");
   });
 
   it("does not accept a continuation token as an account or login identifier", async () => {
