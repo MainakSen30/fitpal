@@ -9,6 +9,7 @@ import { PrimaryButton } from '../../src/components/ui/PrimaryButton';
 import { ScreenEntrance } from '../../src/components/ui/ScreenEntrance';
 import { createSignupService, mapResendResult, mapVerifyResult, type SignupActions } from '../../src/lib/signup';
 import { createSignupPost } from '../../src/lib/signup-http';
+import { session } from '../../src/lib/session';
 import {
   createSignupStorage,
   isValidOtpCode,
@@ -26,7 +27,15 @@ type VerifyScreenServiceDeps = {
 };
 
 export function createVerifyScreenService(deps: VerifyScreenServiceDeps = {}) {
-  const storage = deps.storage ?? createSignupStorage();
+  const baseStorage = deps.storage ?? createSignupStorage();
+  const saveSessionToken = baseStorage.saveSessionToken.bind(baseStorage);
+  const storage: SignupStorageAdapter = {
+    ...baseStorage,
+    saveSessionToken: async (token) => {
+      await saveSessionToken(token);
+      session.establish(token);
+    },
+  };
   const service = createSignupService({ ...storage, post: deps.post ?? createSignupPost() });
   return { service, storage };
 }
@@ -42,6 +51,7 @@ export default function VerifySignupScreen() {
   const [resending, setResending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+  const [loginRequired, setLoginRequired] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const verifyRef = useRef(false);
   const resendRef = useRef(false);
@@ -93,6 +103,7 @@ export default function VerifySignupScreen() {
     verifyRef.current = true;
     setVerifying(true);
     setErrorMessage(null);
+    setLoginRequired(false);
     try {
       const outcome = mapVerifyResult(await signupService.verify({ code }));
       if (outcome.kind === 'success') {
@@ -101,7 +112,9 @@ export default function VerifySignupScreen() {
         return;
       }
       if (outcome.kind === 'sessionPersistenceFailed') {
+        setCode('');
         setInfoMessage(outcome.message);
+        setLoginRequired(true);
         return;
       }
       if (outcome.kind === 'restart') {
@@ -201,6 +214,13 @@ export default function VerifySignupScreen() {
 
                 {infoMessage && <Text style={styles.info}>{infoMessage}</Text>}
                 {errorMessage && <Text style={styles.error}>{errorMessage}</Text>}
+                {loginRequired && (
+                  <PrimaryButton
+                    title="Sign in with password"
+                    onPress={() => router.replace('/(auth)/login')}
+                    style={styles.button}
+                  />
+                )}
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Verification code</Text>
@@ -213,7 +233,7 @@ export default function VerifySignupScreen() {
                     keyboardType="number-pad"
                     autoComplete="one-time-code"
                     maxLength={6}
-                    editable={!verifying && !deliveryUnavailable}
+                    editable={!verifying && !deliveryUnavailable && !loginRequired}
                     returnKeyType="done"
                     onSubmitEditing={onSubmit}
                   />
@@ -222,7 +242,7 @@ export default function VerifySignupScreen() {
                 <PrimaryButton
                   title={verifying ? 'Verifying' : 'Verify code'}
                   loading={verifying}
-                  disabled={verifying || resending || deliveryUnavailable}
+                  disabled={verifying || resending || deliveryUnavailable || loginRequired}
                   onPress={onSubmit}
                   style={styles.button}
                 />
@@ -231,7 +251,7 @@ export default function VerifySignupScreen() {
                   variant="glass"
                   title={cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
                   loading={resending}
-                  disabled={resending || verifying || cooldown > 0}
+                  disabled={resending || verifying || cooldown > 0 || loginRequired}
                   onPress={onResend}
                   style={styles.resendButton}
                 />

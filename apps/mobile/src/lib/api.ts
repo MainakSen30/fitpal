@@ -1,50 +1,29 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
-import * as SecureStore from 'expo-secure-store';
+import { API_URL } from './api-url';
+import { session } from './session';
 
 // Date-only fields use the shared canonical DD-MM-YYYY contract; timestamps stay ISO 8601.
 export type { DateOnly } from '@fitpal/shared';
-
-// Host-published API port from docker/docker-compose.yml (api 3001 -> 3011).
-const DEV_API_PORT = 3011;
+export { API_URL };
 
 /**
- * Resolve the API origin.
- *
- * In development the device already reaches Metro at <mac-lan-ip>:8081, and
- * Metro advertises that same reachable host in `expoConfig.hostUri`. Deriving
- * the API host from it keeps login working across DHCP changes: a hardcoded
- * LAN IP in .env silently goes stale, and every request then hangs "pending"
- * against an address that no longer belongs to this machine.
- *
- * `hostUri` is only present during development. Production builds use the
- * EXPO_PUBLIC_API_URL value baked in at build time.
+ * No interceptors: public auth calls must never inherit a stale Bearer token
+ * or delete a valid session when they fail with 401.
  */
-function resolveApiUrl(): string {
-  if (__DEV__) {
-    const hostUri = Constants.expoConfig?.hostUri;
-    // hostUri is "host:port"; strip only the trailing :port so bracketed
-    // IPv6 hosts stay intact.
-    const host = hostUri?.replace(/:\d+$/, '');
-    if (host) return `http://${host}:${DEV_API_PORT}`;
-  }
-  return process.env.EXPO_PUBLIC_API_URL || `http://localhost:${DEV_API_PORT}`;
-}
-
-export const API_URL = resolveApiUrl();
-
-export const api = axios.create({
+export const publicApi = axios.create({
   baseURL: `${API_URL}/api/v1`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('auth_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+/** Protected calls only; 401s are routed through the shared session controller. */
+export const api = axios.create({
+  baseURL: `${API_URL}/api/v1`,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+api.interceptors.request.use((config) => {
+  const token = session.currentToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -52,8 +31,12 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await SecureStore.deleteItemAsync('auth_token');
+      const headers = (error as { config?: { headers?: Record<string, unknown> } }).config?.headers;
+      const header = headers?.Authorization;
+      if (typeof header === 'string' && header.startsWith('Bearer ')) {
+        await session.invalidateToken(header.slice('Bearer '.length));
+      }
     }
     return Promise.reject(error);
-  }
+  },
 );

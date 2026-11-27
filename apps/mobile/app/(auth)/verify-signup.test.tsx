@@ -108,6 +108,17 @@ describe('verification result handling', () => {
     }
   });
 
+  it('explains a backend session-creation failure without blaming the OTP', () => {
+    const outcome = mapVerifyResult({ kind: 'sessionCreationFailed', pending: ACCEPTED });
+
+    expect(outcome.kind).toBe('sessionPersistenceFailed');
+    if (outcome.kind === 'sessionPersistenceFailed') {
+      expect(outcome.message).toContain('account is verified');
+      expect(outcome.message).toContain('sign in with your password');
+      expect(outcome.message).not.toContain('invalid');
+    }
+  });
+
   it('routes missing pending state back to signup', () => {
     const outcome = mapVerifyResult({ kind: 'invalidPendingSignup' });
     expect(outcome.kind).toBe('restart');

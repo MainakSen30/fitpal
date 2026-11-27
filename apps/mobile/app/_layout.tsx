@@ -1,6 +1,7 @@
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { SessionGate } from '../src/components/SessionGate';
 import { ErrorFallback } from '../src/components/ui/ErrorFallback';
 
 // Expo Router renders this when anything below the root layout throws during
@@ -14,17 +15,19 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade_from_bottom',
-          animationDuration: 280,
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <SessionGate>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade_from_bottom',
+            animationDuration: 280,
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </SessionGate>
     </QueryClientProvider>
   );
 }

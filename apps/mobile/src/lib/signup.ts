@@ -65,6 +65,7 @@ export type SignupResult =
   | { kind: 'deliveryUnavailable'; pending: DeliveryFailedPendingSignup; continuationToken: string }
   | { kind: 'verified'; pendingCleanupFailed?: boolean }
   | { kind: 'sessionPersistenceFailed'; pending: AcceptedPendingSignup; cleanupFailed?: boolean }
+  | { kind: 'sessionCreationFailed'; pending: AcceptedPendingSignup; cleanupFailed?: boolean }
   | { kind: 'validationError' }
   | { kind: 'unrecognizedBadRequest' }
   | { kind: 'duplicateRegistration' }
@@ -146,6 +147,11 @@ export function mapVerifyResult(result: SignupResult): VerifyScreenOutcome {
       return {
         kind: 'sessionPersistenceFailed',
         message: 'Verification succeeded, but we could not save your session. Please sign in with your password.',
+      };
+    case 'sessionCreationFailed':
+      return {
+        kind: 'sessionPersistenceFailed',
+        message: 'Your account is verified, but automatic sign-in could not be completed. Please sign in with your password.',
       };
     case 'invalidOrExpiredCode':
       return { kind: 'error', message: 'That code is invalid or has expired. Try again or request a new one.' };
@@ -562,6 +568,15 @@ export function createSignupService(actions: SignupActions) {
           return { kind: 'verified', pendingCleanupFailed: true };
         }
         return { kind: 'verified' };
+      }
+
+      // The OTP is consumed and the account is verified, but no session was
+      // created. Clear the unusable pending record without blaming the code.
+      if (errorCodeOf(response.data) === 'SESSION_CREATION_FAILED') {
+        const cleaned = await clearLogicalPending(revision, () => actions.clearPending());
+        return cleaned
+          ? { kind: 'sessionCreationFailed', pending: loaded.pending }
+          : { kind: 'sessionCreationFailed', pending: loaded.pending, cleanupFailed: true };
       }
 
       // Wrong, expired, consumed and superseded codes are indistinguishable.

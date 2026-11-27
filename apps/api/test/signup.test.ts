@@ -362,6 +362,68 @@ describeDb("initial email verification", () => {
     track(successes[0].body?.token);
     expect(await activeChallenge(String(userId), "signup_email_verification")).toBeUndefined();
   });
+
+  it("keeps the verified account and allows password recovery when session creation fails", async () => {
+    const input = body("session-creation-failure");
+    const register = await signupApi("POST", "/auth/register", input);
+    const { userId } = await json(register);
+    const code = routeCodes[0];
+
+    const setex = spyOn(redis, "setex").mockImplementation(() => {
+      throw new Error("redis unavailable");
+    });
+    try {
+      const response = await signupApi("POST", "/auth/signup/verify", { userId, channel: "email", code });
+      expect(response.status).toBe(503);
+      expect(await json(response)).toEqual({
+        error: "Account verified, but sign-in is temporarily unavailable. Please sign in with your password.",
+        code: "SESSION_CREATION_FAILED",
+      });
+      expect(response.headers.get("set-cookie")).toBeNull();
+
+      const [stored] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+      expect(stored.emailVerified).toBe(true);
+      expect(await isPendingSignupUser(stored.id)).toBe(false);
+      expect(await activeChallenge(String(userId), "signup_email_verification")).toBeUndefined();
+
+      const reuse = await signupApi("POST", "/auth/signup/verify", { userId, channel: "email", code });
+      expect(reuse.status).toBe(401);
+      expect((await json(reuse)).code).toBe("OTP_INVALID_OR_EXPIRED");
+    } finally {
+      setex.mockRestore();
+    }
+
+    const login = await api("POST", "/auth/login", {
+      email: input.email,
+      password: input.password,
+    });
+    expect(login.status).toBe(200);
+    const { token } = await json(login);
+    track(token);
+    expect((await api("GET", "/workouts", undefined, { Authorization: `Bearer ${token}` })).status).toBe(200);
+  });
+
+  it("recovers through password login when a created session response is never delivered", async () => {
+    const input = body("lost-session-response");
+    const register = await signupApi("POST", "/auth/register", input);
+    const { userId } = await json(register);
+    const code = routeCodes[0];
+
+    const verified = await signupApi("POST", "/auth/signup/verify", { userId, channel: "email", code });
+    expect(verified.status).toBe(200);
+    // Captured only for test cleanup; a real client can lose this response.
+    track((await json(verified)).token);
+
+    const login = await api("POST", "/auth/login", {
+      email: input.email,
+      password: input.password,
+    });
+    expect(login.status).toBe(200);
+    const { token } = await json(login);
+    track(token);
+    expect(token).toBeTruthy();
+    expect((await api("GET", "/workouts", undefined, { Authorization: `Bearer ${token}` })).status).toBe(200);
+  });
 });
 
 describeDb("initial phone verification", () => {

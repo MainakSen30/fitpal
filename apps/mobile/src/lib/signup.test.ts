@@ -421,6 +421,39 @@ describe('createSignupService.verify', () => {
     });
   });
 
+  it('classifies a backend session-creation failure separately from invalid OTP', async () => {
+    const actions = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(503, {
+        error: 'Account verified, but sign-in is temporarily unavailable. Please sign in with your password.',
+        code: 'SESSION_CREATION_FAILED',
+      }),
+    });
+
+    expect(await createSignupService(actions).verify({ code: '123456' })).toEqual({
+      kind: 'sessionCreationFailed',
+      pending: ACCEPTED_PENDING,
+    });
+    expect(actions.clearPending).toHaveBeenCalledTimes(1);
+    expect(actions.saveSessionToken).not.toHaveBeenCalled();
+  });
+
+  it('reports a cleanup failure after a backend session-creation failure', async () => {
+    const actions = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(503, { error: 'Sign-in unavailable', code: 'SESSION_CREATION_FAILED' }),
+      clearPending: mock(async () => {
+        throw new Error('SecureStore delete failed');
+      }),
+    });
+
+    expect(await createSignupService(actions).verify({ code: '123456' })).toEqual({
+      kind: 'sessionCreationFailed',
+      pending: ACCEPTED_PENDING,
+      cleanupFailed: true,
+    });
+  });
+
   it('does not classify an unknown 400 as a confirmed lockout', async () => {
     const actions = deps({
       loadPending: mock(async () => ACCEPTED_PENDING),

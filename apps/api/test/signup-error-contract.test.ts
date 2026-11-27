@@ -235,6 +235,26 @@ describe("signup error contract", () => {
       expect(JSON.stringify(body)).not.toContain("internal-stack-secret");
     });
 
+    it("reports a committed verification with a failed session separately", async () => {
+      const error = new ApiError(
+        "Account verified, but sign-in is temporarily unavailable. Please sign in with your password.",
+        503,
+        { code: CODES.SESSION_CREATION_FAILED },
+      );
+      const { response, body } = await post(
+        "/auth/signup/verify",
+        VERIFY_BODY,
+        allowAll,
+        signupStub({ verifyInitial: rejecting(error) }),
+      );
+
+      expectSafeError(body, CODES.SESSION_CREATION_FAILED, 503, response);
+      expect(body).not.toHaveProperty("token");
+      expect(body).not.toHaveProperty("user");
+      expect(body).not.toHaveProperty("retryAfterSeconds");
+      expect(response.headers.get("set-cookie")).toBeNull();
+    });
+
     it("does not leak internal errors from any signup route", async () => {
       const internal = rejecting(new Error("internal-stack-secret"));
       for (const [path, body, signup] of [

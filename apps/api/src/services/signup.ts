@@ -38,6 +38,11 @@ const invalidContinuation = () => new ApiError("Invalid or expired OTP", 401, {
 const unavailable = () => new ApiError("Verification delivery is unavailable", 503, {
   code: CODES.OTP_DELIVERY_FAILED,
 });
+const sessionUnavailable = () => new ApiError(
+  "Account verified, but sign-in is temporarily unavailable. Please sign in with your password.",
+  503,
+  { code: CODES.SESSION_CREATION_FAILED },
+);
 
 const CONTINUATION_PREFIX = "continuation:";
 const CONTINUATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -273,7 +278,14 @@ export function createSignupService(otp: OtpClient = defaultOtpEngine) {
       const updated = await setVerified(user.id, input.channel, user);
       if (!updated) throw invalidOtp();
 
-      const token = await createSession(user.id);
+      let token: string;
+      try {
+        token = await createSession(user.id);
+      } catch {
+        // Verification and OTP consumption are already committed; password
+        // login remains the safe way to start a fresh session.
+        throw sessionUnavailable();
+      }
       return { user: publicUser(updated), token };
     },
 

@@ -6,8 +6,8 @@ import { Link, router } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import * as SecureStore from 'expo-secure-store';
-import { api, API_URL } from '../../src/lib/api';
+import { API_URL, publicApi } from '../../src/lib/api';
+import { establishPersistedSession } from '../../src/lib/session';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppBackground } from '../../src/components/ui/AppBackground';
@@ -73,9 +73,10 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginForm) => {
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', data);
-      if (response.data.user) {
-        await SecureStore.setItemAsync('auth_token', response.data.token);
+      const response = await publicApi.post('/auth/login', data);
+      const token = response.data?.token;
+      if (response.data.user && typeof token === 'string' && token) {
+        await establishPersistedSession(token, response.data.user);
         router.replace('/(tabs)');
       }
     } catch (error: unknown) {
@@ -130,7 +131,7 @@ export default function LoginScreen() {
 
       let token: string;
       try {
-        const response = await api.post('/auth/google/exchange', {
+        const response = await publicApi.post('/auth/google/exchange', {
           code: outcome.code,
           scheme,
         });
@@ -146,7 +147,7 @@ export default function LoginScreen() {
       }
 
       try {
-        await SecureStore.setItemAsync('auth_token', token);
+        await establishPersistedSession(token);
       } catch {
         Alert.alert('Error', 'Sign-in could not be saved. Please try again.');
         return;

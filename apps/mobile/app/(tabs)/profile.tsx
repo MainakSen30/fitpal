@@ -8,14 +8,15 @@ import { AppBackground } from '../../src/components/ui/AppBackground';
 import { BrandLogo } from '../../src/components/ui/BrandLogo';
 import { GlassCard } from '../../src/components/ui/GlassCard';
 import { ScreenEntrance } from '../../src/components/ui/ScreenEntrance';
-import { api } from '../../src/lib/api';
+import { publicApi } from '../../src/lib/api';
 import { createLogoutService } from '../../src/lib/logout';
+import { session } from '../../src/lib/session';
 import { colors, radii, spacing } from '../../src/theme/tokens';
 
 const logoutService = createLogoutService({
   getToken: () => SecureStore.getItemAsync('auth_token'),
   deleteToken: () => SecureStore.deleteItemAsync('auth_token'),
-  post: ({ url, headers }) => api.post(url, undefined, { headers }),
+  post: ({ url, headers }) => publicApi.post(url, undefined, { headers }),
 });
 
 export default function ProfileScreen() {
@@ -37,6 +38,7 @@ export default function ProfileScreen() {
         );
         return;
       }
+      session.logoutCompleted();
       router.replace('/(auth)/login');
     } finally {
       loggingOut.current = false;

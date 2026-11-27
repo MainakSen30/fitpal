@@ -5,6 +5,7 @@ import type { SignupRequest } from './signup';
 
 const secureStore = {
   getItemAsync: mock(async () => 'existing-token'),
+  setItemAsync: mock(async (_key: string, _value: string) => {}),
   deleteItemAsync: mock(async () => {}),
 };
 
@@ -19,14 +20,19 @@ type SignupHttpModule = typeof import('./signup-http');
 let createSignupClient!: SignupHttpModule['createSignupClient'];
 let createSignupPost!: SignupHttpModule['createSignupPost'];
 let api!: typeof import('./api')['api'];
+let publicApi!: typeof import('./api')['publicApi'];
+let session!: typeof import('./session')['session'];
 
 beforeAll(async () => {
-  ({ api } = await import('./api'));
+  ({ api, publicApi } = await import('./api'));
+  ({ session } = await import('./session'));
   ({ createSignupClient, createSignupPost } = await import('./signup-http'));
 });
 
 beforeEach(() => {
+  session.logoutCompleted();
   secureStore.getItemAsync.mockClear();
+  secureStore.setItemAsync.mockClear();
   secureStore.deleteItemAsync.mockClear();
 });
 
@@ -40,9 +46,10 @@ const RESEND_REQUEST: SignupRequest = {
   body: { userId: 'user-123' },
 };
 
-function httpError(status: number, data: unknown) {
+function httpError(status: number, data: unknown, headers: Record<string, string> = {}) {
   return Object.assign(new Error(`HTTP ${status}`), {
     response: { status, data },
+    config: { headers },
   });
 }
 
@@ -95,7 +102,8 @@ describe('createSignupPost', () => {
     await expect(createSignupPost(fakeClient(post))(VERIFY_REQUEST)).rejects.toThrow('Network Error');
   });
 
-  it('does not use the global interceptors or delete an existing auth_token', async () => {
+  it('does not use the global interceptors or invalidate an existing session', async () => {
+    session.establish('active-token');
     const client = createSignupClient();
     expect(client.interceptors.request.handlers?.length ?? 0).toBe(0);
     expect(client.interceptors.response.handlers?.length ?? 0).toBe(0);
@@ -106,27 +114,69 @@ describe('createSignupPost', () => {
 
     expect((await createSignupPost(client)(VERIFY_REQUEST)).status).toBe(401);
     expect(secureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(session.currentToken()).toBe('active-token');
   });
 });
 
-describe('global API client', () => {
-  it('still deletes auth_token on any 401 response', async () => {
-    expect(api.interceptors.response.handlers?.length).toBe(1);
-    const rejected = api.interceptors.response.handlers?.[0]?.rejected;
-    expect(rejected).toBeDefined();
+describe('public auth client', () => {
+  it('has no interceptors, so a login-style 401 cannot clear an active session', async () => {
+    session.establish('active-token');
+    expect(publicApi.interceptors.request.handlers?.length ?? 0).toBe(0);
+    expect(publicApi.interceptors.response.handlers?.length ?? 0).toBe(0);
 
-    await expect(rejected?.(httpError(401, {}))).rejects.toBeDefined();
-    expect(secureStore.deleteItemAsync).toHaveBeenCalledWith('auth_token');
+    publicApi.defaults.adapter = async () => {
+      throw httpError(401, { error: 'Invalid email or password' });
+    };
+    await expect(publicApi.post('/auth/login', {})).rejects.toBeDefined();
+    expect(secureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(session.currentToken()).toBe('active-token');
   });
 
-  it('still attaches the stored Bearer token to requests', async () => {
-    expect(api.interceptors.request.handlers?.length).toBe(1);
+  it('never reads or deletes an auth token', async () => {
+    session.establish('active-token');
+    expect(secureStore.getItemAsync).not.toHaveBeenCalled();
+    expect(secureStore.deleteItemAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('protected API client', () => {
+  it('attaches the current session token rather than an arbitrary stored token', async () => {
+    session.establish('current-token');
     const fulfilled = api.interceptors.request.handlers?.[0]?.fulfilled;
     expect(fulfilled).toBeDefined();
 
     const config = { headers: {} } as InternalAxiosRequestConfig;
     const result = await fulfilled?.(config);
 
-    expect(result?.headers.Authorization).toBe('Bearer existing-token');
+    expect(result?.headers.Authorization).toBe('Bearer current-token');
+    expect(secureStore.getItemAsync).not.toHaveBeenCalled();
+  });
+
+  it('invalidates a 401 only when it rejects the active session token', async () => {
+    session.establish('current-token');
+    const rejected = api.interceptors.response.handlers?.[0]?.rejected;
+    expect(rejected).toBeDefined();
+
+    await expect(
+      rejected?.(httpError(401, {}, { Authorization: 'Bearer current-token' })),
+    ).rejects.toBeDefined();
+    expect(secureStore.deleteItemAsync).toHaveBeenCalledWith('auth_token');
+  });
+
+  it('ignores public 401s, stale 401s, and non-401 4xx responses', async () => {
+    session.establish('current-token');
+    const rejected = api.interceptors.response.handlers?.[0]?.rejected;
+    expect(rejected).toBeDefined();
+
+    await expect(rejected?.(httpError(401, {}))).rejects.toBeDefined();
+    await expect(
+      rejected?.(httpError(401, {}, { Authorization: 'Bearer old-token' })),
+    ).rejects.toBeDefined();
+    await expect(
+      rejected?.(httpError(400, {}, { Authorization: 'Bearer current-token' })),
+    ).rejects.toBeDefined();
+
+    expect(secureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(session.currentToken()).toBe('current-token');
   });
 });
