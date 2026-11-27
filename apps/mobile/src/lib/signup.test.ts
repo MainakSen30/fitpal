@@ -396,9 +396,29 @@ describe('createSignupService.verify', () => {
     });
 
     expect(await createSignupService(actions).verify({ code: '123456' })).toEqual({
-      kind: 'unexpectedServerError',
+      kind: 'sessionPersistenceFailed',
+      pending: ACCEPTED_PENDING,
     });
-    expect(actions.clearPending).not.toHaveBeenCalled();
+    expect(actions.clearPending).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a cleanup failure after session-token persistence failure', async () => {
+    const actions = deps({
+      loadPending: mock(async () => ACCEPTED_PENDING),
+      post: http(200, { token: 'session-token' }),
+      saveSessionToken: mock(async (_token: string) => {
+        throw new Error('SecureStore write failed');
+      }),
+      clearPending: mock(async () => {
+        throw new Error('SecureStore delete failed');
+      }),
+    });
+
+    expect(await createSignupService(actions).verify({ code: '123456' })).toEqual({
+      kind: 'sessionPersistenceFailed',
+      pending: ACCEPTED_PENDING,
+      cleanupFailed: true,
+    });
   });
 
   it('does not classify an unknown 400 as a confirmed lockout', async () => {

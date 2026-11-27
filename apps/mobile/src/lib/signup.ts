@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type SignupChannel = 'email' | 'sms';
 
 type PendingMetadata = {
@@ -62,6 +64,7 @@ export type SignupResult =
   | { kind: 'pendingPersistenceFailed'; pending: PendingSignup }
   | { kind: 'deliveryUnavailable'; pending: DeliveryFailedPendingSignup; continuationToken: string }
   | { kind: 'verified'; pendingCleanupFailed?: boolean }
+  | { kind: 'sessionPersistenceFailed'; pending: AcceptedPendingSignup; cleanupFailed?: boolean }
   | { kind: 'validationError' }
   | { kind: 'unrecognizedBadRequest' }
   | { kind: 'duplicateRegistration' }
@@ -72,6 +75,127 @@ export type SignupResult =
   | { kind: 'pendingReadFailed' }
   | { kind: 'networkFailure' }
   | { kind: 'unexpectedServerError' };
+
+// Backend normalizes with libphonenumber-js. Without that dependency on mobile,
+// require the E.164 shape rather than guessing a default country.
+export const E164_PATTERN = /^\+[1-9]\d{7,14}$/;
+
+export const signupSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
+  email: z.string().trim().email('Invalid email').max(320, 'Email is too long'),
+  phone: z.string().trim().regex(E164_PATTERN, 'Include your country code, e.g. +14155550123'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password is too long'),
+  verificationChannel: z.enum(['email', 'sms']),
+});
+
+export type SignupFormValues = z.infer<typeof signupSchema>;
+
+export function toRegisterInput(values: SignupFormValues): RegisterInput {
+  return {
+    name: values.name,
+    email: values.email,
+    phone: values.phone,
+    password: values.password,
+    verificationChannel: values.verificationChannel,
+  };
+}
+
+export type SignupScreenOutcome =
+  | { kind: 'verify'; deliveryUnavailable?: boolean }
+  | { kind: 'recover'; pending: PendingSignup; message: string }
+  | { kind: 'notice'; message: string };
+
+export function mapSignupResult(result: SignupResult): SignupScreenOutcome {
+  switch (result.kind) {
+    case 'pending':
+      return { kind: 'verify' };
+    case 'deliveryUnavailable':
+      return { kind: 'verify', deliveryUnavailable: true };
+    case 'pendingPersistenceFailed':
+      return {
+        kind: 'recover',
+        pending: result.pending,
+        message: 'Registration succeeded, but this device could not save it. Retry saving to continue verification.',
+      };
+    case 'duplicateRegistration':
+      return { kind: 'notice', message: 'We could not create that account. Check your details or sign in.' };
+    case 'rateLimit':
+      return { kind: 'notice', message: 'Too many attempts. Please try again later.' };
+    case 'networkFailure':
+      return { kind: 'notice', message: "You're offline. Check your connection and try again." };
+    case 'validationError':
+      return { kind: 'notice', message: 'Check your details and try again.' };
+    default:
+      return { kind: 'notice', message: 'We could not complete registration. Please try again.' };
+  }
+}
+
+export type VerifyScreenOutcome =
+  | { kind: 'success'; cleanupFailed?: boolean }
+  | { kind: 'sessionPersistenceFailed'; message: string }
+  | { kind: 'restart'; message: string }
+  | { kind: 'error'; message: string };
+
+export function mapVerifyResult(result: SignupResult): VerifyScreenOutcome {
+  switch (result.kind) {
+    case 'verified':
+      return result.pendingCleanupFailed
+        ? { kind: 'success', cleanupFailed: true }
+        : { kind: 'success' };
+    case 'sessionPersistenceFailed':
+      return {
+        kind: 'sessionPersistenceFailed',
+        message: 'Verification succeeded, but we could not save your session. Please sign in with your password.',
+      };
+    case 'invalidOrExpiredCode':
+      return { kind: 'error', message: 'That code is invalid or has expired. Try again or request a new one.' };
+    case 'codeLockout':
+      return { kind: 'error', message: 'Too many incorrect attempts. Request a new code after the lock expires.' };
+    case 'rateLimit':
+      return { kind: 'error', message: 'Too many requests. Please wait before trying again.' };
+    case 'networkFailure':
+      return { kind: 'error', message: "You're offline. Check your connection and try again." };
+    case 'validationError':
+      return { kind: 'error', message: 'Enter the 6-digit code.' };
+    case 'pendingReadFailed':
+      return { kind: 'restart', message: 'We could not read your signup. Please start again.' };
+    case 'invalidPendingSignup':
+      return { kind: 'restart', message: 'This verification is no longer available. Please start again.' };
+    case 'pendingPersistenceFailed':
+      return { kind: 'error', message: 'We could not save your signup on this device. Please retry.' };
+    default:
+      return { kind: 'error', message: 'We could not verify the code. Please try again.' };
+  }
+}
+
+export type ResendScreenOutcome =
+  | { kind: 'resent'; message: string }
+  | { kind: 'deliveryUnavailable'; message: string }
+  | { kind: 'restart'; message: string }
+  | { kind: 'error'; message: string };
+
+export function mapResendResult(result: SignupResult): ResendScreenOutcome {
+  switch (result.kind) {
+    case 'pending':
+      return { kind: 'resent', message: 'A new verification code was sent.' };
+    case 'deliveryUnavailable':
+      return { kind: 'deliveryUnavailable', message: "We couldn't deliver a code. Please try again." };
+    case 'pendingPersistenceFailed':
+      return { kind: 'error', message: 'Delivery failed and the retry details could not be saved. Please try again.' };
+    case 'invalidPendingSignup':
+      return { kind: 'restart', message: 'This verification is no longer available. Please start again.' };
+    case 'pendingReadFailed':
+      return { kind: 'error', message: 'We could not read your signup. Please retry.' };
+    case 'rateLimit':
+      return { kind: 'error', message: 'Too many requests. Please wait before requesting another code.' };
+    case 'networkFailure':
+      return { kind: 'error', message: "You're offline. Check your connection and try again." };
+    case 'codeLockout':
+      return { kind: 'error', message: 'Too many incorrect attempts. Request a new code after the lock expires.' };
+    default:
+      return { kind: 'error', message: 'We could not resend the code. Please try again.' };
+  }
+}
 
 function recordOf(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null ? value as Record<string, unknown> : null;
@@ -96,7 +220,7 @@ function isValidationError(data: unknown): boolean {
   return record?.success === false && error !== null && Array.isArray(error.issues);
 }
 
-function isPendingSignup(value: unknown): value is PendingSignup {
+export function isPendingSignup(value: unknown): value is PendingSignup {
   const record = recordOf(value);
   if (!record || !Number.isFinite(record.createdAt as number)) return false;
   if (record.email !== undefined && typeof record.email !== 'string') return false;
@@ -389,7 +513,12 @@ export function createSignupService(actions: SignupActions) {
         const token = stringField(recordOf(response.data), 'token');
         if (!token) return { kind: 'unexpectedServerError' };
         if (!(await persist(() => actions.saveSessionToken(token)))) {
-          return { kind: 'unexpectedServerError' };
+          // The OTP is consumed and the account is verified. The pending record
+          // is no longer usable, so clear it and point the user to password login.
+          const cleaned = await clearLogicalPending(revision, () => actions.clearPending());
+          return cleaned
+            ? { kind: 'sessionPersistenceFailed', pending: loaded.pending }
+            : { kind: 'sessionPersistenceFailed', pending: loaded.pending, cleanupFailed: true };
         }
         // The session is already valid; cleanup failure must not undo or hide it.
         if (!(await clearLogicalPending(revision, () => actions.clearPending()))) {
